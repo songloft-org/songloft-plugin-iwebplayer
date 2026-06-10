@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Songloft 数据透视镜</title>
+  <style>
+    body { font-family: Consolas, monospace; background: #1e1e1e; color: #d4d4d4; padding: 20px; }
+    h2 { color: #4ade80; }
+    pre { white-space: pre-wrap; word-wrap: break-word; }
+  </style>
+</head>
+<body>
+  <pre id="output">正在努力向大系统请求数据中...</pre>
+
+  <script>
+    // 1. 自动从你的浏览器里偷取大系统的通行证
+    const originalFetch = window.fetch;
+    window.fetch = async function(resource, config) {
+      config = config || {};
+      config.headers = config.headers || {};
+      try {
+        const authData = JSON.parse(localStorage.getItem('songloft-auth') || '{}');
+        if (authData.accessToken) {
+          config.headers['Authorization'] = `Bearer ${authData.accessToken}`;
+        }
+      } catch(e) {}
+      return originalFetch(resource, config);
+    };
+
+    // 2. 去请求我们在 main.ts 留下的后门接口
+    // 注意：因为我们在 static/ 文件夹里，所以接口路径要往上跳一级用 ../
+    fetch('/api/v1/jsplugin/iwebplayer/debug')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        document.getElementById('output').textContent = "抓取失败：" + err;
+      });
+  </script>
+</body>
+</html>
