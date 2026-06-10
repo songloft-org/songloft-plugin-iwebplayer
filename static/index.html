@@ -68,18 +68,23 @@
     background: var(--card-bg) url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 6px center / 12px;
     color: var(--text-main); font-size: 15px; cursor: pointer; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none;
   }
+  /* 🌟 1. 顶部下拉/齿轮菜单统一 */
   .select-options {
     display: none; position: absolute; top: 100%; right: 0; margin-top: 6px;
-    background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1); list-style: none; max-height: 50vh;
-    overflow-y: auto; z-index: 200; min-width: 80px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    background: var(--card-bg); border: 1px solid var(--border);
+    list-style: none; max-height: 50vh; z-index: 200; min-width: 80px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    /* 统一派系：无外层留白(1派) + 16px圆角与深阴影(3派) + 防止圆角漏边 */
+    padding: 0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow-y: auto; overflow-x: hidden;
   }
-  .select-options.show { display: block; animation: fadeIn 0.2s ease-out; }
-  .select-option { padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color); cursor: pointer; white-space: nowrap; display: flex; align-items: center; }
+  .select-option {
+    padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color);
+    cursor: pointer; white-space: nowrap; display: flex; align-items: center; color: var(--text-main); font-weight: normal;
+  }
   .select-option:last-child { border-bottom: none; }
   .select-option.active { color: var(--primary); font-weight: bold; background: var(--bg-color); }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-
+  .select-options.show { display: block; }
+  .song-more-menu.show { display: block; }
   /* ==========================================
      3. 歌单筛选行与曲库搜索栏
      ========================================== */
@@ -140,12 +145,18 @@
   .song-more-btn { position: relative; color: var(--text-sub); padding: 2px; margin-left: 8px; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
   .song-more-btn::after { content: ''; position: absolute; top: -15px; bottom: -15px; left: -10px; right: -10px; }
   .song-more-btn:active { background: var(--border); color: var(--text-main); }
+
   .song-more-menu {
     display: none; position: absolute; right: 46px; top: 36px; background: var(--card-bg);
-    border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); z-index: 20; list-style: none; min-width: 90px; overflow: hidden;
+    border: 1px solid var(--border); z-index: 20; list-style: none;
+    width: max-content;
+    padding: 0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden;
   }
-  .song-more-menu.show { display: block; animation: fadeIn 0.15s ease-out; }
-  .song-more-menu-item { padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color); color: var(--text-main); cursor: pointer; display: flex; align-items: center; }
+  .song-more-menu-item {
+    color: var(--text-main); cursor: pointer; display: flex; align-items: center;
+    padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color);
+    white-space: nowrap;
+  }
   .song-more-menu-item:last-child { border-bottom: none; }
   .song-more-menu-item:active { background-color: var(--bg-color); }
   .song-more-menu-item svg { pointer-events: none; }
@@ -198,6 +209,31 @@
   .volume-text { font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
   .volume-popup input[type=range] { writing-mode: vertical-lr; direction: rtl; width: 28px; height: 100px; background: transparent; outline: none; margin: 0; cursor: pointer; }
 
+  .mode-popup {
+      width: max-content; height: auto; bottom: 48px; left: -5px; transform: none;
+      padding: 0; overflow: hidden;
+  }
+  .mode-item {
+      width: 100%; display: flex; align-items: center;
+      color: var(--text-main); cursor: pointer; transition: background 0.2s; font-weight: normal;
+      padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color);
+      white-space: nowrap;
+  }
+  .mode-item:last-child { border-bottom: none; }
+  .mode-item:active { background: var(--bg-color); }
+  .mode-item.active { color: var(--primary); font-weight: bold; }
+
+  .select-option svg,
+  .song-more-menu-item svg,
+  .mode-item svg {
+      flex-shrink: 0;
+      stroke: currentColor;
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      opacity: 0.85;
+      transform: translateY(-1px);
+  }
   /* ==========================================
      6. 全屏沉浸播放页
      ========================================== */
@@ -441,33 +477,25 @@
         <ul class="select-options" id="settings-opts" style="left: 0; right: auto; min-width: 100px;">
 
           <li class="select-option disabled-text" id="setting-refresh">
-             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="margin-right:6px; vertical-align:-2px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> 刷新曲库
+             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> 刷新曲库
           </li>
           <li class="select-option disabled-text" id="setting-create-playlist">
-             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="margin-right:6px; vertical-align:-2px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> 编辑歌单
+             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> 编辑歌单
           </li>
-
-
           <li class="select-option" id="setting-config">
-             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-2px;">
+             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                <path d="M3 21v-9L12 4l9 8v9Z"></path>
-               <line x1="9" y1="17" x2="9" y2="13"></line>
-               <line x1="12" y1="17" x2="12" y2="10"></line>
-               <line x1="15" y1="17" x2="15" y2="14"></line>
+               <line x1="9" y1="17" x2="9" y2="13"></line><line x1="12" y1="17" x2="12" y2="10"></line><line x1="15" y1="17" x2="15" y2="14"></line>
              </svg> 后台配置
           </li>
-
           <li class="select-option" id="setting-ios-desktop">
-             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-2px;">
-               <rect x="4" y="4" width="6" height="6" rx="1"></rect>
-               <rect x="14" y="4" width="6" height="6" rx="1"></rect>
-               <rect x="4" y="14" width="6" height="6" rx="1"></rect>
-               <line x1="14" y1="17" x2="20" y2="17"></line>
-               <line x1="17" y1="14" x2="17" y2="20"></line>
+             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+               <rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect>
+               <line x1="14" y1="17" x2="20" y2="17"></line><line x1="17" y1="14" x2="17" y2="20"></line>
              </svg> 桌面 (iOS)
           </li>
           <li class="select-option" id="setting-version">
-             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="margin-right:6px; vertical-align:-2px;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 版本 <span id="setting-version-label"></span>
+             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 版本 <span id="setting-version-label"></span>
           </li>
         </ul>
       </div>
@@ -590,11 +618,20 @@
       </div>
 
       <div class="controls">
-        <button class="iwp-btn mode-btn" id="btn-mode" title="全部循环">
-          <svg id="icon-loop-all" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
-          <svg id="icon-shuffle" style="display: none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
-          <svg id="icon-loop-one" style="display: none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path><text x="10" y="15" stroke="none" fill="currentColor" font-size="10" font-weight="bold" font-family="sans-serif">1</text></svg>
-        </button>
+        <div class="mode-wrapper" style="position: relative;" id="mode-container">
+          <button class="iwp-btn mode-btn" id="btn-mode" title="本单循环">
+            <svg id="icon-mode-0" style="display:none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h10"></path><polyline points="17 16 20 20 23 16"></polyline><line x1="20" y1="4" x2="20" y2="20"></line></svg>
+            <svg id="icon-mode-1" style="display:block;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+            <svg id="icon-mode-2" style="display:none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
+            <svg id="icon-mode-3" style="display:none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path><text x="10" y="15" stroke="none" fill="currentColor" font-size="10" font-weight="bold" font-family="sans-serif">1</text></svg>
+          </button>
+          <div class="volume-popup mode-popup" id="mode-popup">
+            <div class="mode-item" data-mode="0"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h10"></path><polyline points="17 16 20 20 23 16"></polyline><line x1="20" y1="4" x2="20" y2="20"></line></svg>跨单顺播</div>
+            <div class="mode-item" data-mode="1"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>本单循环</div>
+            <div class="mode-item" data-mode="2"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>本单随机</div>
+            <div class="mode-item" data-mode="3"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path><text x="10" y="15" stroke="none" fill="currentColor" font-size="10" font-weight="bold" font-family="sans-serif">1</text></svg>单曲循环</div>
+          </div>
+        </div>
         <button class="iwp-btn" id="btn-prev">
           <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
         </button>
@@ -778,7 +815,7 @@
       <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 6px;">
           <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">调速&续播</h2>
+          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">续播&调速</h2>
         </div>
         <div style="font-size: 13px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; margin-bottom: 15px;">
           <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
@@ -925,7 +962,7 @@
     /* ==========================================
      * 1. 核心配置与全局状态
      * ========================================== */
-    const APP_VERSION = 'v0.3.1';
+    const APP_VERSION = 'v0.3.2';
     const APP_LOGO = document.getElementById('app-logo')?.content || '';
     const PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '曲库搜索', 'cache_songs'];
     const API = {
@@ -936,7 +973,8 @@
     };
 
     const defaultCover = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23ec4899' /%3E%3Cstop offset='100%25' stop-color='%238b5cf6' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='%231f2937' /%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='%23374151' stroke-width='1' /%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23374151' stroke-width='1' /%3E%3Ccircle cx='50' cy='50' r='20' fill='url(%23grad)' /%3E%3Ccircle cx='50' cy='50' r='5' fill='%23111827' /%3E%3Cpath d='M50 15 A35 35 0 0 1 85 50' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' opacity='0.3' /%3E%3C/svg%3E";
-    const modeNames = ["单曲循环", "全部循环", "随机播放"];
+    const modeNames = ["跨单顺播", "本单循环", "本单随机", "单曲循环"];
+    let storedMode = parseInt(localStorage.getItem('iwebplayer.local_play_mode'));
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     // 获取元素
@@ -966,7 +1004,7 @@
 
     let isPlaying = false;
     let currentPlaylist = "";
-    let playMode = parseInt(localStorage.getItem('iwebplayer.local_play_mode')) || 1;
+    let playMode = isNaN(storedMode) ? 1 : storedMode;
 
     let localState = { playlist: "", songName: "" };
 
@@ -1120,11 +1158,19 @@
     }
 
     function updatePlayModeUI() {
-      if (!iconLoopOne) return;
-      iconLoopOne.style.display = playMode === 0 ? 'block' : 'none';
-      iconLoopAll.style.display = playMode === 1 ? 'block' : 'none';
-      iconShuffle.style.display = playMode === 2 ? 'block' : 'none';
+      for (let i = 0; i <= 3; i++) {
+          const icon = document.getElementById('icon-mode-' + i);
+          if (icon) icon.style.display = playMode === i ? 'block' : 'none';
+      }
       btnMode.title = modeNames[playMode];
+
+      const modePopup = document.getElementById('mode-popup');
+      if (modePopup) {
+          modePopup.querySelectorAll('.mode-item').forEach(item => {
+              item.classList.remove('active');
+              if (parseInt(item.dataset.mode) === playMode) item.classList.add('active');
+          });
+      }
     }
 
     function updateVolumeIcon(vol) {
@@ -1427,7 +1473,7 @@
       }
       try {
         let info = null;
-        if (preloadCache && preloadCache.index === index) {
+        if (preloadCache && (preloadCache.index === index || (preloadCache.isCross && preloadCache.playlist === currentPlaylist && index === 0))) {
             info = preloadCache.data;
         } else {
             const songId = rawItem.id;
@@ -1513,6 +1559,19 @@
                 (targetIndex + 1 >= songList.length ? 0 : targetIndex + 1);
             await scoutNextSong(nextNextIdx, depth + 1);
         }
+        isScouting = false;
+    }
+    // 🌟 新增：跨歌单顺播专属的边界预加载函数（提前抓取下一个歌单的首曲资源）
+    async function scoutCrossPlaylistSong(playlistName, rawItem) {
+        if (!rawItem || isScouting) return;
+        isScouting = true;
+        try {
+            const res = await fetch(API.info + rawItem.id);
+            const fetchedData = await res.json();
+            if (fetchedData && fetchedData.url) {
+                preloadCache = { isCross: true, playlist: playlistName, data: fetchedData };
+            }
+        } catch (e) {}
         isScouting = false;
     }
 
@@ -2004,8 +2063,8 @@
       }, { root: null, rootMargin: '100px 0px', threshold: 0.1 });
 
       const MENU_ICONS = {
-          '移出': `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; opacity: 0.75;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`,
-          '加入': `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; opacity: 0.75;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>`
+          '移出': `<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`,
+          '加入': `<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>`
       };
 
       songList.forEach((rawItem, index) => {
@@ -2318,6 +2377,10 @@
               if (typeof closeAllSongMenus === 'function') closeAllSongMenus();
           }
           if (!e.target.closest('#device-container') && deviceOpts) deviceOpts.classList.remove('show');
+
+          if (fpSpeedPopup && !fpSpeedPopup.contains(e.target) && !e.target.closest('#fp-corner-speed')) {
+              fpSpeedPopup.classList.remove('show');
+          }
         });
 
         if (settingRefreshBtn) {
@@ -2392,15 +2455,6 @@
           }
         });
 
-        audioEl.addEventListener('ended', () => {
-          if (playMode === 0) {
-            audioEl.currentTime = 0;
-            audioEl.play();
-          } else {
-            btnNext.click();
-          }
-        });
-
         audioEl.addEventListener('timeupdate', () => {
           if (!audioEl.duration || isDragging) return;
           const current = audioEl.currentTime;
@@ -2435,12 +2489,35 @@
           timeCurrentEl.innerText = window.formatTime(current);
           timeDurationEl.innerText = window.formatTime(duration);
           window.LyricsEngine.sync(current);
-        });
 
-        btnMode.addEventListener('click', () => {
-          playMode = (playMode + 1) % 3;
-          updatePlayModeUI();
-          localStorage.setItem('iwebplayer.local_play_mode', playMode);
+          // 🌟 修复：全模式锁屏保活探针（完美支持跨单顺播的边界预载）
+          if (duration - current <= 30 && !preloadCache && !isScouting && playMode !== 3) {
+              let nextScoutIdx = currentIndex + 1;
+              if (playMode === 2 && songList.length > 1) {
+                  // 1. 随机模式
+                  do { nextScoutIdx = Math.floor(Math.random() * songList.length); } while (nextScoutIdx === currentIndex);
+                  if (nextScoutIdx >= 0 && nextScoutIdx < songList.length) scoutNextSong(nextScoutIdx);
+              } else if (playMode === 0 && nextScoutIdx >= songList.length) {
+                  // 2. 跨单顺播：当播放到当前歌单最后一首的最后30秒，提前在后台抓取下一个歌单的第一首歌
+                  let opts = Array.from(document.querySelectorAll('#playlist-opts .select-option'))
+                                  .map(el => el.dataset.key)
+                                  .filter(k => k !== '曲库搜索');
+                  if (opts.length > 0) {
+                      let currentOptIdx = opts.indexOf(currentPlaylist);
+                      let nextPlaylistName = opts[(currentOptIdx + 1) % opts.length];
+                      let nextPlaylistSongs = allPlaylists[nextPlaylistName] || [];
+                      if (nextPlaylistSongs.length > 0) {
+                          scoutCrossPlaylistSong(nextPlaylistName, nextPlaylistSongs[0]);
+                      }
+                  }
+              } else {
+                  // 3. 普通单循环或列表循环
+                  if (nextScoutIdx >= songList.length) nextScoutIdx = 0;
+                  if (nextScoutIdx >= 0 && nextScoutIdx < songList.length && nextScoutIdx !== currentIndex) {
+                      scoutNextSong(nextScoutIdx);
+                  }
+              }
+          }
         });
 
         btnPlay.addEventListener('click', () => {
@@ -2456,33 +2533,136 @@
           }
         });
 
-        btnPrev.addEventListener('click', () => {
-          if (songList.length === 0) return;
-          let nextIdx;
-          if (playMode === 2 && songList.length > 1) {
-            do { nextIdx = Math.floor(Math.random() * songList.length); } while (nextIdx === currentIndex);
-          } else {
-            nextIdx = currentIndex - 1 < 0 ? songList.length - 1 : currentIndex - 1;
-          }
-          playSong(nextIdx);
+        // 🌟 新增：全局点击关闭弹出层逻辑
+        const modePopup = document.getElementById('mode-popup');
+        document.addEventListener('click', (e) => {
+            if (modePopup && !modePopup.contains(e.target) && !e.target.closest('#btn-mode')) {
+                modePopup.classList.remove('show');
+            }
         });
 
-        btnNext.addEventListener('click', () => {
-            if (songList.length === 0) return;
-            let nextIdx;
+        // 🌟 模式切换按钮：点击弹出菜单
+        btnMode.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modePopup.classList.toggle('show');
+        });
 
-            if (preloadCache && preloadCache.index !== currentIndex) {
-                nextIdx = preloadCache.index;
-            } else {
-                if (playMode === 2 && songList.length > 1) {
-                    do { nextIdx = Math.floor(Math.random() * songList.length); } while (nextIdx === currentIndex);
-                } else {
-                    nextIdx = currentIndex + 1 >= songList.length ? 0 : currentIndex + 1;
-                }
+        // 🌟 菜单项点击：切换模式并保存
+        modePopup.querySelectorAll('.mode-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                playMode = parseInt(item.dataset.mode);
+                updatePlayModeUI();
+                localStorage.setItem('iwebplayer.local_play_mode', playMode);
+                modePopup.classList.remove('show');
+            });
+        });
+
+        // 🌟 核心：统一的智能下一首引擎 (兼容4大模式)
+        // 🌟 核心：统一的智能下一首引擎 (彻底移除 setTimeout 延迟，确保 iOS 锁屏音频通道不被切断)
+        function playNextSong(isAutoEnd = false) {
+            if (songList.length === 0) return;
+
+            // 模式3: 单曲循环
+            if (isAutoEnd && playMode === 3) {
+                audioEl.currentTime = 0; audioEl.play(); return;
             }
 
+            // 模式2: 本单随机
+            if (playMode === 2 && songList.length > 1) {
+                let nextIdx;
+                if (preloadCache && preloadCache.index >= 0 && preloadCache.index < songList.length && preloadCache.index !== currentIndex) {
+                    nextIdx = preloadCache.index;
+                } else {
+                    do { nextIdx = Math.floor(Math.random() * songList.length); } while (nextIdx === currentIndex);
+                }
+                playSong(nextIdx); return;
+            }
+
+            let nextIdx = currentIndex + 1;
+
+            // 模式0: 跨单顺播
+            if (playMode === 0 && nextIdx >= songList.length) {
+                let opts = Array.from(document.querySelectorAll('#playlist-opts .select-option'))
+                                .map(el => el.dataset.key)
+                                .filter(k => k !== '曲库搜索');
+                if (opts.length > 0) {
+                    let currentOptIdx = opts.indexOf(currentPlaylist);
+                    let nextPlaylistName = opts[(currentOptIdx + 1) % opts.length];
+                    const targetOpt = document.querySelector(`#playlist-opts .select-option[data-key="${nextPlaylistName}"]`);
+                    if (targetOpt) {
+                        targetOpt.click(); // 同步无缝切换歌单数据
+                        playSong(0); // 🌟 核心修复：直接纯同步播放！不给 iOS 锁屏断流留任何可乘之机
+                        return;
+                    }
+                } else playSong(0);
+                return;
+            }
+
+            // 模式1: 本单循环
+            if (nextIdx >= songList.length) nextIdx = 0;
             playSong(nextIdx);
+        }
+
+        function playPrevSong() {
+            if (songList.length === 0) return;
+
+            if (playMode === 2 && songList.length > 1) {
+                let prevIdx;
+                do { prevIdx = Math.floor(Math.random() * songList.length); } while (prevIdx === currentIndex);
+                playSong(prevIdx); return;
+            }
+
+            let prevIdx = currentIndex - 1;
+
+            if (playMode === 0 && prevIdx < 0) {
+                let opts = Array.from(document.querySelectorAll('#playlist-opts .select-option'))
+                                .map(el => el.dataset.key)
+                                .filter(k => k !== '曲库搜索');
+                if (opts.length > 0) {
+                    let currentOptIdx = opts.indexOf(currentPlaylist);
+                    let prevPlaylistName = opts[(currentOptIdx - 1 + opts.length) % opts.length];
+                    const targetOpt = document.querySelector(`#playlist-opts .select-option[data-key="${prevPlaylistName}"]`);
+                    if (targetOpt) {
+                        targetOpt.click();
+                        playSong(songList.length - 1); // 🌟 核心修复：直接同步切回上一个歌单尾曲
+                        return;
+                    }
+                } else playSong(songList.length - 1);
+                return;
+            }
+
+            if (prevIdx < 0) prevIdx = songList.length - 1;
+            playSong(prevIdx);
+        }
+
+        // 绑定接管事件
+        audioEl.addEventListener('ended', () => playNextSong(true));
+        btnNext.addEventListener('click', () => {
+            // 🌟 修复：手动点击下一首时，完美适配并消耗普通缓存与跨单缓存加速
+            if (preloadCache && playMode !== 3) {
+                if (preloadCache.isCross && playMode === 0) {
+                    let opts = Array.from(document.querySelectorAll('#playlist-opts .select-option'))
+                                    .map(el => el.dataset.key)
+                                    .filter(k => k !== '曲库搜索');
+                    let currentOptIdx = opts.indexOf(currentPlaylist);
+                    let nextPlaylistName = opts[(currentOptIdx + 1) % opts.length];
+                    if (preloadCache.playlist === nextPlaylistName) {
+                        const targetOpt = document.querySelector(`#playlist-opts .select-option[data-key="${nextPlaylistName}"]`);
+                        if (targetOpt) {
+                            targetOpt.click();
+                            playSong(0);
+                            return;
+                        }
+                    }
+                } else if (preloadCache.index !== currentIndex) {
+                    playSong(preloadCache.index);
+                    return;
+                }
+            }
+            playNextSong(false);
         });
+        btnPrev.addEventListener('click', playPrevSong);
 
         btnVolume.addEventListener('click', (e) => {
           e.stopPropagation();
