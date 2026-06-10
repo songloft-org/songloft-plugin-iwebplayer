@@ -30,11 +30,7 @@
       --tag-local: #d1d5db;
     }
   }
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
@@ -49,362 +45,107 @@
      2. 顶部导航栏、Logo 与 下拉组件
      ========================================== */
   .header {
-    position: sticky;
-    top: 0;
-    background-color: var(--bg-color);
-    padding: 0 16px;
-    height: 56px;
-    z-index: 150;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transform: translate3d(0, 0, 0);
-    -webkit-transform: translate3d(0, 0, 0);
+    position: sticky; top: 0; background-color: var(--bg-color); padding: 0 16px;
+    height: 56px; z-index: 150; display: flex; justify-content: space-between;
+    align-items: center; transform: translate3d(0, 0, 0); -webkit-transform: translate3d(0, 0, 0);
   }
-  .header-logo-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 0 1 auto;
-    overflow: hidden;
-    margin-right: 15px;
-  }
-  .header-icon {
-    width: 28px;
-    height: 28px;
-    flex-shrink: 0;
-  }
-  .header-title-stack {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    overflow: hidden;
-  }
-  .title-main {
-    font-size: 15px;
-    font-weight: bold;
-    line-height: 1.2;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-  .title-sub {
-    font-size: 11px;
-    color: var(--text-sub);
-    line-height: 1.2;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-  .header-controls {
-    display: flex;
-    gap: 8px;
-    flex: 1;
-    align-items: center;
-    justify-content: flex-end;
-    min-width: 0;
-  }
+  .header-logo-group { display: flex; align-items: center; gap: 8px; flex: 0 1 auto; overflow: hidden; margin-right: 15px; }
+  .header-icon { width: 28px; height: 28px; flex-shrink: 0; }
+  .header-title-stack { display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+  .title-main { font-size: 15px; font-weight: bold; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+  .title-sub { font-size: 11px; color: var(--text-sub); line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+  .header-controls { display: flex; gap: 8px; flex: 1; align-items: center; justify-content: flex-end; min-width: 0; }
   .settings-btn {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    color: var(--text-sub);
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-    margin-right: -4px;
+    display: flex; justify-content: center; align-items: center; width: 28px; height: 28px;
+    border-radius: 50%; color: var(--text-sub); cursor: pointer; transition: background 0.2s, color 0.2s; margin-right: -4px;
   }
-  .settings-btn:active {
-    background: var(--border);
-    color: var(--text-main);
-  }
+  .settings-btn:active { background: var(--border); color: var(--text-main); }
 
-  /* 通用下拉选择器样式 */
-  .custom-select {
-    position: relative;
-    display: flex;
-    align-items: center;
-    height: 36px;
-    min-width: 0;
-  }
+  .custom-select { position: relative; display: flex; align-items: center; height: 36px; min-width: 0; }
   .select-value {
-    height: 36px;
-    box-sizing: border-box;
-    line-height: 20px;
-    padding: 7px 24px 7px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
+    height: 36px; box-sizing: border-box; line-height: 20px; padding: 7px 24px 7px 12px;
+    border-radius: 8px; border: 1px solid var(--border);
     background: var(--card-bg) url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 6px center / 12px;
-    color: var(--text-main);
-    font-size: 15px;
-    cursor: pointer;
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    user-select: none;
+    color: var(--text-main); font-size: 15px; cursor: pointer; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none;
   }
   .select-options {
-    display: none;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 6px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    list-style: none;
-    max-height: 50vh;
-    overflow-y: auto;
-    z-index: 200;
-    min-width: 80px;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 6px;
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1); list-style: none; max-height: 50vh;
+    overflow-y: auto; z-index: 200; min-width: 80px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
   }
-  .select-options.show {
-    display: block;
-    animation: fadeIn 0.2s ease-out;
-  }
-  .select-option {
-    padding: 12px 15px;
-    font-size: 15px;
-    border-bottom: 1px solid var(--bg-color);
-    cursor: pointer;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-  }
-  .select-option:last-child {
-    border-bottom: none;
-  }
-  .select-option.active {
-    color: var(--primary);
-    font-weight: bold;
-    background: var(--bg-color);
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  .select-options.show { display: block; animation: fadeIn 0.2s ease-out; }
+  .select-option { padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color); cursor: pointer; white-space: nowrap; display: flex; align-items: center; }
+  .select-option:last-child { border-bottom: none; }
+  .select-option.active { color: var(--primary); font-weight: bold; background: var(--bg-color); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
   /* ==========================================
      3. 歌单筛选行与曲库搜索栏
      ========================================== */
   .playlist-row {
-    position: sticky;
-    top: 56px;
-    z-index: 85;
-    background: rgba(243, 244, 246, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    position: sticky; top: 56px; z-index: 85; background: rgba(243, 244, 246, 0.7);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    display: flex;
-    align-items: center;
-    padding: 1px 16px 10px 16px;
-    gap: 10px;
-    transform: translate3d(0, 0, 0);
-    -webkit-transform: translate3d(0, 0, 0);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05); display: flex; align-items: center;
+    padding: 1px 16px 10px 16px; gap: 10px; transform: translate3d(0, 0, 0); -webkit-transform: translate3d(0, 0, 0);
   }
   @media (prefers-color-scheme: dark) {
-    .playlist-row {
-      background: rgba(17, 24, 39, 0.65);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
+    .playlist-row { background: rgba(17, 24, 39, 0.65); border-bottom: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3); }
   }
   #playlist-container { position: static !important; }
-  #playlist-opts {
-    top: 40px !important;
-    left: 16px !important;
-    right: 16px !important;
-    width: auto !important;
-    max-width: none !important;
-  }
+  #playlist-opts { top: 40px !important; left: 16px !important; right: 16px !important; width: auto !important; max-width: none !important; }
 
-  /* 曲库搜索框 */
   .search-inline-wrap {
-    display: none;
-    flex: 1;
-    align-items: center;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0 8px;
-    gap: 6px;
-    height: 36px;
-    box-sizing: border-box;
-    min-width: 0;
-    animation: fadeIn 0.2s;
+    display: none; flex: 1; align-items: center; background: var(--card-bg);
+    border: 1px solid var(--border); border-radius: 8px; padding: 0 8px; gap: 6px;
+    height: 36px; box-sizing: border-box; min-width: 0; animation: fadeIn 0.2s;
   }
   .search-inline-wrap.show { display: flex; }
-  .search-inline-wrap input {
-    flex: 1;
-    border: none;
-    background: transparent;
-    padding: 0;
-    font-size: 14px;
-    color: var(--text-main);
-    outline: none;
-    min-width: 0;
-    height: 100%;
-  }
-  .search-actions {
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    margin-right: 2px;
-  }
+  .search-inline-wrap input { flex: 1; border: none; background: transparent; padding: 0; font-size: 14px; color: var(--text-main); outline: none; min-width: 0; height: 100%; }
+  .search-actions { display: flex; gap: 14px; align-items: center; margin-right: 2px; }
   .search-icon-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-sub);
-    border-radius: 6px;
-    width: 26px;
-    height: 26px;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.2s, opacity 0.2s;
+    background: transparent; border: none; color: var(--text-sub); border-radius: 6px; width: 26px; height: 26px;
+    display: none; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.2s, opacity 0.2s;
   }
   .search-icon-btn.show { display: flex; }
-  .search-icon-btn:active {
-    background: var(--border);
-    opacity: 0.8;
-    transform: scale(0.95);
-  }
+  .search-icon-btn:active { background: var(--border); opacity: 0.8; transform: scale(0.95); }
 
   /* ==========================================
      4. 歌曲列表与操作菜单
      ========================================== */
-  .playlist {
-    list-style: none;
-    padding: 10px;
-    max-width: 800px;
-    margin: 0 auto;
-    background-color: transparent;
-  }
-  #loading {
-    text-align: center;
-    padding: 20px;
-    color: var(--text-sub);
-    background-color: transparent;
-  }
-  @media (prefers-color-scheme: dark) {
-    #loading, .playlist { background-color: transparent; }
-  }
+  .playlist { list-style: none; padding: 10px; max-width: 800px; margin: 0 auto; background-color: transparent; }
+  #loading { text-align: center; padding: 20px; color: var(--text-sub); background-color: transparent; }
+  @media (prefers-color-scheme: dark) { #loading, .playlist { background-color: transparent; } }
 
   .song-item {
-    background: var(--card-bg);
-    margin-bottom: 10px;
-    padding: 15px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    cursor: pointer;
-    transition: transform 0.1s;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
+    background: var(--card-bg); margin-bottom: 10px; padding: 15px; border-radius: 12px;
+    display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    cursor: pointer; transition: transform 0.1s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   }
   .song-item:active { transform: scale(0.98); }
   .song-item.playing { border: 2px solid var(--primary); }
 
-  /* 🌟 全新列表封面图专属样式 */
   .song-cover-img {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    object-fit: cover;
-    margin: -10px 10px -10px -2px;
-    flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    transition: opacity 0.3s ease;
+    width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin: -10px 10px -10px -2px;
+    flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: opacity 0.3s ease;
   }
 
   .song-info { flex: 1; overflow: hidden; }
-  .song-name {
-    font-size: 16px;
-    font-weight: 500;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-  /* 歌曲来源标签（搜索结果用） */
-  .song-playlist-tag {
-    font-size: 11px;
-    color: var(--text-sub);
-    border: 1px solid var(--border);
-    padding: 1px 6px;
-    border-radius: 6px;
-    margin-left: 8px;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
+  .song-name { font-size: 16px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+  .song-playlist-tag { font-size: 11px; color: var(--text-sub); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; }
 
-  /* 右侧更多操作按钮与菜单 */
-  .song-item.menu-open {
-    background-color: rgba(236, 72, 153, 0.08);
-    border-color: rgba(236, 72, 153, 0.3);
-    z-index: 50;
-  }
-  @media (prefers-color-scheme: dark) {
-    .song-item.menu-open { background-color: rgba(236, 72, 153, 0.15); border-color: rgba(236, 72, 153, 0.4); }
-  }
-  .song-more-btn {
-    position: relative;
-    color: var(--text-sub);
-    padding: 2px;
-    margin-left: 8px;
-    cursor: pointer;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s, color 0.2s;
-  }
-  .song-more-btn::after {
-    content: '';
-    position: absolute;
-    top: -15px;
-    bottom: -15px;
-    left: -10px;
-    right: -10px;
-  }
+  .song-item.menu-open { background-color: rgba(236, 72, 153, 0.08); border-color: rgba(236, 72, 153, 0.3); z-index: 50; }
+  @media (prefers-color-scheme: dark) { .song-item.menu-open { background-color: rgba(236, 72, 153, 0.15); border-color: rgba(236, 72, 153, 0.4); } }
+  .song-more-btn { position: relative; color: var(--text-sub); padding: 2px; margin-left: 8px; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
+  .song-more-btn::after { content: ''; position: absolute; top: -15px; bottom: -15px; left: -10px; right: -10px; }
   .song-more-btn:active { background: var(--border); color: var(--text-main); }
   .song-more-menu {
-    display: none;
-    position: absolute;
-    right: 46px;
-    top: 36px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-    z-index: 20;
-    list-style: none;
-    min-width: 90px;
-    overflow: hidden;
+    display: none; position: absolute; right: 46px; top: 36px; background: var(--card-bg);
+    border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); z-index: 20; list-style: none; min-width: 90px; overflow: hidden;
   }
-  .song-more-menu.show {
-    display: block;
-    animation: fadeIn 0.15s ease-out;
-  }
-  .song-more-menu-item {
-    padding: 12px 15px;
-    font-size: 15px;
-    border-bottom: 1px solid var(--bg-color);
-    color: var(--text-main);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-  }
+  .song-more-menu.show { display: block; animation: fadeIn 0.15s ease-out; }
+  .song-more-menu-item { padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color); color: var(--text-main); cursor: pointer; display: flex; align-items: center; }
   .song-more-menu-item:last-child { border-bottom: none; }
   .song-more-menu-item:active { background-color: var(--bg-color); }
   .song-more-menu-item svg { pointer-events: none; }
@@ -414,419 +155,96 @@
      5. 底部播放控制条与进度条
      ========================================== */
   .player-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: calc(var(--player-height) + env(safe-area-inset-bottom));
-    background: var(--card-bg);
-    border-top: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 15px env(safe-area-inset-bottom) 15px;
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
-    z-index: 100;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
+    position: fixed; bottom: 0; left: 0; width: 100%; height: calc(var(--player-height) + env(safe-area-inset-bottom));
+    background: var(--card-bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center;
+    padding: 0 15px env(safe-area-inset-bottom) 15px; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); z-index: 100; transform: translateZ(0); -webkit-transform: translateZ(0);
   }
-  .progress-container {
-    position: absolute;
-    top: -15px;
-    left: 16px;
-    width: calc(100% - 32px);
-    height: 30px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 101;
-  }
-  .progress-bg {
-    width: 100%;
-    height: 4px;
-    background: var(--border);
-    position: relative;
-    border-radius: 4px;
-  }
-  .progress-bar {
-    height: 100%;
-    background: var(--primary);
-    width: 0%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    border-radius: 4px;
-  }
-  .progress-thumb {
-    position: absolute;
-    right: -7px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: 3px solid var(--primary);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-  }
+  .progress-container { position: absolute; top: -15px; left: 16px; width: calc(100% - 32px); height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 101; }
+  .progress-bg { width: 100%; height: 4px; background: var(--border); position: relative; border-radius: 4px; }
+  .progress-bar { height: 100%; background: var(--primary); width: 0%; position: absolute; top: 0; left: 0; border-radius: 4px; }
+  .progress-thumb { position: absolute; right: -7px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; border-radius: 50%; background: #ffffff; border: 3px solid var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
 
-  .player-container {
-    max-width: 800px;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-  }
+  .player-container { max-width: 800px; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-evenly; }
   .time-row { width: 100%; display: flex; justify-content: space-between; }
-  .time-current, .time-duration {
-    font-size: 11px;
-    color: var(--text-sub);
-    opacity: 0.8;
-    font-variant-numeric: tabular-nums;
-  }
+  .time-current, .time-duration { font-size: 11px; color: var(--text-sub); opacity: 0.8; font-variant-numeric: tabular-nums; }
 
-  /* 播放信息面板 */
-  .now-playing-info {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    cursor: pointer;
-    padding: 0 10px;
-    position: relative;
-    box-sizing: border-box;
-    justify-content: center;
-  }
-  .up-arrow {
-    width: 40px;
-    display: flex;
-    justify-content: center;
-    color: var(--text-sub);
-    animation: bounce 2s infinite;
-  }
+  .now-playing-info { display: flex; align-items: center; width: 100%; cursor: pointer; padding: 0 10px; position: relative; box-sizing: border-box; justify-content: center; }
+  .up-arrow { width: 40px; display: flex; justify-content: center; color: var(--text-sub); animation: bounce 2s infinite; }
   .up-arrow svg { transition: transform 0.3s ease; }
   body.player-open .up-arrow { animation: none; }
   body.player-open .up-arrow svg { transform: rotate(180deg); }
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-    40% {transform: translateY(-5px);}
-    60% {transform: translateY(-3px);}
-  }
-  .np-text-group {
-    flex: 0 1 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-  .now-playing-title {
-    font-size: 19px;
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    width: 100%;
-    position: relative;
-    display: flex;
-    justify-content: center;
-  }
-  .np-title-text {
-    display: inline-block;
-    white-space: nowrap;
-  }
-  @keyframes marquee-loop {
-    0% { transform: translateX(0); opacity: 0; }
-    5%, 15% { transform: translateX(0); opacity: 1; }
-    80%, 90% { transform: translateX(var(--scroll-dist)); opacity: 1; }
-    95%, 100% { transform: translateX(var(--scroll-dist)); opacity: 0; }
-  }
-  .marquee-scroll {
-    animation: marquee-loop 6s linear infinite;
-  }
+  @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-5px);} 60% {transform: translateY(-3px);} }
+  .np-text-group { flex: 0 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+  .now-playing-title { font-size: 19px; font-weight: bold; white-space: nowrap; overflow: hidden; width: 100%; position: relative; display: flex; justify-content: center; }
+  .np-title-text { display: inline-block; white-space: nowrap; }
+  @keyframes marquee-loop { 0% { transform: translateX(0); opacity: 0; } 5%, 15% { transform: translateX(0); opacity: 1; } 80%, 90% { transform: translateX(var(--scroll-dist)); opacity: 1; } 95%, 100% { transform: translateX(var(--scroll-dist)); opacity: 0; } }
+  .marquee-scroll { animation: marquee-loop 6s linear infinite; }
 
-  /* 核心播放控制按钮 */
-  .controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    padding: 0 10px;
-    box-sizing: border-box;
-  }
-  .iwp-btn {
-    background: none;
-    border: none;
-    color: var(--text-main);
-    font-size: 20px;
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: opacity 0.2s;
-  }
-  .iwp-btn.play-btn {
-    background: var(--primary);
-    color: white;
-    width: 46px;
-    height: 46px;
-  }
+  .controls { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0 10px; box-sizing: border-box; }
+  .iwp-btn { background: none; border: none; color: var(--text-main); font-size: 20px; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: opacity 0.2s; }
+  .iwp-btn.play-btn { background: var(--primary); color: white; width: 46px; height: 46px; }
   .iwp-btn.mode-btn, .btn.vol-btn { opacity: 0.8; }
   .iwp-btn:active { opacity: 0.5; }
 
-  /* 音量调节面板 */
   .volume-wrapper { position: relative; }
   .volume-popup {
-    position: absolute;
-    bottom: 55px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 12px 0 16px 0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 110;
-    width: 54px;
-    height: 230px;
-    touch-action: none;
+    position: absolute; bottom: 55px; left: 50%; transform: translateX(-50%); background: var(--card-bg);
+    border: 1px solid var(--border); border-radius: 16px; padding: 12px 0 16px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 110; width: 54px; height: 230px; touch-action: none;
   }
   .volume-popup.show { display: flex; }
-  .vol-adj-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-main);
-    font-size: 20px;
-    font-weight: 500;
-    cursor: pointer;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background 0.2s;
-    margin: 4px 0;
-    user-select: none;
-  }
+  .vol-adj-btn { background: transparent; border: none; color: var(--text-main); font-size: 20px; font-weight: 500; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; margin: 4px 0; user-select: none; }
   .vol-adj-btn:active { background: var(--bg-color); }
-  .volume-text {
-    font-size: 12px;
-    font-weight: bold;
-    color: var(--primary);
-    margin-bottom: 8px;
-    font-variant-numeric: tabular-nums;
-  }
-  .volume-popup input[type=range] {
-    writing-mode: vertical-lr;
-    direction: rtl;
-    width: 28px;
-    height: 100px;
-    background: transparent;
-    outline: none;
-    margin: 0;
-    cursor: pointer;
-  }
+  .volume-text { font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+  .volume-popup input[type=range] { writing-mode: vertical-lr; direction: rtl; width: 28px; height: 100px; background: transparent; outline: none; margin: 0; cursor: pointer; }
 
   /* ==========================================
-     6. 全屏沉浸播放页 (高度安全联动重构版)
+     6. 全屏沉浸播放页
      ========================================== */
   .full-player {
-    position: fixed;
-    left: 0;
-    width: 100%;
-    height: 65vh;
-    bottom: calc(var(--player-height) + env(safe-area-inset-bottom));
-    background: var(--card-bg);
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.12), 0 -2px 10px rgba(0, 0, 0, 0.05);
-    z-index: 90;
-    transform: translateY(110%);
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    position: fixed; left: 0; width: 100%; height: 65vh; bottom: calc(var(--player-height) + env(safe-area-inset-bottom));
+    background: var(--card-bg); border-radius: 24px 24px 0 0; box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.12), 0 -2px 10px rgba(0, 0, 0, 0.05);
+    z-index: 90; transform: translateY(110%); transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; align-items: center;
   }
-  @media (prefers-color-scheme: dark) {
-    .full-player { background: #1a2234; border-top: 1px solid var(--border); }
-  }
+  @media (prefers-color-scheme: dark) { .full-player { background: #1a2234; border-top: 1px solid var(--border); } }
   .full-player.open { transform: translateY(0); }
-  .drawer-handle {
-    width: 100%;
-    height: 30px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    padding-top: 5px;
-    flex-shrink: 0; /* 🌟 保证手机端往下拉的小把手绝不被挤压 */
-  }
-  .handle-bar {
-    width: 60px;
-    height: 5px;
-    background: var(--text-sub);
-    border-radius: 3px;
-    opacity: 0.4;
-  }
+  .drawer-handle { width: 100%; height: 30px; display: flex; justify-content: center; align-items: center; cursor: pointer; padding-top: 5px; flex-shrink: 0; }
+  .handle-bar { width: 60px; height: 5px; background: var(--text-sub); border-radius: 3px; opacity: 0.4; }
 
-  /* 封面包裹外壳 */
-  .fp-cover-wrapper {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 18px 16px 8px 16px; /* 让封面和顶部永远保持一个极度舒适的固定间距 */
-    flex-shrink: 0;
-  }
-
-  /* 核心歌曲大封面图 */
+  .fp-cover-wrapper { width: 100%; display: flex; justify-content: center; align-items: center; padding: 18px 16px 8px 16px; flex-shrink: 0; }
   .fp-cover {
-    height: clamp(140px, 28vh, 260px);
-    width: auto;
-    aspect-ratio: 1 / 1; /* 硬性锁死正方形比例，确保无论怎么缩放绝不变形、不被压扁 */
-    max-width: 85vw; /* 极端窄屏手机横屏时的辅助防线 */
-    border-radius: 20px;
-    object-fit: cover;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    border: 1px solid #222;
-    animation: cover-breath 6s ease-in-out infinite;
+    height: clamp(140px, 28vh, 260px); width: auto; aspect-ratio: 1 / 1; max-width: 85vw;
+    border-radius: 20px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.2); border: 1px solid #222; animation: cover-breath 6s ease-in-out infinite;
   }
-  @media (max-height: 700px) {
-    .full-player { height: 62vh; }
-  }
-  @keyframes cover-breath {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.03); } /* 稍微收敛呼吸幅度，让小屏幕下的视觉更沉稳 */
-    100% { transform: scale(1); }
-  }
-  .mini-cover {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex: 0 0 35px;
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    margin-right: 10px;
-  }
-  .mini-cover img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    animation: rotate-cover 10s linear infinite;
-    animation-play-state: paused;
-    will-change: transform;
-  }
+  @media (max-height: 700px) { .full-player { height: 62vh; } }
+  @keyframes cover-breath { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+  .mini-cover { width: 35px; height: 35px; border-radius: 50%; overflow: hidden; flex: 0 0 35px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-right: 10px; }
+  .mini-cover img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; animation: rotate-cover 10s linear infinite; animation-play-state: paused; will-change: transform; }
   .mini-cover.spinning img { animation-play-state: running; }
   @keyframes rotate-cover { 100% { transform: rotate(360deg); } }
 
-  /* 歌词视窗盒子 */
   .fp-lyrics-wrapper {
-    /* 🌟 终极放权：用 flex: 1 接管除封面以外的所有剩余垂直空间！ */
-    /* 空间有多大，歌词视窗就有多深，像无尽瀑布一样自由延展，绝不越界撞车 */
-    flex: 1;
-    width: 100%;
-    max-width: 600px;
-    overflow: hidden;
-    position: relative;
-    margin-bottom: 12px;
+    flex: 1; width: 100%; max-width: 600px; overflow: hidden; position: relative; margin-bottom: 12px;
     mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
-    touch-action: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%); touch-action: none;
   }
-  .fp-lyrics-container {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    transition: transform 0.3s ease-out;
-    touch-action: none;
-  }
-  .lyric-line {
-    padding: 6px 20px;
-    color: var(--text-sub);
-    font-size: 14px;
-    transition: color 0.3s, font-size 0.3s, font-weight 0.3s;
-    min-height: 32px;
-  }
-  .lyric-line.active {
-    color: var(--primary);
-    font-size: 17px;
-    font-weight: bold;
-  }
-  .no-lyrics {
-    color: var(--text-sub);
-    text-align: center;
-    margin-top: 40px;
-    font-size: 14px;
-  }
+  .fp-lyrics-container { position: absolute; width: 100%; text-align: center; transition: transform 0.3s ease-out; touch-action: none; }
+  .lyric-line { padding: 6px 20px; color: var(--text-sub); font-size: 14px; transition: color 0.3s, font-size 0.3s, font-weight 0.3s; min-height: 32px; }
+  .lyric-line.active { color: var(--primary); font-size: 17px; font-weight: bold; }
+  .no-lyrics { color: var(--text-sub); text-align: center; margin-top: 40px; font-size: 14px; }
 
   /* ==========================================
      7. 通用模态框与轻提示 (Modals & Toast)
      ========================================== */
-  .about-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.35);
-    z-index: 300;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    -webkit-backdrop-filter: blur(2px);
-    backdrop-filter: blur(2px);
-  }
+  .about-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
   .about-modal-backdrop.show { display: flex; animation: about-fade-in 0.15s ease-out; }
   @keyframes about-fade-in { from { opacity: 0 } to { opacity: 1 } }
-  .about-modal {
-    width: min(440px, 92vw);
-    background: var(--card-bg);
-    color: var(--text-main);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-    position: relative;
-    overflow: hidden;
-    transform: translateY(6px);
-    animation: about-slide-up 0.18s ease-out;
-  }
-  @keyframes about-slide-up {
-    from { transform: translateY(16px); opacity: 0.8; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  .about-close {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: transparent;
-    color: var(--text-sub);
-    font-size: 20px;
-    cursor: pointer;
-  }
+  .about-modal { width: min(440px, 92vw); background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; transform: translateY(6px); animation: about-slide-up 0.18s ease-out; }
+  @keyframes about-slide-up { from { transform: translateY(16px); opacity: 0.8; } to { transform: translateY(0); opacity: 1; } }
+  .about-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent; color: var(--text-sub); font-size: 20px; cursor: pointer; }
   .about-close:active { background: var(--border); color: var(--text-main); }
   .about-header { display: flex; gap: 12px; align-items: center; padding: 18px 18px 0 18px; }
-  .about-logo {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    background: var(--bg-color);
-    display: grid;
-    place-items: center;
-    flex: 0 0 auto;
-  }
+  .about-logo { width: 42px; height: 42px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--bg-color); display: grid; place-items: center; flex: 0 0 auto; }
   .about-logo img { width: 100%; height: 100%; object-fit: cover; }
   .about-title-wrap { min-width: 0; }
   .about-title-wrap h2 { font-size: 18px; line-height: 1.2; margin: 0; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -841,138 +259,40 @@
   .about-footer { padding: 12px 18px 18px 18px; display: flex; justify-content: flex-end; gap: 8px; }
   .about-primary { background: var(--primary); color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; cursor: pointer; }
   .about-primary:active { opacity: 0.8; }
-  .modal-input-group {
-    display: flex;
-    align-items: center;
-    background: var(--bg-color);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    margin-top: 12px;
-    transition: border-color 0.2s;
-    overflow: hidden;
-  }
+  .modal-input-group { display: flex; align-items: center; background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; margin-top: 12px; transition: border-color 0.2s; overflow: hidden; }
   .modal-input-group:focus-within { border-color: var(--primary); }
-  .modal-input-group input {
-    flex: 1;
-    border: none;
-    background: transparent;
-    padding: 12px 14px 12px 8px;
-    font-size: 15px;
-    color: var(--text-main);
-    outline: none;
-  }
-  .about-secondary {
-    background: transparent;
-    color: var(--text-main);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 16px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
+  .modal-input-group input { flex: 1; border: none; background: transparent; padding: 12px 14px 12px 8px; font-size: 15px; color: var(--text-main); outline: none; }
+  .about-secondary { background: transparent; color: var(--text-main); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
   .about-secondary:active { background: var(--bg-color); }
   .about-danger { background: #ef4444; color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; cursor: pointer; transition: opacity 0.2s; }
   .about-danger:active { opacity: 0.8; }
   .toast-message {
-    position: fixed;
-    bottom: calc(var(--player-height) + env(safe-area-inset-bottom) + 80px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-size: 14px;
-    z-index: 999999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease-in-out;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    white-space: nowrap;
+    position: fixed; bottom: calc(var(--player-height) + env(safe-area-inset-bottom) + 80px); left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 999999;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); white-space: nowrap;
   }
   .toast-message.show { opacity: 1; }
 
   /* ==========================================
      8. 歌单编辑面板
      ========================================== */
-  .edit-pl-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 18px;
-    border-bottom: 1px solid var(--border);
-    transition: background 0.2s;
-    min-height: 52px;
-  }
-  .edit-pl-name-wrap {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-    font-size: 16px;
-    color: var(--text-main);
-    font-weight: 500;
-  }
+  .edit-pl-item { display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid var(--border); transition: background 0.2s; min-height: 52px; }
+  .edit-pl-name-wrap { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 16px; color: var(--text-main); font-weight: 500; }
   .edit-pl-name-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .edit-pl-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
-  .edit-pl-icon-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
+  .edit-pl-icon-btn { width: 28px; height: 28px; border-radius: 6px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.2s; }
   .edit-pl-icon-btn:active { opacity: 0.7; }
-
   .edit-pl-icon-btn.rename { background: #10b981; color: #fff; }
   .edit-pl-icon-btn.delete { background: #6b7280; color: #fff; }
-  .edit-pl-inline-input {
-    flex: 1;
-    height: 30px;
-    padding: 0 10px;
-    border: 1px solid var(--primary);
-    border-radius: 6px;
-    font-size: 14px;
-    outline: none;
-    color: var(--text-main);
-    background: var(--bg-color);
-    min-width: 0;
-    margin-right: 10px;
-  }
-  .edit-pl-text-btn {
-    height: 30px;
-    padding: 0 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s;
-    white-space: nowrap;
-  }
+  .edit-pl-inline-input { flex: 1; height: 30px; padding: 0 10px; border: 1px solid var(--primary); border-radius: 6px; font-size: 14px; outline: none; color: var(--text-main); background: var(--bg-color); min-width: 0; margin-right: 10px; }
+  .edit-pl-text-btn { height: 30px; padding: 0 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s; white-space: nowrap; }
   .edit-pl-text-btn:active { opacity: 0.7; }
   .edit-pl-cancel { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); }
   .edit-pl-cancel:active { background: var(--bg-color); }
-
   .edit-pl-confirm-rename { background: #10b981; color: #fff; border: none; }
   .edit-pl-confirm-delete { background: #6b7280; color: #fff; border: none; }
   #edit-pl-create-btn { padding: 0 14px; height: 34px; font-size: 13px; border-radius: 8px; }
-  .edit-pl-delete-warn {
-    font-size: 14px;
-    color: #ef4444;
-    font-weight: bold;
-    margin-right: auto;
-  }
+  .edit-pl-delete-warn { font-size: 14px; color: #ef4444; font-weight: bold; margin-right: auto; }
 
   /* ==========================================
      9. iOS 桌面安装指引
@@ -987,18 +307,9 @@
     z-index: 1000; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex; flex-direction: column; align-items: flex-end; color: var(--text-main); text-align: right;
   }
-  @media (prefers-color-scheme: dark) {
-    .ios-guide-bubble { background: rgba(31, 41, 55, 0.95); border-color: rgba(255,255,255,0.1); color: #fff; }
-  }
+  @media (prefers-color-scheme: dark) { .ios-guide-bubble { background: rgba(31, 41, 55, 0.95); border-color: rgba(255,255,255,0.1); color: #fff; } }
   .ios-guide-bubble.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
-
-  .ios-guide-arrow {
-    margin-top: 12px; margin-right: 12px; width: 28px; height: 28px;
-    background: var(--primary); color: #fff; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 10px rgba(236, 72, 153, 0.3);
-    animation: ios-bounce 1.2s infinite;
-  }
+  .ios-guide-arrow { margin-top: 12px; margin-right: 12px; width: 28px; height: 28px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(236, 72, 153, 0.3); animation: ios-bounce 1.2s infinite; }
   @keyframes ios-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
 
   /* ==========================================
@@ -1007,15 +318,7 @@
   @media (min-width: 600px) {
     html { background-color: #e5e7eb; overflow-y: scroll; scrollbar-gutter: stable; }
     @media (prefers-color-scheme: dark) { html { background-color: #050505; } }
-    body {
-      width: 480px !important;
-      margin: 0 auto !important;
-      min-height: 100vh;
-      box-shadow: 0 0 60px rgba(0,0,0,0.15);
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-      overflow-x: visible;
-    }
+    body { width: 480px !important; margin: 0 auto !important; min-height: 100vh; box-shadow: 0 0 60px rgba(0,0,0,0.15); border-left: 1px solid var(--border); border-right: 1px solid var(--border); overflow-x: visible; }
     .player-bar, .full-player { width: 480px !important; left: 50% !important; margin-left: -240px !important; }
     .about-modal-backdrop { left: 50%; width: 480px; margin-left: -240px; }
     #fp-lyrics-wrapper { cursor: grab; }
@@ -1027,333 +330,103 @@
   /* ==========================================
      沉浸海报风歌单网格
      ========================================== */
-  .playlist-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
-    gap: 14px 10px;
-    padding: 10px 16px 20px 16px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .pl-card-b {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    border-radius: 12px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.2s;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    user-select: none;
-    border: 1px solid rgba(0,0,0,0.05);
-  }
+  .playlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 14px 10px; padding: 10px 16px 20px 16px; width: 100%; box-sizing: border-box; }
+  .pl-card-b { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.15); user-select: none; border: 1px solid rgba(0,0,0,0.05); }
   .pl-card-b:active { transform: scale(0.96); }
   .pl-card-b img { width: 100%; height: 100%; object-fit: cover; }
-
-  .pl-overlay {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    padding: 25px 8px 8px 8px;
-    background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85));
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    pointer-events: none;
-  }
-
-  .pl-card-b .pl-name {
-    color: #fff;
-    font-size: 11px;
-    font-weight: bold;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
-    margin-bottom: 4px;
-  }
-
+  .pl-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 25px 8px 8px 8px; background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85)); display: flex; flex-direction: column; justify-content: flex-end; pointer-events: none; }
+  .pl-card-b .pl-name { color: #fff; font-size: 11px; font-weight: bold; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 2px rgba(0,0,0,0.6); margin-bottom: 4px; }
   .pl-card-b .pl-time { color: rgba(255,255,255,0.75); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl-card-b .pl-playcount { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.4); color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 8px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); font-weight: 500; display: flex; align-items: center; gap: 2px; }
 
-  .pl-card-b .pl-playcount {
-    position: absolute;
-    top: 6px; right: 6px;
-    background: rgba(0,0,0,0.4);
-    color: #fff; font-size: 9px; padding: 2px 6px;
-    border-radius: 8px;
-    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-    font-weight: 500;
-    display: flex; align-items: center; gap: 2px;
-  }
+  .select-option.disabled-text, .song-more-menu-item.disabled-text { color: var(--text-sub) !important; opacity: 0.8; }
 
-  /* 统一置灰敬请期待的菜单项文本 */
-  .select-option.disabled-text,
-  .song-more-menu-item.disabled-text {
-    color: var(--text-sub) !important;
-    opacity: 0.8;
-  }
   /* ==========================================
      11. 终极完美收官版：双栏适配 + 垂直高度联动自适应
      ========================================== */
-  .split-toggle-btn {
-    display: none;
-    position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 14px;
-    height: 50px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    z-index: 250;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-sub);
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  }
+  .split-toggle-btn { display: none; position: fixed; top: 50%; transform: translateY(-50%); width: 14px; height: 50px; background: var(--card-bg); border: 1px solid var(--border); z-index: 250; cursor: pointer; align-items: center; justify-content: center; color: var(--text-sub); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
   .split-toggle-btn:active { background: var(--bg-color); }
-  .split-toggle-btn svg {
-    width: 10px !important;
-    height: 10px !important;
-    transition: transform 0.3s;
-  }
+  .split-toggle-btn svg { width: 10px !important; height: 10px !important; transition: transform 0.3s; }
 
   @media (min-width: 960px) {
     .split-toggle-btn { display: flex; }
-
-    /* --- 状态 A：折叠状态（回到经典 480px 居中手机版） --- */
-    body:not(.split-view-active) {
-      width: 480px !important;
-      margin: 0 auto !important;
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-    }
-    body:not(.split-view-active) .split-toggle-btn {
-      left: 50%;
-      margin-left: -254px;
-      border-radius: 8px 0 0 8px;
-      border-right: none;
-      box-shadow: -2px 0 10px rgba(0,0,0,0.05);
-    }
+    body:not(.split-view-active) { width: 480px !important; margin: 0 auto !important; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+    body:not(.split-view-active) .split-toggle-btn { left: 50%; margin-left: -254px; border-radius: 8px 0 0 8px; border-right: none; box-shadow: -2px 0 10px rgba(0,0,0,0.05); }
     body:not(.split-view-active) .split-toggle-btn svg { transform: rotate(0deg); }
-
-    /* --- 状态 B：展开状态（960px 居中双栏） --- */
-    body.split-view-active {
-      width: 960px !important;
-      margin: 0 auto !important;
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-      box-shadow: 0 0 60px rgba(0,0,0,0.15);
-      padding-bottom: 0 !important;
-    }
-    body.split-view-active .split-toggle-btn {
-      left: 50%;
-      margin-left: -7px;
-      border-radius: 4px;
-      border: 1px solid var(--border);
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-    }
+    body.split-view-active { width: 960px !important; margin: 0 auto !important; border-left: 1px solid var(--border); border-right: 1px solid var(--border); box-shadow: 0 0 60px rgba(0,0,0,0.15); padding-bottom: 0 !important; }
+    body.split-view-active .split-toggle-btn { left: 50%; margin-left: -7px; border-radius: 4px; border: 1px solid var(--border); box-shadow: 0 0 8px rgba(0,0,0,0.1); }
     body.split-view-active .split-toggle-btn svg { transform: rotate(180deg); }
-
-    /* 1. 顶部 Header：横跨整个 960px */
-    body.split-view-active .header {
-      width: 960px !important;
-      left: 50% !important;
-      margin-left: -480px !important;
-      right: auto !important;
-      border-bottom: 1px solid var(--border);
-      z-index: 260 !important;
-    }
-
-    /* 2. 下拉框灰条工具栏：标准流右平移 479px，对齐 1px 细线 */
-    body.split-view-active .playlist-row {
-      position: sticky !important;
-      width: 479px !important;
-      left: auto !important;
-      right: auto !important;
-      margin-left: 479px !important;
-      margin-right: 0 !important;
-      z-index: 200 !important;
-      padding-top: 8px !important; /* 💡 调整这个数字：越大，白色框在这个灰条里越靠下 */
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05) !important;
-      background: rgba(243, 244, 246, 0.7);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
-    }
-    @media (prefers-color-scheme: dark) {
-      body.split-view-active .playlist-row {
-        background: rgba(17, 24, 39, 0.65) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-      }
-    }
-
-    /* 3. 右半边歌曲列表：跟随工具栏自然下落 */
-    body.split-view-active .playlist,
-    body.split-view-active .playlist-grid,
-    body.split-view-active #loading {
-      width: 479px !important;
-      margin-left: 479px !important;
-      margin-top: 0 !important;
-    }
-
-    /* 4. 左半边全屏播放器：强行固定在左半边 */
-    body.split-view-active .full-player {
-      display: flex !important;
-      transform: none !important;
-      width: 480px !important;
-      left: 50% !important;
-      margin-left: -480px !important;
-      top: 56px !important;
-      height: calc(100vh - var(--player-height) - 56px - env(safe-area-inset-bottom)) !important;
-      border-radius: 0 !important;
-      border-top: none !important;
-      box-shadow: none !important;
-      border-right: 1px solid var(--border) !important;
-      padding-top: 24px !important; /* 🌟 平板模式下顶部留白略微收紧，观感更挺拔高级 */
-      z-index: 190 !important;
-    }
-
-    /* 5. 底部播放控制条：完美吸附在左半边的最下方 */
-    body.split-view-active .player-bar {
-      width: 480px !important;
-      left: 50% !important;
-      margin-left: -480px !important;
-      box-shadow: none !important;
-      border-top: 1px solid var(--border) !important;
-      border-right: 1px solid var(--border) !important;
-      z-index: 200 !important;
-    }
-
-    /* 6. 在双栏模式下隐藏不必要的手机端 UI */
+    body.split-view-active .header { width: 960px !important; left: 50% !important; margin-left: -480px !important; right: auto !important; border-bottom: 1px solid var(--border); z-index: 260 !important; }
+    body.split-view-active .playlist-row { position: sticky !important; width: 479px !important; left: auto !important; right: auto !important; margin-left: 479px !important; margin-right: 0 !important; z-index: 200 !important; padding-top: 8px !important; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05) !important; background: rgba(243, 244, 246, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important; }
+    @media (prefers-color-scheme: dark) { body.split-view-active .playlist-row { background: rgba(17, 24, 39, 0.65) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3) !important; } }
+    body.split-view-active .playlist, body.split-view-active .playlist-grid, body.split-view-active #loading { width: 479px !important; margin-left: 479px !important; margin-top: 0 !important; }
+    body.split-view-active .full-player { display: flex !important; transform: none !important; width: 480px !important; left: 50% !important; margin-left: -480px !important; top: 56px !important; height: calc(100vh - var(--player-height) - 56px - env(safe-area-inset-bottom)) !important; border-radius: 0 !important; border-top: none !important; box-shadow: none !important; border-right: 1px solid var(--border) !important; padding-top: 24px !important; z-index: 190 !important; }
+    body.split-view-active .player-bar { width: 480px !important; left: 50% !important; margin-left: -480px !important; box-shadow: none !important; border-top: 1px solid var(--border) !important; border-right: 1px solid var(--border) !important; z-index: 200 !important; }
     body.split-view-active .drawer-handle { display: none !important; }
     body.split-view-active .up-arrow { visibility: hidden !important; pointer-events: none !important; }
-
-    /* 7. 弹窗与全局消息提示位置微调 */
     .about-modal-backdrop { width: 100% !important; left: 0 !important; margin-left: 0 !important; }
-    body.split-view-active .toast-message {
-      left: 50% !important;
-      transform: translateX(calc(-50% + 240px)) !important;
-    }
+    body.split-view-active .toast-message { left: 50% !important; transform: translateX(calc(-50% + 240px)) !important; }
   }
 
   /* ==========================================
      12. 调速与续播专属 UI 组件
      ========================================== */
-  /* 全屏页左下/右下角按钮 */
-  .fp-corner-tools {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    width: 100%;
-    padding: 0 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 100;
-    pointer-events: none; /* 让穿透到底部，按钮自身开启响应 */
-  }
-  .fp-corner-btn {
-    pointer-events: auto;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--bg-color);
-    border: 1px solid var(--border);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transition: all 0.2s;
-    color: var(--text-main);
-    font-weight: bold;
-    font-size: 13px;
-  }
+  .fp-corner-tools { position: absolute; bottom: 20px; left: 0; width: 100%; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; pointer-events: none; }
+  .fp-corner-btn { pointer-events: auto; width: 40px; height: 40px; border-radius: 50%; background: var(--bg-color); border: 1px solid var(--border); display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.2s; color: var(--text-main); font-weight: bold; font-size: 13px; }
   .fp-corner-btn:active { transform: scale(0.9); }
   .fp-fav-btn.is-fav { color: var(--primary); }
 
-  /* 垂直临时调速面板 (仿音量条) */
-  .speed-popup-vertical {
-    position: absolute;
-    bottom: 60px;
-    right: 18px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 12px 0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    z-index: 110;
-    width: 54px;
-    height: 200px;
-    pointer-events: auto;
-  }
+  .speed-popup-vertical { position: absolute; bottom: 60px; right: 18px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 12px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: none; flex-direction: column; align-items: center; z-index: 110; width: 54px; height: 200px; pointer-events: auto; touch-action: none; }
   .speed-popup-vertical.show { display: flex; animation: fadeIn 0.15s ease-out; }
-  .speed-popup-vertical input[type=range] {
-    writing-mode: vertical-lr;
-    direction: rtl;
-    width: 28px;
-    height: 100px;
-    background: transparent;
-    outline: none;
-    cursor: pointer;
-    margin: 8px 0;
+  .speed-popup-vertical input[type=range] { writing-mode: vertical-lr; direction: rtl; width: 28px; height: 100px; background: transparent; outline: none; cursor: pointer; margin: 8px 0; }
+
+  .speed-slider-horizontal { display: flex; align-items: center; gap: 12px; margin: 10px 0 20px 0; }
+
+  /* 1. 扩大隐形热区，手怎么摸都能抓到它 */
+  .speed-slider-horizontal input[type=range] {
+      flex: 1;
+      height: 32px;
+      background: transparent;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      touch-action: none;
+      margin: 0;
   }
 
-  /* 全局调速面板专属样式 */
-  .speed-slider-horizontal {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 10px 0 20px 0;
+  /* 2. 单独画出那条 6px 粗细的轨道，保证视觉精致感 */
+  .speed-slider-horizontal input[type=range]::-webkit-slider-runnable-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
   }
-  .speed-slider-horizontal input[type=range] {
-    flex: 1;
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-  }
+
+  /* 3. 放大圆形滑块，并让它垂直居中在轨道上 */
   .speed-slider-horizontal input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #fff;
-    border: 3px solid var(--primary);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--primary);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      cursor: pointer;
+      margin-top: -6px; /* 居中计算: (轨道 6 - 滑块 24) / 2 = -9px */
   }
   .settings-section-title { font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; }
   .settings-radio-group { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
   .settings-radio-label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; color: var(--text-main); }
   .settings-radio-label input[type="radio"] { accent-color: var(--primary); width: 16px; height: 16px; }
 
-  /* 歌单名字后方的 Tag 挂件 */
-  .pl-status-tag {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 16px;
-    box-sizing: border-box;
-    font-size: 10px;
-    line-height: 1;
-    padding: 0 4px;
-    border-radius: 4px;
-    border: 1px solid currentColor;
-    margin-left: 6px;
-    opacity: 0.85;
-    vertical-align: middle;
-    transform: translateY(2px); /* 往上微调 1px，使其与左侧文字绝对水平居中 */
-    font-weight: normal;
-  }
+  .pl-status-tag { display: inline-flex; align-items: center; justify-content: center; height: 16px; box-sizing: border-box; font-size: 10px; line-height: 1; padding: 0 4px; border-radius: 4px; border: 1px solid currentColor; margin-left: 6px; opacity: 0.85; vertical-align: middle; transform: translateY(2px); font-weight: normal; }
   </style>
+
+  <script src="./static/icons.js"></script>
+  <script src="./static/utils.js"></script>
+  <script src="./static/lyrics.js"></script>
+  <script src="./static/scraper.js"></script>
+
 </head>
 <body>
 
@@ -1409,7 +482,6 @@
     </div>
 
     <div class="header-controls">
-
       <div class="custom-select" id="device-container">
         <div class="select-value" id="device-val">本机</div>
         <ul class="select-options" id="device-opts"></ul>
@@ -1421,12 +493,9 @@
     <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
       <div style="display: flex; flex: 1; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; height: 40px; box-sizing: border-box; min-width: 0; transition: all 0.2s;">
         <div class="custom-select" id="playlist-container" style="flex: 1; min-width: 0; transition: all 0.2s; height: 100%;">
-          <div class="select-value" id="playlist-val" style="display: flex; align-items: center; width: 100%; border: none; background-color: transparent; height: 100%; box-shadow: none; padding: 0 24px 0 12px; margin: 0; line-height: normal; background-position: right 10px center;">加载中</div>
+          <div class="select-value" id="playlist-val" style="display: flex; align-items: center; width: 100%; border: none; background-color: transparent; height: 100%; box-shadow: none; padding: 0 28px 0 12px; margin: 0; line-height: normal; background-position: right 10px center;">加载中</div>
           <ul class="select-options" id="playlist-opts" style="width: 100%;"></ul>
         </div>
-
-
-
 
         <div class="search-inline-wrap" id="search-inline-wrap" style="background: transparent; border: none; padding: 0; height: 100%; flex: 1;">
           <div style="width: 1px; height: 14px; background: var(--border); margin: 0 4px; flex-shrink: 0;"></div>
@@ -1461,9 +530,6 @@
         </div>
       </div>
     </div>
-
-
-
   </div>
 
   <div id="loading">正在加载音乐...</div>
@@ -1591,7 +657,6 @@
   <div class="about-modal-backdrop" id="ios-desktop-backdrop" aria-hidden="true">
     <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 85vh; display: flex; flex-direction: column;">
       <button class="about-close" id="ios-desktop-close" aria-label="关闭">×</button>
-
       <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 12px;">
           <div class="about-logo" style="width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;">
@@ -1599,14 +664,12 @@
           </div>
           <h2 style="font-size: 18px; font-weight: 800; margin: 0;">添加到 iPhone 主屏幕</h2>
         </div>
-
         <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--border); width: 100%;">
           <div class="ios-plugin-tab active" data-target="ios-mode-shortcut" style="padding-bottom: 10px; cursor: pointer; font-weight: bold; color: var(--primary); border-bottom: 2px solid var(--primary); transition: color 0.2s;">快捷链接</div>
           <div class="ios-plugin-tab" data-target="ios-mode-pwa" style="padding-bottom: 10px; cursor: pointer; font-weight: 500; color: var(--text-sub); border-bottom: 2px solid transparent; transition: color 0.2s;">PWA模式</div>
           <div class="ios-plugin-tab" data-target="ios-mode-profile" style="padding-bottom: 10px; cursor: pointer; font-weight: 500; color: var(--text-sub); border-bottom: 2px solid transparent; transition: color 0.2s;">配置直装</div>
         </div>
       </div>
-
       <div class="about-body" style="flex: 1; padding: 15px 18px 25px 18px; overflow-y: auto;">
         <div id="ios-mode-shortcut" class="ios-install-pane active">
           <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">✨ 优点：</p>
@@ -1614,7 +677,6 @@
           <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">💡 不足：</p>
           <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 4px; padding-left: 6px;">有浏览器地址栏。</p>
           <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px; padding-left: 6px;">正在播放时点击桌面图标会中断播放，需要点灵动岛进入。</p>
-
           <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">🛠️ 操作步骤：</div>
           <div style="font-size: 13px; color: var(--text-main); background: var(--bg-color); padding: 12px; border-radius: 10px; line-height: 1.8;">
             1. 点击浏览器底部的 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: text-bottom; margin: 0 2px;"><circle cx="5" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="19" cy="12" r="2.5"></circle></svg> 菜单<br>
@@ -1632,7 +694,6 @@
           <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px; padding-left: 6px;">无地址栏，100% 沉浸感，媲美原生UI体验。</p>
           <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">💡 不足：</p>
           <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px; padding-left: 6px;">受 iOS 限制，锁屏暂停后系统会强制终止进程，无法恢复播放</p>
-
           <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">🛠️ 操作步骤：</div>
           <div style="font-size: 13px; color: var(--text-main); background: var(--bg-color); padding: 12px; border-radius: 10px; line-height: 1.8;">
             1. 点击浏览器底部的 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: text-bottom; margin: 0 2px;"><circle cx="5" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="19" cy="12" r="2.5"></circle></svg> 菜单<br>
@@ -1650,7 +711,6 @@
           <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px; padding-left: 6px;">无地址栏，100% 沉浸感，媲美原生UI体验。</p>
           <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">💡 不足：</p>
           <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px; padding-left: 6px;">受 iOS 限制，锁屏暂停后系统会强制终止进程，无法恢复播放</p>
-
           <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">🛠️ 操作步骤：</div>
           <div style="font-size: 13px; color: var(--text-main); background: var(--bg-color); padding: 12px; border-radius: 10px; line-height: 1.8; margin-bottom: 15px;">
             1. 完成下方图标名称，绑定服务地址修改<br>
@@ -1660,7 +720,6 @@
             5. 找到 <b>iWebPlayer Config</b> 点击进行安装，根据iPhone提示直到完成<br>
             6. 回到桌面，即可看到独立的原生 App 图标！
           </div>
-
           <div style="margin-bottom: 12px;">
               <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-main);">图标名称</div>
               <div style="display: flex; align-items: center; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; height: 36px;">
@@ -1674,7 +733,6 @@
                   <input type="text" id="ios-desktop-url" autocomplete="off" style="padding: 0 10px; font-size: 14px; height: 100%;">
               </div>
           </div>
-
           <button class="about-primary" id="btn-download-profile" style="width: 100%; margin-top: 15px; font-weight: bold;">生成并下载配置</button>
         </div>
       </div>
@@ -1717,7 +775,6 @@
   <div class="about-modal-backdrop" id="config-modal-backdrop" aria-hidden="true">
     <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 85vh; display: flex; flex-direction: column;">
       <button class="about-close" id="config-close" aria-label="关闭">×</button>
-
       <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 6px;">
           <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>
@@ -1728,27 +785,26 @@
           <span id="config-pl-name">当前歌单名称</span>
         </div>
       </div>
-
       <div class="about-body" style="flex: 1; padding: 10px 18px 20px 18px; overflow-y: auto;">
-
         <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">
           歌单定制播放速度 (<span id="config-speed-val" style="color: var(--primary);">1x</span>)
         </div>
         <div class="speed-slider-horizontal" style="background: var(--bg-color); padding: 12px; border-radius: 10px; margin: 0 0 15px 0;">
           <button class="vol-adj-btn" id="config-speed-minus" style="width: 26px; height: 26px; margin: 0;">-</button>
-          <span style="font-size: 11px; color: var(--text-sub); font-variant-numeric: tabular-nums; margin-left: 2px;">0.5</span>
+
+          <span style="font-size: 14px; font-weight: 500; color: var(--text-sub); font-variant-numeric: tabular-nums; margin-left: 2px;">0.5</span>
+
           <input type="range" id="config-speed-slider" min="0.5" max="3.0" step="0.1" value="1.0">
-          <span style="font-size: 11px; color: var(--text-sub); font-variant-numeric: tabular-nums; margin-right: 2px;">3.0</span>
+
+          <span style="font-size: 14px; font-weight: 500; color: var(--text-sub); font-variant-numeric: tabular-nums; margin-right: 2px;">3.0</span>
+
           <button class="vol-adj-btn" id="config-speed-plus" style="width: 26px; height: 26px; margin: 0;">+</button>
         </div>
-
         <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; cursor: pointer; user-select: none; color: var(--text-main); margin-bottom: 15px;">
           <input type="checkbox" id="config-resume-check" style="width: 18px; height: 18px; accent-color: var(--primary);">
           开启记忆播放 (自动续播)
         </label>
-
         <div style="height: 1px; background: var(--border); margin: 15px 0;"></div>
-
         <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">生效范围</div>
         <div class="settings-radio-group" style="background: var(--bg-color); padding: 12px; border-radius: 10px; margin: 0 0 12px 0; gap: 12px;">
           <label class="settings-radio-label" style="margin:0; font-size: 14px;">
@@ -1758,12 +814,10 @@
             <input type="radio" name="config-scope" value="global"> 应用到所有设备 (保存至云端)
           </label>
         </div>
-
         <div id="config-cloud-hint" style="font-size: 14px; color: var(--text-sub); margin-left: 4px; display: none; align-items: center; gap: 6px;">
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
           <span id="config-cloud-text">云端设置: 1x | 未开启续播</span>
         </div>
-
       </div>
       <div class="about-footer">
         <button class="about-secondary" id="config-cancel">取消</button>
@@ -1809,16 +863,12 @@
       </div>
       <div class="about-body">
         <p style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">将 <span id="add-song-name" style="color: var(--primary); font-weight: bold;"></span> 加入到：</p>
-
         <div style="display: flex; gap: 8px; margin-bottom: 16px;">
           <input type="text" id="add-new-playlist-input" placeholder="输入新歌单名称..." autocomplete="off" style="flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; outline: none; background: var(--bg-color); color: var(--text-main); font-size: 14px;">
           <button class="about-primary" id="add-new-playlist-btn" style="padding: 8px 14px; border-radius: 8px; flex-shrink: 0;">创建并加入</button>
         </div>
-
         <div style="font-size: 14px; font-weight: 500; color: var(--text-main); margin-bottom: 8px;">或选择已有自定义歌单：</div>
-        <ul id="add-song-playlist-list" style="list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color);">
-        </ul>
-
+        <ul id="add-song-playlist-list" style="list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color);"></ul>
         <label style="display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; color: var(--text-sub); cursor: pointer; user-select: none;">
           <input type="checkbox" id="add-song-dont-ask" style="width: 16px; height: 16px; accent-color: var(--primary);">
           刷新页面前不再提示，默认加入选择的歌单。
@@ -1830,8 +880,6 @@
       </div>
     </div>
   </div>
-
-
 
   <div class="about-modal-backdrop" id="edit-playlist-backdrop" aria-hidden="true">
     <div class="about-modal" role="dialog" aria-modal="true" style="height: 60vh; display: flex; flex-direction: column;">
@@ -1846,13 +894,11 @@
           <input type="text" id="edit-pl-new-input" placeholder="输入新歌单名称..." autocomplete="off" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; outline: none; background: var(--card-bg); color: var(--text-main); font-size: 16px;">
           <button class="about-primary" id="edit-pl-create-btn" style="border-radius: 8px; white-space: nowrap; font-weight: bold;">创建歌单</button>
         </div>
-        <ul id="edit-playlist-list" style="flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 0; padding-bottom: 20px; overscroll-behavior: contain;">
-        </ul>
+        <ul id="edit-playlist-list" style="flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 0; padding-bottom: 20px; overscroll-behavior: contain;"></ul>
       </div>
     </div>
   </div>
 
-  <script src="./static/scraper.js"></script>
   <script>
     /* ==========================================
      * 0. 全局 Fetch 拦截器 (只带 Token，绝对不踢人)
@@ -1861,9 +907,7 @@
     window.fetch = async function(resource, config) {
       config = config || {};
       config.headers = config.headers || {};
-
       const isExternal = typeof resource === 'string' && /^https?:\/\//i.test(resource);
-
       if (!isExternal) {
           try {
             const authData = localStorage.getItem('songloft-auth');
@@ -1875,14 +919,13 @@
             }
           } catch (e) {}
       }
-
       return originalFetch(resource, config);
     };
 
     /* ==========================================
      * 1. 核心配置与全局状态
      * ========================================== */
-    const APP_VERSION = 'v0.2.1';
+    const APP_VERSION = 'v0.3.1';
     const APP_LOGO = document.getElementById('app-logo')?.content || '';
     const PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '曲库搜索', 'cache_songs'];
     const API = {
@@ -1895,18 +938,6 @@
     const defaultCover = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23ec4899' /%3E%3Cstop offset='100%25' stop-color='%238b5cf6' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='%231f2937' /%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='%23374151' stroke-width='1' /%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23374151' stroke-width='1' /%3E%3Ccircle cx='50' cy='50' r='20' fill='url(%23grad)' /%3E%3Ccircle cx='50' cy='50' r='5' fill='%23111827' /%3E%3Cpath d='M50 15 A35 35 0 0 1 85 50' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' opacity='0.3' /%3E%3C/svg%3E";
     const modeNames = ["单曲循环", "全部循环", "随机播放"];
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-    const SVG_ICONS = {
-      music: `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
-      radio: `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>`,
-      heart: `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
-      search: `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
-      download: `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
-      recent: `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
-      folder: `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
-      disc: `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>`,
-      list: `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4"></path><path d="M8 6v12"></path><path d="M12 4v16"></path><path d="M16 8v8"></path><path d="M20 11v2"></path></svg>`
-    };
 
     // 获取元素
     const fpCornerFav = document.getElementById('fp-corner-fav');
@@ -1940,14 +971,9 @@
     let localState = { playlist: "", songName: "" };
 
     let isDragging = false;
-    let lyricManualScrolling = false;
-    let lyricResumeTimer = null;
     let touchStartY = 0;
     let fpTouchStartY = 0;
     let drawerGestureFromLyrics = false;
-    let lyricDragStartY = 0;
-    let lyricStartOffset = 0;
-    let parsedLyrics = [];
 
     window.skipRemoveConfirm = false;
     window.pendingRemoveIndex = -1;
@@ -1962,6 +988,7 @@
     window._showBackBtn = false;
     window._gridScrollY = 0;
     window._isBackAction = false;
+    window.isPageBtnPause = false;
 
     window.playlistObserver = null;
 
@@ -2051,40 +1078,17 @@
       Object.assign(link, extra);
     }
 
-    function showToast(msg, persist = false) {
-      let toast = document.getElementById('global-toast');
-      if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'global-toast';
-        toast.className = 'toast-message';
-        document.body.appendChild(toast);
-      }
-      toast.innerHTML = msg;
-      toast.classList.remove('show');
-      void toast.offsetWidth;
-      toast.classList.add('show');
-      if (toast.timer) clearTimeout(toast.timer);
-      if (!persist) toast.timer = setTimeout(() => toast.classList.remove('show'), 2000);
-    }
-
-    function formatTime(seconds) {
-      if (isNaN(seconds) || !isFinite(seconds)) return "00:00";
-      const m = Math.floor(seconds / 60);
-      const s = Math.floor(seconds % 60);
-      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-    }
-
     function formatPlaylistText(name, count) {
-      let icon = SVG_ICONS.folder;
+      let icon = window.SVG_ICONS.folder;
       let displayName = name;
 
-      if (name === '我的歌单') icon = SVG_ICONS.list, count = window.playlistMeta ? window.playlistMeta.filter(pl => pl.name !== '电台收藏').length : 0;
-      else if (name === '所有歌曲') icon = SVG_ICONS.music;
-      else if (name === '所有电台') icon = SVG_ICONS.radio;
-      else if (name === '收藏') icon = SVG_ICONS.heart;
-      else if (name === '曲库搜索') icon = SVG_ICONS.search;
+      if (name === '我的歌单') icon = window.SVG_ICONS.list, count = window.playlistMeta ? window.playlistMeta.filter(pl => pl.name !== '电台收藏').length : 0;
+      else if (name === '所有歌曲') icon = window.SVG_ICONS.music;
+      else if (name === '所有电台') icon = window.SVG_ICONS.radio;
+      else if (name === '收藏') icon = window.SVG_ICONS.heart;
+      else if (name === '曲库搜索') icon = window.SVG_ICONS.search;
       else if (window.customPlaylistNames && window.customPlaylistNames.includes(name)) {
-          icon = SVG_ICONS.disc;
+          icon = window.SVG_ICONS.disc;
           displayName = name;
       }
       else if (name === 'cache_songs') {
@@ -2092,16 +1096,27 @@
           displayName = '缓存歌曲';
       }
 
-      // 🌟 终极重构：把 歌单名字 和 数量 彻底剥离，独立排布
       return `
-        <div style="display: flex; align-items: center; flex: 1; min-width: 0; overflow: hidden;">
-          <span style="display:inline-flex; align-items:center; margin-right:6px; opacity:0.8; flex-shrink: 0;">${icon}</span>
-
-          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">${displayName}</span>
-
-          <span style="flex-shrink: 0; margin-left: 4px; opacity: 0.7; white-space: nowrap; font-size: 14px;">(${count})</span>
-        </div>
+        <span style="display:inline-flex; align-items:center; margin-right:6px; opacity:0.8; flex-shrink: 0;">${icon}</span>
+        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; min-width: 0;">${displayName}</span>
+        <span style="flex-shrink: 0; margin-left: 4px; opacity: 0.7; font-size: 14px;">(${count})</span>
       `;
+    }
+
+    function formatPlaylistTextWithTags(name, count) {
+        let baseHtml = formatPlaylistText(name, count);
+        const conf = getPlaylistConfig(name);
+        let tagsHtml = '';
+
+        if (conf.speed !== 1.0) tagsHtml += `<span class="pl-status-tag" style="color:var(--primary);">${window.formatSpeed(conf.speed)}</span>`;
+        if (conf.resume) tagsHtml += `<span class="pl-status-tag" style="color:var(--primary);">续播</span>`;
+
+        return `
+          <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; min-width: 0;">
+            ${baseHtml}
+            ${tagsHtml ? `<div style="display: flex; align-items: center; flex-shrink: 0; ">${tagsHtml}</div>` : ''}
+          </div>
+        `;
     }
 
     function updatePlayModeUI() {
@@ -2217,8 +1232,7 @@
       updateNpTitleUI(currentSongName, true, false);
       fpCover.src = defaultCover;
       miniCoverImg.src = defaultCover;
-      fpLyricsContainer.innerHTML = '<div class="no-lyrics">加载中...</div>';
-      fpLyricsContainer.style.transform = `translateY(0px)`;
+      window.LyricsEngine.parse(null);
     }
 
     function scrollToCurrentSong(behavior = 'smooth') {
@@ -2231,14 +1245,16 @@
     }
 
     function toggleFullPlayer(forceState) {
-      // 🌟 核心拦截：如果屏幕宽度满足分栏要求且当前是展开状态，直接不允许开关动作
       if (window.innerWidth >= 960 && document.body.classList.contains('split-view-active')) return;
 
       const isOpen = forceState !== undefined ? forceState : !fullPlayer.classList.contains('open');
       if (isOpen) {
         fullPlayer.classList.add('open');
         document.body.classList.add('player-open');
-        document.body.style.overflow = 'hidden';
+
+        if (window.innerWidth < 600 || isIOS) {
+            document.body.style.overflow = 'hidden';
+        }
       } else {
         fullPlayer.classList.remove('open');
         document.body.classList.remove('player-open');
@@ -2278,11 +1294,11 @@
       if (isFav) {
         favoriteList = favoriteList.filter(s => s !== songName);
         if (favIcon) favIcon.style.display = 'none';
-        showToast(`已取消收藏: ${songName}`);
+        window.showToast(`已取消收藏: ${songName}`);
       } else {
         favoriteList.unshift(songName);
         if (favIcon) favIcon.style.display = 'block';
-        showToast(`已收藏: ${songName}`);
+        window.showToast(`已收藏: ${songName}`);
       }
 
       allPlaylists["收藏"] = favoriteList;
@@ -2294,7 +1310,7 @@
 
       if (songName === currentSongName) {
         updateNpTitleUI(currentSongName);
-        updateMediaSession(currentSongName, document.getElementById('fp-cover').src);
+        window.updateMediaSession(currentSongName, document.getElementById('fp-cover').src, favoriteList, APP_LOGO);
       }
 
       fetch('../playlistupdatemusic', {
@@ -2306,45 +1322,8 @@
       }).catch(()=>{});
     }
 
-    function setupMediaSession() {
-      if ('mediaSession' in navigator) {
-        try {
-          navigator.mediaSession.setActionHandler('seekbackward', null);
-          navigator.mediaSession.setActionHandler('seekforward', null);
-        } catch (e) {}
-        navigator.mediaSession.setActionHandler('play', () => {
-          return audioEl.play().catch(e => {});
-        });
-        navigator.mediaSession.setActionHandler('pause', () => {
-          audioEl.pause();
-        });
-        navigator.mediaSession.setActionHandler('previoustrack', () => btnPrev.click());
-        navigator.mediaSession.setActionHandler('nexttrack', () => btnNext.click());
-        try {
-          navigator.mediaSession.setActionHandler('seekto', (details) => {
-            if (audioEl.duration) {
-              audioEl.currentTime = details.seekTime;
-            }
-          });
-        } catch(e) {}
-      }
-    }
-
-    function updateMediaSession(songName, coverUrl) {
-      if ('mediaSession' in navigator) {
-        const displayTitle = favoriteList.includes(songName) ? `${songName} ♡︎` : songName;
-
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: displayTitle,
-          artist: 'iWebPlayer',
-          album: '我的曲库',
-          artwork: [ { src: coverUrl || APP_LOGO || '/static/favicon.ico' } ]
-        });
-      }
-    }
-
     async function refreshMusicList(isSilent = false) {
-      if (!isSilent) showToast("🔄 正在触发曲库刷新，请稍候...");
+      if (!isSilent) window.showToast("🔄 正在触发曲库刷新，请稍候...");
       try {
         await fetch(API.refreshList, {
           method: 'POST',
@@ -2353,14 +1332,14 @@
         });
         checkRefreshStatus(3, isSilent);
       } catch (err) {
-        if (!isSilent) showToast("❌ 刷新请求失败，请检查网络或后端配置");
+        if (!isSilent) window.showToast("❌ 刷新请求失败，请检查网络或后端配置");
       }
     }
 
     function checkRefreshStatus(retries, isSilent = false) {
       fetch(API.cmdStatus).then(res => res.json()).then(data => {
         if (data.status === "finish" || retries <= 0) {
-          if (!isSilent) showToast("✅ 刷新成功！正在重载...");
+          if (!isSilent) window.showToast("✅ 刷新成功！正在重载...");
           setTimeout(() => { window.location.reload(); }, 600);
         } else {
           setTimeout(() => checkRefreshStatus(retries - 1, isSilent), 1000);
@@ -2369,71 +1348,19 @@
     }
 
     /* ==========================================
-     * 5. 歌词处理与渲染UI逻辑 (刮削已解耦)
-     * ========================================== */
-
-    function parseLyrics(lrcString) {
-      parsedLyrics = [];
-      if (!lrcString) {
-        fpLyricsContainer.innerHTML = '<div class="no-lyrics">暂无歌词，请欣赏音乐吧</div>';
-        fpLyricsContainer.style.transform = `translateY(0px)`;
-        return;
-      }
-      const lines = lrcString.split('\n');
-      const timeRegex = /\[(\d{2,}):(\d{2}(?:\.\d{1,3})?)\](.*)/;
-      lines.forEach(line => {
-        const match = timeRegex.exec(line);
-        if (match) {
-          const min = parseInt(match[1], 10);
-          const sec = parseFloat(match[2]);
-          const text = match[3].trim();
-          if (text) parsedLyrics.push({ time: min * 60 + sec, text: text });
-        }
-      });
-      if (parsedLyrics.length > 0) {
-        parsedLyrics = [...Array.from({ length: 2 }, (_, i) => ({ time: i * 0.1, text: '\u200B' })), ...parsedLyrics];
-      }
-      if (parsedLyrics.length === 0) {
-        fpLyricsContainer.innerHTML = '<div class="no-lyrics">暂无歌词，请欣赏音乐吧</div>';
-        fpLyricsContainer.style.transform = `translateY(0px)`;
-      } else {
-        fpLyricsContainer.innerHTML = parsedLyrics.map((lyric, idx) => `<div class="lyric-line" id="lyric-${idx}">${lyric.text}</div>`).join('');
-      }
-    }
-
-    function syncLyrics(currentTime) {
-      if (parsedLyrics.length === 0 || lyricManualScrolling) return;
-      let activeIndex = -1;
-      for (let i = 0; i < parsedLyrics.length; i++) {
-        if (currentTime >= parsedLyrics[i].time) activeIndex = i;
-        else break;
-      }
-      if (activeIndex !== -1) {
-        const oldActive = document.querySelector('.lyric-line.active');
-        if (oldActive) oldActive.classList.remove('active');
-        const currentLine = document.getElementById(`lyric-${activeIndex}`);
-        if (currentLine) {
-          currentLine.classList.add('active');
-          const offset = currentLine.offsetTop - (lyricsWrapper.offsetHeight / 2) + (currentLine.offsetHeight / 2);
-          fpLyricsContainer.style.transform = `translateY(-${Math.max(0, offset)}px)`;
-        }
-      }
-    }
-
-    /* ==========================================
      * 6. 播放核心与大图拿来主义
      * ========================================== */
     async function playSong(index, autoPlay = true, resumeTime = 0) {
       if (index < 0 || index >= songList.length) return;
       if (consecutiveFailures >= 5) {
-          showToast(`🛑 连续获取失败，已暂停`);
+          window.showToast(`🛑 连续获取失败，已暂停`);
           if (!audioEl.paused) audioEl.pause();
           updatePlayButtonUI(false);
           consecutiveFailures = 0;
           return;
       }
       if (deadSongIndexes.includes(index)) {
-          showToast(`⚠️ 已自动跳过失效歌曲`);
+          window.showToast(`⚠️ 已自动跳过失效歌曲`);
           let nextIdx = index + 1 >= songList.length ? 0 : index + 1;
           return playSong(nextIdx, autoPlay, resumeTime);
       }
@@ -2448,10 +1375,8 @@
       const authData = JSON.parse(localStorage.getItem('songloft-auth') || "{}");
       const globalToken = authData.accessToken || "";
 
-      // 🌟 第一步：直接“白嫖”列表里已经加载好的封面（大图拿来主义）
       let finalCover = defaultCover;
       const listImg = document.getElementById(`list-cover-${index}`);
-      // 💡 修正防线：必须确保列表里的图片存在，且不是默认的 svg 占位图，才允许“白嫖”
       if (listImg && listImg.src && !listImg.src.includes('undefined') && listImg.src !== window.location.href && !listImg.src.startsWith('data:image/svg+xml')) {
           finalCover = listImg.src;
       } else if (rawItem._scrapedCover) {
@@ -2469,44 +1394,38 @@
         if (finalCover && finalCover !== currentRenderedCover) {
           fpCover.src = finalCover;
           miniCoverImg.src = finalCover;
-          updateMediaSession(currentSongName, finalCover);
+          window.updateMediaSession(currentSongName, finalCover, favoriteList, APP_LOGO);
           currentRenderedCover = finalCover;
         }
         if (typeof finalLrc !== 'undefined' && finalLrc !== null && finalLrc !== currentRenderedLrc) {
-          parseLyrics(finalLrc);
-          if (!audioEl.paused) syncLyrics(audioEl.currentTime);
+          window.LyricsEngine.parse(finalLrc);
+          if (!audioEl.paused) window.LyricsEngine.sync(audioEl.currentTime);
           currentRenderedLrc = finalLrc;
         }
       };
 
-      // 封面秒上墙（先尝试用已有图渲染）
       applyUI();
 
-      // 那么主动触发一次封面的异步刮削，让封面和歌词一样拥有主动打破僵局的能力！
       if (finalCover === defaultCover) {
           window.Scraper.getCover(rawItem).then(hdCover => {
-              // 确保刮削回来时，用户没有切走歌曲
               if (targetSongName === currentSongName && hdCover) {
                   finalCover = hdCover;
-                  rawItem._scrapedCover = hdCover; // 存入缓存
-                  if (listImg) listImg.src = hdCover; // 反哺更新列表里的缩略图
-                  applyUI(); // 重新刷新播放器界面
+                  rawItem._scrapedCover = hdCover;
+                  if (listImg) listImg.src = hdCover;
+                  applyUI();
               }
           }).catch(()=>{});
       }
 
-      // 🌟 每次切歌/播放，强制校准为当前歌单的基准速度
       const plConfig = getPlaylistConfig(currentPlaylist);
       if (typeof updateFpSpeedUI === 'function') updateFpSpeedUI(plConfig.speed);
 
-      // 同步左下角爱心状态
       if (typeof fpCornerFav !== 'undefined') {
           const isFav = favoriteList.includes(targetSongName);
           fpCornerFav.style.color = isFav ? 'var(--primary)' : 'var(--text-main)';
           fpCornerFav.querySelector('svg').setAttribute('fill', isFav ? 'currentColor' : 'none');
       }
       try {
-        // 获取音频播放链接
         let info = null;
         if (preloadCache && preloadCache.index === index) {
             info = preloadCache.data;
@@ -2528,7 +1447,6 @@
           audioEl.defaultPlaybackRate = currentSpeed;
           audioEl.playbackRate = currentSpeed;
 
-          // 🌟 提取当前歌曲的历史记录 (不管怎么切歌，只要有记录就拿出来)
           let targetResumeTime = 0;
           if (conf.resume) {
               const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
@@ -2542,10 +1460,10 @@
           const restoreProgress = () => {
             if (audioEl.duration && targetResumeTime > 0) {
               audioEl.currentTime = targetResumeTime;
-              timeCurrentEl.innerText = formatTime(targetResumeTime);
-              timeDurationEl.innerText = formatTime(audioEl.duration);
+              timeCurrentEl.innerText = window.formatTime(targetResumeTime);
+              timeDurationEl.innerText = window.formatTime(audioEl.duration);
               progressBar.style.width = (targetResumeTime / audioEl.duration * 100) + '%';
-              syncLyrics(targetResumeTime);
+              window.LyricsEngine.sync(targetResumeTime);
             }
             audioEl.removeEventListener('loadedmetadata', restoreProgress);
           };
@@ -2561,7 +1479,6 @@
           }
         }
 
-        // 🌟 第二步：使用独立 scraper 获取歌词
         finalLrc = await window.Scraper.getLyrics(rawItem, globalToken, currentSongName);
 
         if (finalLrc) {
@@ -2569,7 +1486,7 @@
         }
 
         if (!finalLrc && targetSongName === currentSongName) {
-            parseLyrics(null);
+            window.LyricsEngine.parse(null);
         }
 
       } catch (err) {}
@@ -2651,7 +1568,7 @@
             if (favoriteList.includes(songName)) toggleFavorite(songName, index);
         } else {
             songList.splice(index, 1);
-            showToast(`🗑️ 已将 ${songName.split('-')[0].trim()} 移出歌单`);
+            window.showToast(`🗑️ 已将 ${songName.split('-')[0].trim()} 移出歌单`);
             renderPlaylist();
 
             if (window.customPlaylistNames && window.customPlaylistNames.includes(currentPlaylist)) {
@@ -2677,20 +1594,20 @@
         if (isNewPlaylist) allPlaylists[targetPlaylist] = [];
         if (!allPlaylists[targetPlaylist].includes(songName)) allPlaylists[targetPlaylist].unshift(songName);
 
-        showToast(`⏳ 正在加入 ${targetPlaylist}...`);
+        window.showToast(`⏳ 正在加入 ${targetPlaylist}...`);
         try {
             const res = await fetch('../playlistupdatemusic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: targetPlaylist, music_list: allPlaylists[targetPlaylist] }) });
             const data = await res.json();
             if (data.ret === "OK") {
-                showToast(`🎉 已成功加入`);
+                window.showToast(`🎉 已成功加入`);
                 if (isNewPlaylist && typeof initPlaylistDropdown === 'function') initPlaylistDropdown();
-            } else { showToast("❌ 保存失败：" + data.ret); }
-        } catch(e) { showToast("❌ 网络异常"); }
+            } else { window.showToast("❌ 保存失败：" + data.ret); }
+        } catch(e) { window.showToast("❌ 网络异常"); }
     };
 
     window.executeBulkAdd = async function(targetPlaylist) {
         if (!songList || songList.length === 0) return;
-        showToast(`⏳ 正在批量加入 ${songList.length} 首歌到 ${targetPlaylist}...`, true);
+        window.showToast(`⏳ 正在批量加入 ${songList.length} 首歌到 ${targetPlaylist}...`, true);
 
         if (!allPlaylists[targetPlaylist]) allPlaylists[targetPlaylist] = [];
         const newLocals = songList.filter(songName => !allPlaylists[targetPlaylist].includes(songName));
@@ -2698,9 +1615,9 @@
 
         try {
             const res = await fetch('../playlistupdatemusic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: targetPlaylist, music_list: allPlaylists[targetPlaylist] }) });
-            if ((await res.json()).ret === "OK") showToast(`🎉 批量加入成功！`);
-            else showToast("⚠️ 加入失败");
-        } catch(e) { showToast("⚠️ 网络异常"); }
+            if ((await res.json()).ret === "OK") window.showToast(`🎉 批量加入成功！`);
+            else window.showToast("⚠️ 加入失败");
+        } catch(e) { window.showToast("⚠️ 网络异常"); }
     };
 
     function performLocalSearch(keyword) {
@@ -2709,14 +1626,11 @@
         allPlaylists['曲库搜索'] = [];
         songList = [];
       } else {
-
         const allSongs = allPlaylists['所有歌曲'] || [];
-
         allPlaylists['曲库搜索'] = allSongs.filter(rawItem => {
             const songName = window.getSongNameObj(rawItem);
             return songName && songName.toLowerCase().includes(keyword);
         });
-
         songList = allPlaylists['曲库搜索'];
       }
 
@@ -2775,14 +1689,13 @@
           playlistOpts.querySelectorAll('.select-option').forEach(el => el.classList.remove('active'));
           li.classList.add('active');
 
-          if (key === '收藏') showToast("💡 提示：长按任意歌曲可 加入/移出 收藏");
+          if (key === '收藏') window.showToast("💡 提示：长按任意歌曲可 加入/移出 收藏");
 
           updateSearchUI(key);
 
           if (window._isGridClick) {
               window._showBackBtn = true;
           } else {
-              // 用户如果是自己手动点开下拉菜单选的，就没必要显示返回了
               window._showBackBtn = false;
           }
           const backWrap = document.getElementById('back-to-grid-wrap');
@@ -2806,14 +1719,12 @@
           li.innerHTML = formatPlaylistTextWithTags(key, songList.length);
           playlistVal.innerHTML = li.innerHTML;
 
-          // 🌟 续播自动寻路：如果是开启了续播的歌单，优先定位到最近播放的歌曲
           let autoScrolled = false;
           if (key !== '我的歌单' && key !== '曲库搜索') {
               const conf = getPlaylistConfig(key);
               if (conf.resume) {
                   const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
                   const list = history[key] || [];
-                  // list[0] 就是最近一次播放的那首歌（LRU缓存特性）
                   if (list.length > 0) {
                       const lastPlayedName = list[0].name;
                       const targetIdx = songList.findIndex(item => window.getSongNameObj(item) === lastPlayedName);
@@ -2822,9 +1733,7 @@
                           setTimeout(() => {
                               const targetEl = document.getElementById('song-' + targetIdx);
                               if (targetEl) {
-                                  // 滚动到屏幕中间
                                   targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                  // 给个极其短暂的紫红色背景闪烁，提示用户“就是这首”
                                   targetEl.style.transition = 'background-color 0.5s';
                                   targetEl.style.backgroundColor = 'rgba(236, 72, 153, 0.15)';
                                   setTimeout(() => targetEl.style.backgroundColor = '', 1500);
@@ -2838,7 +1747,6 @@
           if (window._isBackAction) {
               setTimeout(() => window.scrollTo({ top: window._gridScrollY || 0, behavior: 'auto' }), 10);
           } else if (!autoScrolled) {
-              // 只有在没有触发续播定位的情况下，才滚回顶部
               window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         });
@@ -2931,7 +1839,6 @@
       const grid = document.getElementById('playlist-grid');
       const list = document.getElementById('playlist');
 
-      // 每次重绘先重置显示状态
       if (grid) grid.style.display = 'none';
       if (list) list.style.display = 'block';
 
@@ -2941,7 +1848,6 @@
       let isCurrentSongInNewList = false;
       closeAllSongMenus();
 
-      // 🌟 重启和清理观察器
       if (window.playlistObserver) {
           window.playlistObserver.disconnect();
       }
@@ -2949,9 +1855,7 @@
       const authData = JSON.parse(localStorage.getItem('songloft-auth') || "{}");
       const globalToken = authData.accessToken || "";
 
-      // =====================================
       // 1. 渲染我的网格 (海报墙)
-      // =====================================
       if (currentPlaylist === '我的歌单') {
           if (list) list.style.display = 'none';
           if (grid) grid.style.display = 'grid';
@@ -2960,7 +1864,6 @@
               .filter(pl => pl.name !== '所有电台' && pl.name !== '电台收藏')
               .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
 
-          // 🌟 歌单专属懒加载观察器 (极简防抖 + 重试)
           window.playlistObserver = new IntersectionObserver((entries) => {
               entries.forEach(entry => {
                   const card = entry.target;
@@ -2986,18 +1889,12 @@
                                   img.src = `${firstSong.cover_url}?access_token=${globalToken}`;
                                   window.playlistObserver.unobserve(card);
                               } else {
-                                  // 极简刮削：500ms防抖
                                   if (card._scrapeTimer) clearTimeout(card._scrapeTimer);
                                   card._scrapeTimer = setTimeout(async () => {
-                                      if (!card._inView) return; // 离开屏幕直接放弃
+                                      if (!card._inView) return;
                                       window.playlistObserver.unobserve(card);
-
-                                      // 🌟 调用黑盒获取封面
                                       const hdCover = await window.Scraper.getCover(firstSong);
-
-                                      if (!card._inView) return; // 查完发现滑走了，直接抛弃DOM更新
-
-                                      // 统一赋值上墙
+                                      if (!card._inView) return;
                                       if (hdCover) {
                                           img.src = hdCover;
                                           if (typeof firstSong === 'object') firstSong._scrapedCover = hdCover;
@@ -3028,17 +1925,12 @@
               card.dataset.coverUrl = pl.cover_url || '';
 
               const isCustom = window.customPlaylistNames && window.customPlaylistNames.includes(pl.name);
+              const rawSvg = isCustom ? window.SVG_ICONS.disc : window.SVG_ICONS.folder;
+              const nameIconHtml = rawSvg.replace('width="15" height="15"', 'width="12" height="12" style="margin-right: 4px; vertical-align: -2px; opacity: 0.9;"');
 
-              const rawSvg = isCustom ? SVG_ICONS.disc : SVG_ICONS.folder;
-              const nameIconHtml = rawSvg.replace(
-                  'width="15" height="15"',
-                  'width="12" height="12" style="margin-right: 4px; vertical-align: -2px; opacity: 0.9;"'
-              );
-
-              // 🌟 新增逻辑：读取配置并动态拼接底部文本，采用极简文本分隔符
               const conf = getPlaylistConfig(pl.name);
               let subText = `共 ${pl.song_count || 0} 首`;
-              if (conf.speed !== 1.0) subText += ` · ${formatSpeed(conf.speed)}`;
+              if (conf.speed !== 1.0) subText += ` · ${window.formatSpeed(conf.speed)}`;
               if (conf.resume) subText += ` · 续播`;
 
               card.innerHTML = `
@@ -3052,11 +1944,9 @@
               `;
 
               card.onclick = () => {
-                  // 🌟 重点：进入歌单的瞬间，把当前的滚动高度存下来！
                   window._gridScrollY = window.scrollY || document.documentElement.scrollTop;
                   window._isGridClick = true;
-                  const targetOpt = Array.from(document.querySelectorAll('#playlist-opts .select-option'))
-                                         .find(el => el.dataset.key === pl.name);
+                  const targetOpt = Array.from(document.querySelectorAll('#playlist-opts .select-option')).find(el => el.dataset.key === pl.name);
                   if (targetOpt) targetOpt.click();
                   window._isGridClick = false;
               };
@@ -3068,16 +1958,13 @@
           return;
       }
 
-      // =====================================
       // 2. 渲染歌曲列表
-      // =====================================
       if (songList.length === 0) {
         playlistEl.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">列表为空</div>';
         currentIndex = -1;
         return;
       }
 
-      // 🌟 歌曲列表懒加载观察器 (极简防抖 + 重试)
       window.playlistObserver = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
               const li = entry.target;
@@ -3093,17 +1980,11 @@
                   } else if (img.dataset.scrape === "true") {
                       if (li._scrapeTimer) clearTimeout(li._scrapeTimer);
                       li._scrapeTimer = setTimeout(async () => {
-                          if (!li._inView) return; // 滑走了就不去查了
+                          if (!li._inView) return;
                           img.removeAttribute('data-scrape');
-
                           const rawItem = songList[index];
-
-                          // 🌟 调用黑盒获取封面
                           const hdCover = await window.Scraper.getCover(rawItem);
-
-                          if (!li._inView) return; // 查完发现滑走了，抛弃DOM更新
-
-                          // 统一赋值上墙
+                          if (!li._inView) return;
                           if (hdCover) {
                               img.src = hdCover;
                               if (typeof songList[index] === 'object') songList[index]._scrapedCover = hdCover;
@@ -3129,8 +2010,6 @@
 
       songList.forEach((rawItem, index) => {
         const songName = window.getSongNameObj(rawItem);
-
-        // 🌟 解析封面显示逻辑
         let coverUrl = null;
         let needsScrape = false;
 
@@ -3186,7 +2065,6 @@
             }
         }
 
-        // 🌟 新增：动态渲染最右侧的进度时间
         let timeTagHtml = '';
         const plConf = getPlaylistConfig(currentPlaylist);
         if (plConf.resume) {
@@ -3194,8 +2072,7 @@
             const list = history[currentPlaylist] || [];
             const found = list.find(item => item.name === songName);
             if (found && found.time > 0) {
-                // 用主题紫红色显示，字号稍小，居右排布
-                timeTagHtml = `<div style="font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${formatTime(found.time)}</div>`;
+                timeTagHtml = `<div style="font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.formatTime(found.time)}</div>`;
             }
         }
 
@@ -3246,7 +2123,6 @@
                 e.stopPropagation();
                 const action = menuEl.dataset.action;
 
-                // --- 🌟 临时弹窗拦截 🌟 --- //
                 if (action === '加入' || action === '移出') {
                     const featureNameEl = document.getElementById('dev-modal-feature-name');
                     if (featureNameEl) featureNameEl.textContent = action + '歌曲';
@@ -3256,11 +2132,9 @@
                         document.body.style.overflow = 'hidden';
                     }
                     closeAllSongMenus();
-                    return; // 拦截执行，下方完整原始代码被封存
+                    return;
                 }
-                // --- 临时弹窗拦截 --- //
 
-                // 👇 下方是未来功能开放时需要执行的完整原代码，已恢复
                 if (action === '加入') {
                     if (window.skipAddConfirm && window.lastAddedPlaylist) {
                         if (typeof window.executeAddSong === 'function') window.executeAddSong(index, songName, window.lastAddedPlaylist);
@@ -3291,7 +2165,7 @@
         });
 
         playlistEl.appendChild(li);
-        window.playlistObserver.observe(li); // 开始监听
+        window.playlistObserver.observe(li);
       });
 
       if (!isCurrentSongInNewList) currentIndex = -1;
@@ -3300,9 +2174,7 @@
     /* ==========================================
      * 9. 交互事件总线管理
      * ========================================== */
-    // 🌟 宽屏双栏模式初始化
     function initSplitView() {
-      // 1. 动态生成中间分界线上的悬浮把手
       const btn = document.createElement('div');
       btn.id = 'split-toggle-btn';
       btn.className = 'split-toggle-btn';
@@ -3310,28 +2182,24 @@
       btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
       document.body.appendChild(btn);
 
-      // 2. 读取用户的选择偏好（如果未手动关闭，且宽度符合，默认开启）
       const isSplit = localStorage.getItem('iwebplayer.split_mode') !== 'false';
       if (isSplit && window.innerWidth >= 960) {
           document.body.classList.add('split-view-active');
       }
 
-      // 3. 绑定点击切换事件
       btn.addEventListener('click', () => {
           const willBeSplit = !document.body.classList.contains('split-view-active');
           if (willBeSplit) {
               document.body.classList.add('split-view-active');
               localStorage.setItem('iwebplayer.split_mode', 'true');
-              document.body.style.overflow = ''; // 释放手机版的锁定
+              document.body.style.overflow = '';
           } else {
               document.body.classList.remove('split-view-active');
               localStorage.setItem('iwebplayer.split_mode', 'false');
-              // 切回窄屏时，老老实实关闭掉潜在可能弹出的全屏页面
               if(typeof toggleFullPlayer === 'function') toggleFullPlayer(false);
           }
       });
 
-      // 4. 监听视口 Resize，保证缩放或旋转时布局不崩裂
       window.addEventListener('resize', () => {
           if (window.innerWidth >= 960) {
               if (localStorage.getItem('iwebplayer.split_mode') !== 'false') {
@@ -3344,7 +2212,7 @@
           }
       });
     }
-    // 🌟 静态固定 Device Dropdown (只允许“本机”选中，“小爱音箱”禁用并触发弹窗)
+
     function initDeviceDropdown() {
       const deviceOpts = document.getElementById('device-opts');
       const deviceVal = document.getElementById('device-val');
@@ -3363,7 +2231,6 @@
       deviceOpts.appendChild(liLocal);
 
       const liXiaoai = document.createElement('li');
-      // 给小爱音箱加上 disabled 类，方便后续 CSS 控制置灰
       liXiaoai.className = 'select-option disabled disabled-text';
       liXiaoai.innerHTML = '小爱音箱';
       liXiaoai.addEventListener('click', (e) => {
@@ -3379,7 +2246,6 @@
         }
       });
       deviceOpts.appendChild(liXiaoai);
-
       deviceVal.innerHTML = '本机';
     }
 
@@ -3437,7 +2303,6 @@
                         configBtn.classList.remove('disabled-text');
                     }
                 }
-
                 gm1Opts.classList.toggle('show');
             });
         }
@@ -3460,7 +2325,6 @@
             e.stopPropagation();
             if (settingsOpts) settingsOpts.classList.remove('show');
 
-            // --- 临时弹窗拦截 --- //
             const featureNameEl = document.getElementById('dev-modal-feature-name');
             if (featureNameEl) featureNameEl.textContent = '刷新曲库';
             if (devBackdrop) {
@@ -3469,9 +2333,6 @@
               document.body.style.overflow = 'hidden';
             }
             return;
-            // --- 临时弹窗拦截 --- //
-
-            refreshMusicList();
           });
         }
 
@@ -3487,28 +2348,24 @@
         if (backToGridBtn) {
             backToGridBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-
-                window._isBackAction = true; // 🌟 标记当前操作是“返回”
-
-                // 模拟点击“我的歌单”选项
+                window._isBackAction = true;
                 const targetOpt = Array.from(document.querySelectorAll('#playlist-opts .select-option'))
                                        .find(el => el.dataset.key === '我的歌单');
                 if (targetOpt) targetOpt.click();
-
-                window._isBackAction = false; // 🌟 恢复标记
+                window._isBackAction = false;
             });
         }
 
         audioEl.addEventListener('play', () => {
           updatePlayButtonUI(true);
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-          setupMediaSession();
+          window.setupMediaSession(audioEl, btnPrev, btnNext);
         });
 
         audioEl.addEventListener('playing', () => {
           consecutiveFailures = 0;
           deadSongIndexes = [];
-          if ('mediaSession' in navigator) setupMediaSession();
+          if ('mediaSession' in navigator) window.setupMediaSession(audioEl, btnPrev, btnNext);
         });
 
         audioEl.addEventListener('pause', () => {
@@ -3518,13 +2375,13 @@
 
         audioEl.addEventListener('error', () => {
           if (audioEl.src && audioEl.src !== window.location.href) {
-            showToast("⚠️ 歌曲链接拒绝访问，自动跳过...");
+            window.showToast("⚠️ 歌曲链接拒绝访问，自动跳过...");
             if (currentIndex !== -1) {
                 consecutiveFailures++;
             }
             updatePlayButtonUI(false);
             if (consecutiveFailures >= 5) {
-                showToast(`🛑 连续 5 首歌曲无法播放，已暂停。`);
+                window.showToast(`🛑 连续 5 首歌曲无法播放，已暂停。`);
                 consecutiveFailures = 0;
             } else {
                 setTimeout(() => {
@@ -3549,42 +2406,35 @@
           const current = audioEl.currentTime;
           const duration = audioEl.duration;
 
-          // 🌟 每 2 秒记录一次，原汁原味，不做任何多余干预
           if (Math.floor(current) % 2 === 0 && Math.floor(current) !== window._lastSavedTime) {
               window._lastSavedTime = Math.floor(current);
 
-              // 全局兜底存储
               localState.currentTime = current;
               localStorage.setItem('iwebplayer.local_state', JSON.stringify(localState));
 
-              // 🌟 5首 LRU 时光机存储 (仅在开启续播时运作)
               const conf = getPlaylistConfig(currentPlaylist);
               if (conf.resume) {
                   let history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
                   let list = history[currentPlaylist] || [];
 
-                  // 踢出旧的同名记录
                   list = list.filter(item => item.name !== currentSongName);
-                  // 插入最新记录到头部
                   list.unshift({ name: currentSongName, time: current });
-                  // 强行截断，最多只保留 5 个
                   if (list.length > 5) list = list.slice(0, 5);
 
                   history[currentPlaylist] = list;
                   localStorage.setItem('iwebplayer.resume_history', JSON.stringify(history));
 
-                  // 🌟 核心修复：把最新时间实时渲染到右侧列表的对应歌曲上
                   const timeWrap = document.getElementById(`time-wrap-${currentIndex}`);
                   if (timeWrap) {
-                      timeWrap.innerHTML = `<div style="font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${formatTime(current)}</div>`;
+                      timeWrap.innerHTML = `<div style="font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.formatTime(current)}</div>`;
                   }
               }
           }
 
           progressBar.style.width = (current / duration * 100) + '%';
-          timeCurrentEl.innerText = formatTime(current);
-          timeDurationEl.innerText = formatTime(duration);
-          syncLyrics(current);
+          timeCurrentEl.innerText = window.formatTime(current);
+          timeDurationEl.innerText = window.formatTime(duration);
+          window.LyricsEngine.sync(current);
         });
 
         btnMode.addEventListener('click', () => {
@@ -3636,7 +2486,7 @@
 
         btnVolume.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (isIOS) { showToast("iPhone不支持调节本机音量"); return; }
+          if (isIOS) { window.showToast("iPhone不支持调节本机音量"); return; }
           volumePopup.classList.toggle('show');
         });
 
@@ -3680,8 +2530,8 @@
           e.preventDefault();
           const p = getPercentage(e);
           progressBar.style.width = (p * 100) + '%';
-          timeCurrentEl.innerText = formatTime(p * audioEl.duration);
-          timeDurationEl.innerText = formatTime(audioEl.duration);
+          timeCurrentEl.innerText = window.formatTime(p * audioEl.duration);
+          timeDurationEl.innerText = window.formatTime(audioEl.duration);
         }
         function handleDragEnd(e) {
           if (!isDragging || !audioEl.duration) return;
@@ -3696,41 +2546,6 @@
         document.addEventListener('touchmove', handleDragMove, { passive: false });
         document.addEventListener('touchend', handleDragEnd);
 
-        function getLyricsOffset() {
-          const m = /translateY\(-?(\d+(?:\.\d+)?)px\)/.exec(fpLyricsContainer.style.transform || '');
-          return m ? parseFloat(m[1]) : 0;
-        }
-        function getLyricsMaxOffset() {
-          return Math.max(0, fpLyricsContainer.scrollHeight - lyricsWrapper.offsetHeight);
-        }
-        function onLyricsDragStart(e) {
-          if (e.type === 'mousedown' && e.button !== 0) return;
-          if (lyricResumeTimer) { clearTimeout(lyricResumeTimer); lyricResumeTimer = null; }
-          lyricManualScrolling = true;
-          lyricDragStartY = (e.touches ? e.touches[0].clientY : e.clientY);
-          lyricStartOffset = getLyricsOffset();
-          fpLyricsContainer.style.transition = 'none';
-          lyricsWrapper?.classList.add('dragging');
-          document.body.style.userSelect = 'none';
-          document.body.style.webkitUserSelect = 'none';
-          if (e.type === 'mousedown') e.preventDefault();
-        }
-        function onLyricsDragMove(e) {
-          if (!lyricManualScrolling || (e.type === 'mousemove' && e.buttons !== 1)) return;
-          e.preventDefault();
-          const delta = (e.touches ? e.touches[0].clientY : e.clientY) - lyricDragStartY;
-          fpLyricsContainer.style.transform = `translateY(-${Math.max(0, Math.min(getLyricsMaxOffset(), lyricStartOffset - delta))}px)`;
-        }
-        function onLyricsDragEnd() {
-          if (!lyricManualScrolling) return;
-          fpLyricsContainer.style.transition = '';
-          document.body.style.userSelect = '';
-          document.body.style.webkitUserSelect = '';
-          lyricsWrapper?.classList.remove('dragging');
-          if (lyricResumeTimer) clearTimeout(lyricResumeTimer);
-          lyricResumeTimer = setTimeout(() => { lyricResumeTimer = null; lyricManualScrolling = false; }, 2000);
-        }
-
         drawerHandle.addEventListener('click', () => toggleFullPlayer(false));
         npInfo.addEventListener('click', () => toggleFullPlayer());
         npInfo.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, {passive: true});
@@ -3740,7 +2555,8 @@
 
         fullPlayer.addEventListener('touchstart', e => {
           fpTouchStartY = e.touches[0].clientY;
-          drawerGestureFromLyrics = !!e.target.closest('#fp-lyrics-wrapper');
+          // 🌟 修复：如果触摸的是倍速弹窗，也把它视为内部操作，禁止触发“下滑关闭播放器”的手势
+          drawerGestureFromLyrics = !!(e.target.closest('#fp-lyrics-wrapper') || e.target.closest('#fp-speed-popup'));
         }, {passive: true});
 
         fullPlayer.addEventListener('touchend', e => {
@@ -3749,15 +2565,11 @@
         });
 
         fullPlayer.addEventListener('touchmove', e => {
-          if (!e.target.closest('#fp-lyrics-wrapper')) e.preventDefault();
+          // 🌟 修复：放行歌词区域 和 倍速区域的滑动，不强行拦截
+          if (!e.target.closest('#fp-lyrics-wrapper') && !e.target.closest('#fp-speed-popup')) {
+              e.preventDefault();
+          }
         }, { passive: false });
-
-        lyricsWrapper.addEventListener('mousedown', onLyricsDragStart);
-        document.addEventListener('mousemove', onLyricsDragMove, { passive: false });
-        document.addEventListener('mouseup', onLyricsDragEnd);
-        lyricsWrapper.addEventListener('touchstart', onLyricsDragStart, { passive: false });
-        lyricsWrapper.addEventListener('touchmove',  onLyricsDragMove,  { passive: false });
-        lyricsWrapper.addEventListener('touchend',   onLyricsDragEnd);
 
         function closeAbout() {
           aboutBackdrop.classList.remove('show');
@@ -3844,15 +2656,15 @@
                         if (!newName || newName === displayName) { renderEditPlaylistItems(); return; }
                         const finalOldName = k;
                         const finalNewName = newName;
-                        showToast("⏳ 正在重命名...");
+                        window.showToast("⏳ 正在重命名...");
                         try {
                             await fetch('../playlistupdatename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldname: finalOldName, newname: finalNewName }) });
-                            showToast("🎉 重命名成功！");
+                            window.showToast("🎉 重命名成功！");
                             if (currentPlaylist === finalOldName) currentPlaylist = finalNewName;
                             await reloadGlobalData();
                             initPlaylistDropdown();
                             renderEditPlaylistItems();
-                        } catch (e) { showToast("❌ 网络异常"); renderEditPlaylistItems(); }
+                        } catch (e) { window.showToast("❌ 网络异常"); renderEditPlaylistItems(); }
                     });
                 });
                 li.querySelector('.delete').addEventListener('click', () => {
@@ -3866,15 +2678,15 @@
                     `;
                     li.querySelector('.edit-pl-cancel').addEventListener('click', renderEditPlaylistItems);
                     li.querySelector('.edit-pl-confirm-delete').addEventListener('click', async () => {
-                        showToast("⏳ 正在彻底删除...");
+                        window.showToast("⏳ 正在彻底删除...");
                         try {
                             await fetch('../playlistdel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: k }) });
-                            showToast("🗑️ 歌单已删除！");
+                            window.showToast("🗑️ 歌单已删除！");
                             if (currentPlaylist === k) { currentPlaylist = "所有歌曲"; updateSearchUI(currentPlaylist); }
                             await reloadGlobalData();
                             initPlaylistDropdown();
                             renderEditPlaylistItems();
-                        } catch (e) { showToast("❌ 删除异常"); renderEditPlaylistItems(); }
+                        } catch (e) { window.showToast("❌ 删除异常"); renderEditPlaylistItems(); }
                     });
                 });
                 editPlList.appendChild(li);
@@ -3884,17 +2696,17 @@
 
         document.getElementById('edit-pl-create-btn')?.addEventListener('click', async () => {
             const inputVal = editPlNewInput.value.trim();
-            if (!inputVal) { showToast("歌单名称不能为空哦"); return; }
+            if (!inputVal) { window.showToast("歌单名称不能为空哦"); return; }
             const newListName = inputVal;
-            showToast("⏳ 正在创建...");
+            window.showToast("⏳ 正在创建...");
             try {
                 const res = await fetch('../playlistadd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newListName }) });
                 const data = await res.json();
                 if (data.ret === "OK" || data === "success") {
-                    showToast("🎉 创建成功！"); editPlNewInput.value = '';
+                    window.showToast("🎉 创建成功！"); editPlNewInput.value = '';
                     await reloadGlobalData(); initPlaylistDropdown(); renderEditPlaylistItems();
-                } else { showToast("❌ 创建失败：" + (data.ret || "未知错误")); }
-            } catch(e) { showToast("❌ 网络异常"); }
+                } else { window.showToast("❌ 创建失败：" + (data.ret || "未知错误")); }
+            } catch(e) { window.showToast("❌ 网络异常"); }
         });
 
         if (settingCreatePlaylistBtn) {
@@ -3902,7 +2714,6 @@
             e.stopPropagation();
             if (settingsOpts) settingsOpts.classList.remove('show');
 
-            // --- 临时弹窗拦截 --- //
             const featureNameEl = document.getElementById('dev-modal-feature-name');
             if (featureNameEl) featureNameEl.textContent = '编辑歌单';
             if (devBackdrop) {
@@ -3911,15 +2722,6 @@
               document.body.style.overflow = 'hidden';
             }
             return;
-            // --- 临时弹窗拦截 --- //
-
-            const editPlBackdrop = document.getElementById('edit-playlist-backdrop');
-            if (editPlBackdrop) {
-              editPlBackdrop.classList.add('show');
-              editPlBackdrop.setAttribute('aria-hidden', 'false');
-              document.body.style.overflow = 'hidden';
-              if (typeof renderEditPlaylistItems === 'function') renderEditPlaylistItems();
-            }
           });
         }
 
@@ -3958,7 +2760,7 @@
         addSongModal?.addEventListener('click', (e) => { if (e.target === addSongModal) closeAddSongModal(); });
 
         document.getElementById('add-song-confirm')?.addEventListener('click', () => {
-            if (!window.tempSelectedPlaylist) { showToast("请先在上方选择一个目标歌单哦"); return; }
+            if (!window.tempSelectedPlaylist) { window.showToast("请先在上方选择一个目标歌单哦"); return; }
             const finalTarget = window.tempSelectedPlaylist;
 
             if (addSongDontAsk && addSongDontAsk.checked) {
@@ -3974,7 +2776,7 @@
 
         document.getElementById('add-new-playlist-btn')?.addEventListener('click', () => {
             const inputVal = newPlaylistInput.value.trim();
-            if (!inputVal) { showToast("歌单名称不能为空哦"); return; }
+            if (!inputVal) { window.showToast("歌单名称不能为空哦"); return; }
             const newListName = inputVal;
 
             if (addSongDontAsk && addSongDontAsk.checked) {
@@ -3993,7 +2795,6 @@
             const gm1Opts = document.getElementById('global-menu-1-opts');
             if (gm1Opts) gm1Opts.classList.remove('show');
 
-            // --- 临时弹窗拦截 --- //
             const featureNameEl = document.getElementById('dev-modal-feature-name');
             if (featureNameEl) featureNameEl.textContent = '创建/加入歌单';
             if (devBackdrop) {
@@ -4002,41 +2803,6 @@
                 document.body.style.overflow = 'hidden';
             }
             return;
-            // --- 临时弹窗拦截 --- //
-
-            if (!songList || songList.length === 0) { showToast("当前列表为空，无法加入"); return; }
-            if (window.skipAddConfirm && window.lastAddedPlaylist) {
-                window.executeBulkAdd(window.lastAddedPlaylist);
-                return;
-            }
-
-            window.pendingBulkAdd = true;
-            window.pendingAddIndex = -1;
-
-            const nameSpan = document.getElementById('add-song-name');
-            if (nameSpan) nameSpan.textContent = `当前列表 (共 ${songList.length} 首)`;
-
-            const newPlaylistInput = document.getElementById('add-new-playlist-input');
-            if (newPlaylistInput) {
-                let defaultName = currentPlaylist;
-                if (currentPlaylist === '曲库搜索') {
-                    const localInput = document.getElementById('search-input');
-                    if (localInput && localInput.value) defaultName = localInput.value.trim();
-                } else {
-                    if (typeof window.getDisplayPlaylistName === 'function') {
-                        defaultName = currentPlaylist;
-                    }
-                }
-                newPlaylistInput.value = defaultName;
-            }
-
-            const listEl = document.getElementById('add-song-playlist-list');
-            if (listEl) window.renderPlaylistRadioList(listEl);
-            if (addSongModal) {
-                addSongModal.classList.add('show');
-                addSongModal.setAttribute('aria-hidden', 'false');
-                document.body.style.overflow = 'hidden';
-            }
         };
 
         document.querySelectorAll('.global-add-btn').forEach(btn => {
@@ -4058,7 +2824,7 @@
               performLocalSearch('');
             });
         }
-    // 👇 从这里开始补回 iOS 弹窗事件 👇
+
         const settingIosBtn = document.getElementById('setting-ios-desktop');
         const iosModal = document.getElementById('ios-desktop-backdrop');
         const iosTabs = document.querySelectorAll('.ios-plugin-tab');
@@ -4068,7 +2834,6 @@
         const iosInputName = document.getElementById('ios-desktop-name');
 
         if (settingIosBtn && iosModal) {
-            // 打开弹窗
             settingIosBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (settingsOpts) settingsOpts.classList.remove('show');
@@ -4084,7 +2849,6 @@
                 document.body.style.overflow = 'hidden';
             });
 
-            // 关闭弹窗
             const closeIosModal = () => {
                 iosModal.classList.remove('show');
                 iosModal.setAttribute('aria-hidden', 'true');
@@ -4093,7 +2857,6 @@
             if (iosCloseBtn) iosCloseBtn.addEventListener('click', closeIosModal);
             iosModal.addEventListener('click', (e) => { if (e.target === iosModal) closeIosModal(); });
 
-            // 标签切换
             iosTabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const targetId = tab.dataset.target;
@@ -4114,13 +2877,11 @@
                 });
             });
 
-            // 开启气泡引导
             window.startIosGuide = (e) => {
                 if (e) e.stopPropagation();
                 if (guideBubble) guideBubble.classList.add('show');
             };
 
-            // 点击任意处隐藏引导气泡
             document.addEventListener('click', (e) => {
                 if (guideBubble && guideBubble.classList.contains('show')) {
                     if (!e.target.closest('.start-ios-guide-btn')) {
@@ -4129,15 +2890,13 @@
                 }
             });
 
-            // 配置文件下载逻辑
             const btnDownloadProfile = document.getElementById('btn-download-profile');
             if (btnDownloadProfile) {
-                // 🌟 改动1：给回调函数加上 async
                 btnDownloadProfile.addEventListener('click', async () => {
                     const targetUrl = iosInputUrl.value.trim();
-                    if (!targetUrl) { showToast("请输入绑定的服务地址"); return; }
+                    if (!targetUrl) { window.showToast("请输入绑定的服务地址"); return; }
 
-                    showToast("⏳ 正在生成配置...", true);
+                    window.showToast("⏳ 正在生成配置...", true);
 
                     let hostIdentifier = "";
                     try { hostIdentifier = new URL(targetUrl).hostname; }
@@ -4147,10 +2906,7 @@
                     const finalLabel = suffix ? `iWebPlayer${suffix}` : 'iWebPlayer';
                     const configDisplayName = `${finalLabel} Config [${hostIdentifier}]`;
 
-                    const logoMeta = document.getElementById('app-logo')?.content || '';
                     let base64Icon = '';
-
-                    // 🌟 改动2：智能转换！如果是普通路径，动态读取并转成 Base64
                     const basePath = window.location.pathname.replace(/\/$/, '');
                     const exactLogoUrl = basePath + '/static/logo.png';
 
@@ -4164,9 +2920,7 @@
                                 reader.readAsDataURL(blob);
                             });
                         }
-                    } catch (e) {
-                        console.warn("Logo转Base64失败", e);
-                    }
+                    } catch (e) {}
 
                     const uuid1 = crypto.randomUUID ? crypto.randomUUID() : '12345678-1234-1234-1234-123456789012';
                     const uuid2 = crypto.randomUUID ? crypto.randomUUID() : '87654321-4321-4321-4321-210987654321';
@@ -4184,22 +2938,12 @@
                     document.body.removeChild(link);
                     URL.revokeObjectURL(link.href);
 
-                    // 此处原本的 iosStep1/Step2 切换代码已删除
-                    showToast("✅ 配置文件已生成并开始下载");
+                    window.showToast("✅ 配置文件已生成并开始下载");
                 });
             }
         }
-
     }
 
-    // 🌟 倍速文字完美格式化函数 (1x, 1.5x, 2x, 3x)
-    function formatSpeed(val) {
-        const num = parseFloat(val);
-        if (num === 1 || num === 2 || num === 3) return num + 'x';
-        return num.toFixed(1) + 'x';
-    }
-
-    // 核心缓存机制：存储每个歌单的配置
     function getPlaylistConfig(plName) {
         const configs = JSON.parse(localStorage.getItem('iwebplayer.pl_configs') || '{}');
         return configs[plName] || { speed: 1.0, resume: false, scope: 'local' };
@@ -4211,30 +2955,12 @@
         localStorage.setItem('iwebplayer.pl_configs', JSON.stringify(configs));
     }
 
-    // 🌟 挂件格式化函数：用于下拉菜单和列表名
-    function formatPlaylistTextWithTags(name, count) {
-        let baseHtml = formatPlaylistText(name, count);
-        const conf = getPlaylistConfig(name);
-        let tagsHtml = '';
-
-        if (conf.speed !== 1.0) tagsHtml += `<span class="pl-status-tag" style="color:var(--primary);">${formatSpeed(conf.speed)}</span>`;
-        if (conf.resume) tagsHtml += `<span class="pl-status-tag" style="color:var(--primary);">续播</span>`;
-
-        // 🌟 核心修改：如果有挂件，把挂件放进 flex-shrink: 0 的安全屋，绝对不许被挤掉
-        if (tagsHtml) {
-            return `${baseHtml}<div style="display: flex; align-items: center; flex-shrink: 0; margin-left: 2px; margin-right: 6px;">${tagsHtml}</div>`;
-        }
-        return baseHtml;
-    }
-
-    // 更新右下角临时按钮的UI
     function updateFpSpeedUI(speed) {
-        fpCornerSpeed.textContent = formatSpeed(speed);
+        fpCornerSpeed.textContent = window.formatSpeed(speed);
         fpSpeedSlider.value = speed;
         audioEl.playbackRate = speed;
     }
 
-    // 绑定沉浸页角落事件
     fpCornerFav.addEventListener('click', (e) => {
         e.stopPropagation();
         if(currentSongName && currentIndex !== -1) {
@@ -4263,12 +2989,20 @@
         updateFpSpeedUI(parseFloat(fpSpeedSlider.value));
     });
 
-    // 绑定全局设置弹窗事件
-    document.getElementById('config-close').addEventListener('click', () => configBackdrop.classList.remove('show'));
-    document.getElementById('config-cancel').addEventListener('click', () => configBackdrop.classList.remove('show'));
+    // 🌟 修复：统一的关闭逻辑，关闭时恢复背景滑动
+    function closeConfigModal() {
+        configBackdrop.classList.remove('show');
+        configBackdrop.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('config-close').addEventListener('click', closeConfigModal);
+    document.getElementById('config-cancel').addEventListener('click', closeConfigModal);
+    // 顺手补个好体验：点击黑色半透明背景也能关闭弹窗
+    configBackdrop.addEventListener('click', (e) => { if (e.target === configBackdrop) closeConfigModal(); });
 
     configSpeedSlider.addEventListener('input', (e) => {
-        configSpeedVal.textContent = formatSpeed(e.target.value);
+        configSpeedVal.textContent = window.formatSpeed(e.target.value);
     });
 
     document.getElementById('config-speed-plus').addEventListener('click', () => {
@@ -4287,40 +3021,36 @@
             scope: document.querySelector('input[name="config-scope"]:checked').value
         };
         savePlaylistConfig(currentPlaylist, newConf);
-        configBackdrop.classList.remove('show');
-        showToast("✅ 设置已保存");
+        closeConfigModal();
+        window.showToast("✅ 设置已保存");
 
         initPlaylistDropdown();
         updateFpSpeedUI(newConf.speed);
     });
 
-    // 拦截全局按钮事件，唤醒真弹窗
-    // 拦截原有的全局按钮事件，唤醒我们的真弹窗 (iOS 精修联动版)
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('.global-dev-btn');
         if (btn) {
             e.stopPropagation();
-            e.preventDefault(); // 阻断原来的“敬请期待”逻辑
+            e.preventDefault();
             const gm1Opts = document.getElementById('global-menu-1-opts');
             if (gm1Opts) gm1Opts.classList.remove('show');
             if (currentPlaylist === '我的歌单') {
-                showToast("💡 请先进入具体的歌单进行设置");
+                window.showToast("💡 请先进入具体的歌单进行设置");
                 return;
             }
 
-            // 初始化弹窗数据
             document.getElementById('config-pl-name').textContent = currentPlaylist;
             const conf = getPlaylistConfig(currentPlaylist);
 
             configSpeedSlider.value = conf.speed;
-            configSpeedVal.textContent = formatSpeed(conf.speed);
+            configSpeedVal.textContent = window.formatSpeed(conf.speed);
             configResumeCheck.checked = conf.resume;
             document.querySelector(`input[name="config-scope"][value="${conf.scope}"]`).checked = true;
 
-            // 精准控制文字 span 容器，绝不覆盖和抹除精美的 SVG 矢量云图标
             const cloudTextEl = document.getElementById('config-cloud-text');
             if (conf.scope === 'local') {
-                configCloudHint.style.display = 'flex'; // 开启 flex 让图标和文字完美居中对齐
+                configCloudHint.style.display = 'flex';
                 if (cloudTextEl) {
                     cloudTextEl.textContent = `云端设置: 1x | 未开启续播 (待接入API)`;
                 }
@@ -4329,6 +3059,8 @@
             }
 
             configBackdrop.classList.add('show');
+            configBackdrop.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
         }
     });
 
@@ -4353,15 +3085,12 @@
             const data = await listRes.json();
 
             window.customPlaylistNames = data["_custom_playlists"] || [];
-            // 🌟 新增：提取歌单元数据
             window.playlistMeta = data["_playlist_meta"] || [];
 
             delete data["_custom_playlists"];
-            // 🌟 新增：销毁隐藏字段防止串台
             delete data["_playlist_meta"];
 
             allPlaylists = data;
-            // 🌟 新增：给大字典占个空位，防止后续函数读取报错
             allPlaylists["我的歌单"] = [];
 
             if (!allPlaylists["收藏"]) allPlaylists["收藏"] = [];
@@ -4385,10 +3114,10 @@
 
                     if (lastAttempt !== newVersion) {
                         localStorage.setItem('iwebplayer.iwp_update_attempt', newVersion);
-                        showToast(`🚀 发现后端已更新至 ${newVersion}，正在自动为您刷新...`, true);
+                        window.showToast(`🚀 发现后端已更新至 ${newVersion}，正在自动为您刷新...`, true);
                         setTimeout(() => { window.location.reload(true); }, 2000);
                     } else {
-                        showToast(`⚠️ 后端已是 ${newVersion}，但 iOS 缓存固化。请重新生成桌面配置！`, true);
+                        window.showToast(`⚠️ 后端已是 ${newVersion}，但 iOS 缓存固化。请重新生成桌面配置！`, true);
                     }
                 } else if (match && match[1] === APP_VERSION) {
                     localStorage.removeItem('iwebplayer.iwp_update_attempt');
@@ -4403,6 +3132,10 @@
       initDeviceDropdown();
       bindAllEvents();
       checkLocalVersionUpdate();
+
+      // 🌟 注入歌词引擎与 iOS Standalone 补丁
+      window.LyricsEngine.init('fp-lyrics-wrapper', 'fp-lyrics-container');
+      window.initStandalonePatch(audioEl, updatePlayButtonUI);
 
       if (fpCover) fpCover.src = defaultCover;
       if (miniCoverImg) miniCoverImg.src = defaultCover;
@@ -4459,7 +3192,7 @@
           if (idx !== -1) playSong(idx, false);
         }
 
-        setupMediaSession();
+        window.setupMediaSession(audioEl, btnPrev, btnNext);
 
         setTimeout(() => {
           window.dispatchEvent(new Event('resize'));
@@ -4467,11 +3200,7 @@
 
           const savedAppVersion = localStorage.getItem('iwebplayer.iwebplayer_version');
           if (savedAppVersion !== APP_VERSION) {
-
-              // 1. 绝对不要用 localStorage.clear()，直接覆盖存入新版本号即可！
               localStorage.setItem('iwebplayer.iwebplayer_version', APP_VERSION);
-
-              // 2. 首次进入或更新后，弹个窗给用户看一下版本说明
               const aboutModal = document.getElementById('about-backdrop');
               if (aboutModal) {
                   aboutModal.classList.add('show');
@@ -4488,31 +3217,6 @@
             loadingEl.innerText = '加载失败: ' + err.message;
         }
       }
-    }
-
-    const settingHomeBtn = document.getElementById('setting-home');
-    // 🌟 点击访问主页，新开窗口
-     if (settingHomeBtn) {
-       settingHomeBtn.addEventListener('click', (e) => {
-         e.stopPropagation();
-         if (settingsOpts) settingsOpts.classList.remove('show'); // 收起菜单
-         window.open('/', '_blank'); // 新开标签页跳回大系统根目录
-       });
-     }
-
-    // 核心容错：Standalone 模式下，锁屏暂停即“清空”
-    const isStandaloneMode = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-    if (isStandaloneMode && audioEl) {
-        audioEl.addEventListener('pause', () => {
-            if (window.isPageBtnPause) return;
-            if (audioEl.src && !audioEl.ended) {
-                const currentTime = audioEl.currentTime;
-                audioEl.src = "";
-                audioEl.load();
-                if (typeof updatePlayButtonUI === 'function') updatePlayButtonUI(false);
-                localStorage.setItem('iwebplayer.standalone_resume_time', currentTime);
-            }
-        });
     }
 
     document.addEventListener('DOMContentLoaded', init);
