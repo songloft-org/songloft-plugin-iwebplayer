@@ -458,7 +458,7 @@
   .pl-status-tag { display: inline-flex; align-items: center; justify-content: center; height: 16px; box-sizing: border-box; font-size: 10px; line-height: 1; padding: 0 4px; border-radius: 4px; border: 1px solid currentColor; margin-left: 6px; opacity: 0.85; vertical-align: middle; transform: translateY(2px); font-weight: normal; }
   </style>
 
-  <script src="./static/icons.js?v0.3.5" defer></script>
+  <script src="./static/icons.js?v0.3.6" defer></script>
   <script src="./static/utils.js" defer></script>
   <script src="./static/lyrics.js" defer></script>
   <script src="./static/scraper.js" defer></script>
@@ -2483,6 +2483,7 @@
 
         audioEl.addEventListener('error', () => {
           if (audioEl.src && audioEl.src !== window.location.href) {
+
             window.showToast("⚠️ 歌曲链接拒绝访问，自动跳过...");
             if (currentIndex !== -1) {
                 consecutiveFailures++;
@@ -2578,10 +2579,10 @@
         });
 
         btnPlay.addEventListener('click', () => {
-          // 🌟 终极修复：判断音频是否处于 iPhone 刷新后的“假死”状态 (readyState === 0 表示毫无数据)
-          // 如果是假死状态，说明旧的 src 已经“过期”，直接 play() 会被 Safari 强行清零。
-          // 此时直接调用 playSong，用新鲜的用户手势重新装填音频，完美复刻“点击列表”的效果！
-          if (audioEl.readyState === 0 && currentIndex !== -1) {
+          // 🌟 听你的，大道至简！判断如果是刷新后第一次点击播放
+          // 直接模拟点击列表里的当前歌曲，走一遍新鲜的加载流程
+          if (!window._hasManuallyPlayed && currentIndex !== -1) {
+              window._hasManuallyPlayed = true;
               playSong(currentIndex, true);
               return;
           }
