@@ -3,81 +3,116 @@ import { jsonResponse, createRouter } from '@songloft/plugin-sdk';
 
 const router = createRouter();
 
-// 初始页面：获取所有歌单和歌曲（内置了 cover_url 和 lyric_url）
+// 🌟 全局临时沙盒：只在前端拉歌的短短几秒内存在，超时必死，绝不长驻内存！
+let flashSongsCache: any[] | null = null;
+let flashTimeout: any = null;
+
 router.get('/musiclist', async (req) => {
   try {
-    const allPlaylists: any = {};
-    const customNames: string[] = [];
+    const urlParams = new URLSearchParams(String(req.query));
+    const action = urlParams.get('action') || 'legacy';
 
-    // 1. 初始化固定格子
-    allPlaylists["所有歌曲"] = [];
-    allPlaylists["曲库搜索"] = [];
-    allPlaylists["收藏"] = [];
+    // ==========================================
+    // 🚚 抽屉 1：获取轻量级骨架图纸 (action=meta)
+    // ==========================================
+    if (action === 'meta') {
+      // 1. 安全清理残留的缓存和定时器
+      if (flashTimeout) { clearTimeout(flashTimeout); flashTimeout = null; }
+      flashSongsCache = null;
 
-    // 2. 实时获取系统配置
-    const hostUrl = await songloft.plugin.getHostUrl();
-    const token = await songloft.plugin.getToken();
+      const structure: any = {};
+      const customNames: string[] = [];
+      const songMap = new Map(); // 用于全库去重
 
-    // 3. 获取歌单是否包括子目录歌曲
-    const res = await fetch(`${hostUrl}/api/v1/configs/scan_auto_create_include_subdirs`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+      const playlists = (await songloft.playlists.list()) ?? [];
 
-    const configDetail = res.ok ? await res.json() : { value: "false" };
-    const includeSubDirs = configDetail.value === "true";
-
-    // 获取所有歌单牌子
-    const playlists = (await songloft.playlists.list()) ?? [];
-
-    if (includeSubDirs) {
-      // 🟢 模式 A：包含子目录
       await Promise.all(playlists.map(async (pl) => {
         try {
           const plSongs = (await songloft.playlists.getSongs(pl.id, { limit: 10000 })) ?? [];
-          const cleanedSongs = plSongs.map((s: any) => ({ ...s }));
+          // 极速白名单瘦身，抹除 fingerprint 等 504 隐患
+          const cleanedSongs = plSongs.map((s: any) => ({
+              id: s.id,
+              title: s.title || "",
+              artist: s.artist || "",
+              album: s.album || "",
+              file_path: s.file_path || "",
+              cover_url: s.cover_url || "",
+              duration: s.duration || 0,
+              type: s.type || "local"
+          }));
 
-          // 顺手判断身份并记录
-          const isAutoCreated = pl.labels && pl.labels.includes("auto_created");
-          if (!isAutoCreated) customNames.push(pl.name);
-
-          if (pl.name === 'music') {
-            allPlaylists["所有歌曲"] = cleanedSongs;
-          } else {
-            allPlaylists[`${pl.name}`] = cleanedSongs;
+          // 骨肉分离：把实体歌曲替换成纯数字 ID 数组
+          if (pl.name !== 'music') {
+              structure[`${pl.name}`] = cleanedSongs.map((s: any) => s.id);
           }
-        } catch (e) {}
-      }));
 
-    } else {
-      // 🔴 模式 B：不含子目录
-      await Promise.all(playlists.map(async (pl) => {
-        try {
-          const plSongs = (await songloft.playlists.getSongs(pl.id, { limit: 10000 })) ?? [];
-          const cleanedSongs = plSongs.map((s: any) => ({ ...s }));
-
-          allPlaylists[`${pl.name}`] = cleanedSongs;
-
-          // 顺手判断身份并记录
+          // 判别自定义与外部歌单
           const isAutoCreated = pl.labels && pl.labels.includes("auto_created");
           if (!isAutoCreated) {
               customNames.push(pl.name);
-          } else {
-              allPlaylists["所有歌曲"].push(...cleanedSongs);
+          }
+
+          // 【最强方案一】合流：只要不是 built_in，统统倒进大池子去重
+          const isBuiltIn = pl.labels && pl.labels.includes("built_in");
+          if (!isBuiltIn) {
+              for (const s of cleanedSongs) {
+                  if (s && s.id) songMap.set(s.id, s);
+              }
           }
         } catch (e) {}
       }));
+
+      // 提取去重后的全库实体数组，准备装车
+      const allSongsArray = Array.from(songMap.values());
+
+      // 完善大盘的骨架映射
+      structure["所有歌曲"] = allSongsArray.map((s: any) => s.id);
+      structure["曲库搜索"] = [];
+      structure["收藏"] = [];
+
+      // 2. 将实体歌曲停入沙盒，等待前端召唤
+      flashSongsCache = allSongsArray;
+
+      // 3. 💣 埋下自杀炸弹：60 秒后强制释放内存，保护 NAS！
+      flashTimeout = setTimeout(() => {
+          flashSongsCache = null;
+          flashTimeout = null;
+      }, 60000);
+
+      // 4. 秒回体积微小的骨架图纸
+      return jsonResponse({
+          structure: structure,
+          _custom_playlists: customNames,
+          _playlist_meta: playlists
+      });
     }
 
-    allPlaylists["_playlist_meta"] = playlists;
-    allPlaylists["_custom_playlists"] = customNames;
+    // ==========================================
+    // 🚚 抽屉 2：蚂蚁搬家分页切片 (action=chunk)
+    // ==========================================
+    if (action === 'chunk') {
+      if (!flashSongsCache) return jsonResponse([]);
 
-    return jsonResponse(allPlaylists);
+      const page = parseInt(urlParams.get('page') || '1');
+      const pageSize = 500; // 每次只传 500 首，丝滑无痛
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+
+      return jsonResponse(flashSongsCache.slice(start, end)); // 0毫秒极速切片
+    }
+
+    // ==========================================
+    // 🚚 抽屉 3：功成身退手动销毁 (action=destroy)
+    // ==========================================
+    if (action === 'destroy') {
+      if (flashTimeout) { clearTimeout(flashTimeout); flashTimeout = null; }
+      flashSongsCache = null; // 内存瞬间释放
+      return jsonResponse({ ret: "OK" });
+    }
+
+    return jsonResponse({ error: "非法访问，请使用标准 action 抽屉" });
   } catch (error) {
-    return jsonResponse({ "所有歌曲": [], "曲库搜索": [], "收藏": [] });
+    return jsonResponse({ error: "后端核心引擎崩溃" });
   }
 });
 
@@ -112,7 +147,7 @@ router.get('/debug', async (req) => {
         // ==========================================
         // 🟢 模块 1：查看所有歌曲（不需要时直接注释掉整块）
         // ==========================================
-        // const rawSongs = (await songloft.songs.list({ limit: 1000 })) ?? {};
+        // const rawSongs = (await songloft.songs.list({ limit: 10000 })) ?? {};
         // debugResult.songs = rawSongs;
 
 
@@ -126,17 +161,17 @@ router.get('/debug', async (req) => {
         // ==========================================
         // 🟢 模块 3：查看系统配置（不需要时直接注释掉整块）
         // ==========================================
-        const hostUrl = await songloft.plugin.getHostUrl();
-        const token = await songloft.plugin.getToken();
-        const targetUrl = `${hostUrl}/api/v1/configs?limit=100`; // 想查单个配置就把这里改成具体 Key
-        const res = await fetch(targetUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-        debugResult.configs = await res.json();
+        // const hostUrl = await songloft.plugin.getHostUrl();
+        // const token = await songloft.plugin.getToken();
+        // const targetUrl = `${hostUrl}/api/v1/configs?limit=100`; // 想查单个配置就把这里改成具体 Key
+        // const res = await fetch(targetUrl, {
+        //         method: 'GET',
+        //         headers: {
+        //             'Authorization': `Bearer ${token}`,
+        //             'Content-Type': 'application/json'
+        //         }
+        //     });
+        // debugResult.configs = await res.json();
 
         // =============================================
 
