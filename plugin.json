@@ -6,6 +6,7 @@
   "author": "birdstudy-nj",
   "homepage": "",
   "license": "Apache-2.0",
+  "icon": "icon.svg",
   "entryPath": "iwebplayer",
   "main": "main.js",
   "minHostVersion": "2.6.3",
