@@ -458,7 +458,7 @@
   .pl-status-tag { display: inline-flex; align-items: center; justify-content: center; height: 16px; box-sizing: border-box; font-size: 10px; line-height: 1; padding: 0 4px; border-radius: 4px; border: 1px solid currentColor; margin-left: 6px; opacity: 0.85; vertical-align: middle; transform: translateY(2px); font-weight: normal; }
   </style>
 
-  <script src="./static/icons.js?v0.3.3" defer></script>
+  <script src="./static/icons.js?v0.3.5" defer></script>
   <script src="./static/utils.js" defer></script>
   <script src="./static/lyrics.js" defer></script>
   <script src="./static/scraper.js" defer></script>
@@ -962,7 +962,7 @@
     /* ==========================================
      * 1. 核心配置与全局状态
      * ========================================== */
-    const APP_VERSION = 'v0.3.3';
+    const APP_VERSION = 'v0.3.5';
     const APP_LOGO = document.getElementById('app-logo')?.content || '';
     const PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '曲库搜索', 'cache_songs'];
     const API = {
@@ -2578,6 +2578,14 @@
         });
 
         btnPlay.addEventListener('click', () => {
+          // 🌟 终极修复：判断音频是否处于 iPhone 刷新后的“假死”状态 (readyState === 0 表示毫无数据)
+          // 如果是假死状态，说明旧的 src 已经“过期”，直接 play() 会被 Safari 强行清零。
+          // 此时直接调用 playSong，用新鲜的用户手势重新装填音频，完美复刻“点击列表”的效果！
+          if (audioEl.readyState === 0 && currentIndex !== -1) {
+              playSong(currentIndex, true);
+              return;
+          }
+
           if (audioEl.src && audioEl.src !== window.location.href) {
               if (audioEl.paused) {
                   audioEl.play();
@@ -3321,26 +3329,66 @@
 
     async function reloadGlobalData() {
         try {
-            const listRes = await fetch(API.list);
-            // 🌟 核心拦截：如果后端直接拒绝访问 (比如 401 Unauthorized)，直接打断施法
-            if (!listRes.ok) throw new Error("AUTH_FAILED");
+            // 🌟 步骤 1：秒抢图纸，界面数据火速就绪
+            const metaRes = await fetch(`${API.list}?action=meta`);
+            if (!metaRes.ok) throw new Error("AUTH_FAILED");
+            const metaData = await metaRes.json();
+            if (metaData.error || metaData.ret === "FAIL") throw new Error("AUTH_FAILED");
 
-            const data = await listRes.json();
-            // 🌟 防呆拦截：防止某些后端依然返回 200，但 JSON 里带有报错信息
-            if (data.error || data.ret === "FAIL") throw new Error("AUTH_FAILED");
+            // 完美保留原有系统属性映射
+            window.customPlaylistNames = metaData._custom_playlists || [];
+            window.playlistMeta = metaData._playlist_meta || [];
 
-            window.customPlaylistNames = data["_custom_playlists"] || [];
-            window.playlistMeta = data["_playlist_meta"] || [];
+            // 🌟 步骤 2：发起 500 首分批搬砖的隐蔽循环
+            const allSongsMap = new Map();
+            let page = 1;
 
-            delete data["_custom_playlists"];
-            delete data["_playlist_meta"];
+            while (true) {
+                if (typeof window.showToast === 'function' && page > 1) {
+                    window.showToast(`⏳ 正在同步全库曲目 (第 ${page} 批)...`, false);
+                }
 
-            allPlaylists = data;
+                const chunkRes = await fetch(`${API.list}?action=chunk&page=${page}`);
+                if (!chunkRes.ok) break;
+
+                const songsChunk = await chunkRes.json();
+
+                // 如果发现车厢空了，说明搬运完毕，立刻跳出循环
+                if (!Array.isArray(songsChunk) || songsChunk.length === 0) break;
+
+                // 将送回来的实体歌曲按照 ID 摆在桌面上
+                for (const song of songsChunk) {
+                    if (song && song.id) {
+                        allSongsMap.set(song.id, song);
+                    }
+                }
+                if (songsChunk.length < 500) {
+                    break;
+                }
+                page++;
+            }
+
+            // 🌟 步骤 3：给 NAS 发个电报，让它立刻自杀释放内存！
+            fetch(`${API.list}?action=destroy`).catch(() => {});
+
+            // 🌟 步骤 4：照着图纸拼积木 (骨肉重组)
+            const reconstructedPlaylists = {};
+            for (const [plName, idArray] of Object.entries(metaData.structure)) {
+                if (Array.isArray(idArray)) {
+                    // 拿着骨架里的 ID，去桌面的 Map 账本里拿完整的歌曲对象
+                    reconstructedPlaylists[plName] = idArray.map(id => allSongsMap.get(id)).filter(Boolean);
+                } else {
+                    reconstructedPlaylists[plName] = idArray;
+                }
+            }
+
+            // 🌟 步骤 5：大功告成，将完美复原的字典移交原程序
+            allPlaylists = reconstructedPlaylists;
+
+            // 兜底原有必备节点
             allPlaylists["我的歌单"] = [];
-
             if (!allPlaylists["收藏"]) allPlaylists["收藏"] = [];
             if (!allPlaylists["曲库搜索"]) allPlaylists["曲库搜索"] = [];
-
             favoriteList = allPlaylists["收藏"];
 
         } catch (e) {
