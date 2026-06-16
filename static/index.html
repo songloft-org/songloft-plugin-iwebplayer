@@ -458,7 +458,7 @@
   .pl-status-tag { display: inline-flex; align-items: center; justify-content: center; height: 16px; box-sizing: border-box; font-size: 10px; line-height: 1; padding: 0 4px; border-radius: 4px; border: 1px solid currentColor; margin-left: 6px; opacity: 0.85; vertical-align: middle; transform: translateY(2px); font-weight: normal; }
   </style>
 
-  <script src="./static/icons.js?v0.3.6" defer></script>
+  <script src="./static/icons.js?v0.3.7" defer></script>
   <script src="./static/utils.js" defer></script>
   <script src="./static/lyrics.js" defer></script>
   <script src="./static/scraper.js" defer></script>
@@ -525,7 +525,7 @@
           <ul class="select-options" id="playlist-opts" style="width: 100%;"></ul>
         </div>
 
-        <div class="search-inline-wrap" id="search-inline-wrap" style="background: transparent; border: none; padding: 0; height: 100%; flex: 1;">
+        <div class="search-inline-wrap" id="search-inline-wrap" style="background: transparent; border: none; padding: 0; height: 100%; flex: 1.4;">
           <div style="width: 1px; height: 14px; background: var(--border); margin: 0 4px; flex-shrink: 0;"></div>
           <input type="text" id="search-input" placeholder="搜本地曲库..." autocomplete="off" style="padding: 0 8px; flex: 1; height: 100%;">
           <div class="search-actions" style="margin-right: 8px;">
@@ -817,44 +817,65 @@
           <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>
           <h2 style="font-size: 18px; font-weight: 800; margin: 0;">续播&调速</h2>
         </div>
-        <div style="font-size: 13px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; margin-bottom: 15px;">
-          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          <span id="config-pl-name">当前歌单名称</span>
+        <div style="font-size: 13px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="color: var(--primary);"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <span id="config-pl-name" style="color: var(--primary); font-weight: bold;">当前歌单名称</span>
         </div>
       </div>
+
       <div class="about-body" style="flex: 1; padding: 10px 18px 20px 18px; overflow-y: auto;">
-        <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">
-          歌单定制播放速度 (<span id="config-speed-val" style="color: var(--primary);">1x</span>)
+
+        <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: var(--text-main); display: flex; align-items: center;">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="m12 14 4-4"></path><path d="M3.34 16a10 10 0 1 1 17.32 0"></path></svg>
+          播放速度设置
         </div>
-        <div class="speed-slider-horizontal" style="background: var(--bg-color); padding: 12px; border-radius: 10px; margin: 0 0 15px 0;">
-          <button class="vol-adj-btn" id="config-speed-minus" style="width: 26px; height: 26px; margin: 0;">-</button>
-
-          <span style="font-size: 14px; font-weight: 500; color: var(--text-sub); font-variant-numeric: tabular-nums; margin-left: 2px;">0.5</span>
-
-          <input type="range" id="config-speed-slider" min="0.5" max="3.0" step="0.1" value="1.0">
-
-          <span style="font-size: 14px; font-weight: 500; color: var(--text-sub); font-variant-numeric: tabular-nums; margin-right: 2px;">3.0</span>
-
-          <button class="vol-adj-btn" id="config-speed-plus" style="width: 26px; height: 26px; margin: 0;">+</button>
+        <div style="background: var(--bg-color); padding: 14px; border-radius: 10px; margin-bottom: 20px;">
+           <div style="display: flex; justify-content: flex-start; align-items: center; gap: 8px; font-size: 13px; color: var(--text-main); margin-bottom: 6px;">
+             <span id="config-device-speed-title" style="font-weight: 500;">本机播放速度</span>
+             <span id="config-speed-val" style="color: var(--primary); font-weight: bold; font-variant-numeric: tabular-nums;">1.0x</span>
+           </div>
+           <div class="speed-slider-horizontal" style="margin: 0; gap: 8px;">
+             <button class="vol-adj-btn" id="config-speed-minus" style="width: 26px; height: 26px; margin: 0; background: var(--card-bg); border: 1px solid var(--border); flex-shrink: 0;">-</button>
+             <span style="font-size: 12px; color: var(--text-sub); font-weight: 500; flex-shrink: 0;">0.5x</span>
+             <input type="range" id="config-speed-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+             <span style="font-size: 12px; color: var(--text-sub); font-weight: 500; flex-shrink: 0;">3.0x</span>
+             <button class="vol-adj-btn" id="config-speed-plus" style="width: 26px; height: 26px; margin: 0; background: var(--card-bg); border: 1px solid var(--border); flex-shrink: 0;">+</button>
+           </div>
         </div>
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; cursor: pointer; user-select: none; color: var(--text-main); margin-bottom: 15px;">
-          <input type="checkbox" id="config-resume-check" style="width: 18px; height: 18px; accent-color: var(--primary);">
-          开启记忆播放 (自动续播)
-        </label>
-        <div style="height: 1px; background: var(--border); margin: 15px 0;"></div>
-        <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">生效范围</div>
-        <div class="settings-radio-group" style="background: var(--bg-color); padding: 12px; border-radius: 10px; margin: 0 0 12px 0; gap: 12px;">
-          <label class="settings-radio-label" style="margin:0; font-size: 14px;">
-            <input type="radio" name="config-scope" value="local" checked> 仅本机有效 (不影响其他设备)
+
+        <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: var(--text-main); display: flex; align-items: center;">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><circle cx="12" cy="13" r="8"></circle><polyline points="12 9 12 13 14 15"></polyline><line x1="12" y1="2" x2="12" y2="4"></line><line x1="10" y1="2" x2="14" y2="2"></line></svg>
+          记忆续播模式 (<span id="config-device-resume-title" style="color: var(--primary);">本机生效</span>)
+        </div>
+        <div class="settings-radio-group" style="background: var(--bg-color); padding: 12px; border-radius: 10px; margin: 0 0 12px 0; gap: 14px;">
+          <label class="settings-radio-label" style="margin:0; font-size: 14px; align-items: flex-start;">
+            <input type="radio" name="config-resume-mode" value="off" style="margin-top: 2px;">
+            <div>
+              <div id="config-resume-label-off" style="font-weight: 500;">关闭本机续播</div>
+              <div style="font-size: 12px; color: var(--text-sub); margin-top: 3px; font-weight: normal; line-height: 1.4;">每次播放都从头开始。</div>
+            </div>
           </label>
-          <label class="settings-radio-label" style="margin:0; font-size: 14px;">
-            <input type="radio" name="config-scope" value="global"> 应用到所有设备 (保存至云端)
+          <label class="settings-radio-label" style="margin:0; font-size: 14px; align-items: flex-start;">
+            <input type="radio" name="config-resume-mode" value="local" checked style="margin-top: 2px;">
+            <div>
+              <div style="font-weight: 500;">设备独立记忆 <span style="font-size: 12px; font-weight: normal; color: var(--text-sub);"></span></div>
+              <div style="font-size: 12px; color: var(--text-sub); margin-top: 3px; font-weight: normal; line-height: 1.4;">仅记录当前设备的进度，互不干扰。</div>
+            </div>
+          </label>
+          <label class="settings-radio-label" style="margin:0; font-size: 14px; align-items: flex-start;">
+            <input type="radio" name="config-resume-mode" value="global" style="margin-top: 2px;">
+            <div>
+              <div style="font-weight: 500;">多端无缝接力 <span style="font-size: 12px; font-weight: normal; color: var(--text-sub);"></span></div>
+              <div style="font-size: 12px; color: var(--text-sub); margin-top: 3px; font-weight: normal; line-height: 1.4;">进度实时同步至云端，所有开启接力的设备无缝共享。</div>
+            </div>
           </label>
         </div>
-        <div id="config-cloud-hint" style="font-size: 14px; color: var(--text-sub); margin-left: 4px; display: none; align-items: center; gap: 6px;">
+
+        <div id="config-cloud-hint" style="font-size: 13px; color: var(--text-sub); margin-left: 4px; display: none; align-items: center; gap: 6px;">
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
-          <span id="config-cloud-text">云端设置: 1x | 未开启续播</span>
+          <span id="config-cloud-text">正在拉取云端记录...</span>
         </div>
+
       </div>
       <div class="about-footer">
         <button class="about-secondary" id="config-cancel">取消</button>
@@ -962,7 +983,7 @@
     /* ==========================================
      * 1. 核心配置与全局状态
      * ========================================== */
-    const APP_VERSION = 'v0.3.5';
+    const APP_VERSION = 'v0.3.7';
     const APP_LOGO = document.getElementById('app-logo')?.content || '';
     const PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '曲库搜索', 'cache_songs'];
     const API = {
@@ -984,9 +1005,6 @@
     const fpSpeedSlider = document.getElementById('fp-speed-slider');
 
     const configBackdrop = document.getElementById('config-modal-backdrop');
-    const configSpeedSlider = document.getElementById('config-speed-slider');
-    const configSpeedVal = document.getElementById('config-speed-val');
-    const configResumeCheck = document.getElementById('config-resume-check');
     const configCloudHint = document.getElementById('config-cloud-hint');
 
     let allPlaylists = {};
@@ -1146,8 +1164,10 @@
         const conf = getPlaylistConfig(name);
         let tagsHtml = '';
 
-        if (conf.speed !== 1.0) tagsHtml += `<span class="pl-status-tag" style="color:var(--primary);">${window.formatSpeed(conf.speed)}</span>`;
-        if (conf.resume) tagsHtml += `<span class="pl-status-tag" style="color:var(--primary);">续播</span>`;
+        // 本地网页端只看本地设备定制的播放速度标签
+        if (conf.speedLocal !== 1.0) tagsHtml += `<span class="pl-status-tag" style="color:var(--primary);">${window.formatSpeed(conf.speedLocal)}</span>`;
+        // 只要不是 off (关闭)，说明独立记忆或云端接力处于开启状态，显示续播标签
+        if (conf.resumeLocal !== 'off') tagsHtml += `<span class="pl-status-tag" style="color:var(--primary);">续播</span>`;
 
         return `
           <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; min-width: 0;">
@@ -1466,7 +1486,7 @@
       }
 
       const plConfig = getPlaylistConfig(currentPlaylist);
-      if (typeof updateFpSpeedUI === 'function') updateFpSpeedUI(plConfig.speed);
+      if (typeof updateFpSpeedUI === 'function') updateFpSpeedUI(plConfig.speedLocal);
 
       if (typeof fpCornerFav !== 'undefined') {
           const isFav = favoriteList.includes(targetSongName);
@@ -1489,32 +1509,50 @@
           localState.songName = currentSongName;
           localStorage.setItem('iwebplayer.local_state', JSON.stringify(localState));
           audioEl.dataset.playingPlaylist = currentPlaylist;
+
+          audioEl.dataset.hasStarted = "0";
           audioEl.src = info.url;
 
+          // 核心重写：读取并应用该歌单独立的本机播放速度
           const conf = getPlaylistConfig(currentPlaylist);
-          const currentSpeed = conf.speed;
-          audioEl.defaultPlaybackRate = currentSpeed;
-          audioEl.playbackRate = currentSpeed;
-
-          // 🌟 优先激活并使用传入的明确时间（如切换歌单时传进来的）
           let targetResumeTime = resumeTime > 0 ? resumeTime : 0;
+          let targetSpeed = conf.speedLocal;
 
-          // 🌟 终极修复：如果没传时间（比如你在列表里手动点击了这首歌）
-          // 自动去多轨账本里查一下：如果这首歌正好是该歌单记录里的那首，直接全自动接管时间！
+          // 🚀 1. 本地查历史账本进度 (作为兜底数据)
           if (targetResumeTime === 0) {
               const plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
               if (plTracks[currentPlaylist] && plTracks[currentPlaylist].name === currentSongName) {
                   targetResumeTime = plTracks[currentPlaylist].time;
               }
           }
-
-          // 兼容旧版记忆续播的兜底
-          if (targetResumeTime === 0 && conf.resume) {
+          if (targetResumeTime === 0 && conf.resumeLocal !== 'off') {
               const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
               const list = history[currentPlaylist] || [];
               const found = list.find(item => item.name === currentSongName);
               if (found) targetResumeTime = found.time;
           }
+
+          // 🚀 2. 【云端无缝接力绝对霸权】
+          if (conf.resumeLocal === 'global') {
+              try {
+                  const res = await fetch(`./sync?playlist=${encodeURIComponent(currentPlaylist)}`);
+                  if (res.ok) {
+                      const resData = await res.json();
+                      if (resData && resData.data) {
+                          const cData = resData.data;
+                          // 进度霸权：如果云端记录听到这首歌，强制覆盖本地进度，完成接力
+                          if (cData.songName === currentSongName) {
+                              targetResumeTime = cData.time;
+                          }
+                      }
+                  }
+              } catch(e) { } // 网络死掉时默默降级采用上面的本地记忆
+          }
+
+          // 最终结算：装填经过云端/本地重重审查后的最终播放速度
+          audioEl.defaultPlaybackRate = targetSpeed;
+          audioEl.playbackRate = targetSpeed;
+          if (typeof updateFpSpeedUI === 'function') updateFpSpeedUI(targetSpeed);
 
           updateNpTitleUI(currentSongName, true, true);
 
@@ -1732,7 +1770,29 @@
     /* ==========================================
      * 8. 渲染初始化引擎 (Dropdowns, Lists)
      * ========================================== */
+    // 🌟 [iOS后台防断流神技] 纯内存无DOM打扰的歌单环境切换函数
+    function switchPlaylistSilently(targetPlaylistName) {
+        currentPlaylist = targetPlaylistName;
+        localState.playlist = currentPlaylist;
+        localStorage.setItem('iwebplayer.local_state', JSON.stringify(localState));
 
+        // 1. 悄悄更新顶部下拉菜单的文本显示与总数
+        if (playlistVal) {
+            playlistVal.innerHTML = formatPlaylistTextWithTags(targetPlaylistName, window.getMergedSongList(targetPlaylistName).length);
+        }
+
+        // 2. 悄悄修正下拉列表中 active 的高亮对勾
+        document.querySelectorAll('#playlist-opts .select-option').forEach(el => el.classList.remove('active'));
+        const targetOpt = document.querySelector(`#playlist-opts .select-option[data-key="${targetPlaylistName}"]`);
+        if (targetOpt) targetOpt.classList.add('active');
+
+        // 3. 更新搜索框状态
+        if (typeof updateSearchUI === 'function') updateSearchUI(targetPlaylistName);
+
+        // 4. 🚀 关键：直接从内存抽出新歌单的歌曲数组，并重绘主列表
+        songList = window.getMergedSongList(targetPlaylistName);
+        if (typeof renderPlaylist === 'function') renderPlaylist();
+    }
     function initPlaylistDropdown() {
       playlistOpts.innerHTML = '';
 
@@ -2022,8 +2082,9 @@
 
               const conf = getPlaylistConfig(pl.name);
               let subText = `共 ${pl.song_count || 0} 首`;
-              if (conf.speed !== 1.0) subText += ` · ${window.formatSpeed(conf.speed)}`;
-              if (conf.resume) subText += ` · 续播`;
+              // 网格海报处映射全新的本地定制速度与续播标识
+              if (conf.speedLocal !== 1.0) subText += ` · ${window.formatSpeed(conf.speedLocal)}`;
+              if (conf.resumeLocal !== 'off') subText += ` · 续播`;
 
               card.innerHTML = `
                 <img class="pl-cover-img" src="${defaultCover}" alt="cover">
@@ -2157,19 +2218,19 @@
             }
         }
 
-
         let timeTagHtml = '';
         const plConf = getPlaylistConfig(currentPlaylist);
-        if (plConf.resume) {
-            // 通道 A：开启了续播，从 5 轨历史账本匹配渲染
+        // 新过滤规则应用：只要续播模式开启
+        if (plConf.resumeLocal !== 'off') {
+            const targetSvg = plConf.resumeLocal === 'global' ? window.SVG_ICONS.cloud_clock : window.SVG_ICONS.stopwatch;
+
             const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
             const list = history[currentPlaylist] || [];
             const found = list.find(item => item.name === songName);
             if (found && found.time > 0) {
-                timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(found.time)}</div>`;
+                timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${targetSvg}${window.formatTime(found.time)}</div>`;
             }
         } else {
-            // 通道 B：未开启续播，从多轨账本中提取最新一首，为其右侧戴上 ⏱ 时间尾巴
             const plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
             if (plTracks[currentPlaylist] && plTracks[currentPlaylist].name === songName && plTracks[currentPlaylist].time > 0) {
                 timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(plTracks[currentPlaylist].time)}</div>`;
@@ -2234,33 +2295,6 @@
                     closeAllSongMenus();
                     return;
                 }
-
-                if (action === '加入') {
-                    if (window.skipAddConfirm && window.lastAddedPlaylist) {
-                        if (typeof window.executeAddSong === 'function') window.executeAddSong(index, songName, window.lastAddedPlaylist);
-                    } else {
-                        window.pendingAddIndex = index; window.pendingAddSongName = songName;
-                        const nameSpan = document.getElementById('add-song-name');
-                        if (nameSpan) nameSpan.textContent = songName;
-                        const listEl = document.getElementById('add-song-playlist-list');
-                        if (listEl) window.renderPlaylistRadioList(listEl);
-                        if (addSongModal) {
-                            addSongModal.classList.add('show'); addSongModal.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
-                        }
-                    }
-                } else if (action === '移出') {
-                  if (window.skipRemoveConfirm) {
-                      if (typeof window.executeRemoveSong === 'function') window.executeRemoveSong(index, songName);
-                  } else {
-                      window.pendingRemoveIndex = index; window.pendingRemoveSongName = songName;
-                      const nameSpan = document.getElementById('remove-song-name');
-                      if (nameSpan) nameSpan.textContent = songName;
-                      if (removeSongModal) {
-                          removeSongModal.classList.add('show'); removeSongModal.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
-                      }
-                  }
-              }
-              closeAllSongMenus();
             });
         });
 
@@ -2269,6 +2303,33 @@
       });
 
       if (!isCurrentSongInNewList) currentIndex = -1;
+      const listPlConf = getPlaylistConfig(currentPlaylist);
+      if (listPlConf.resumeLocal === 'global') {
+          fetch(`./sync?playlist=${encodeURIComponent(currentPlaylist)}`)
+              .then(r => r.json())
+              .then(res => {
+                  if (res && res.data && res.data.songName && res.data.time > 0) {
+                      const cSong = res.data.songName;
+                      const cTime = res.data.time;
+                      const targetIdx = songList.findIndex(item => window.getSongNameObj(item) === cSong);
+
+                      if (targetIdx !== -1) {
+                          // 1. 动态在列表对应的歌曲右侧“贴”上紫红色秒表标签
+                          const timeWrap = document.getElementById(`time-wrap-${targetIdx}`);
+                          if (timeWrap) {
+                              timeWrap.innerHTML = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.cloud_clock}${window.formatTime(cTime)}</div>`;
+                          }
+                          // 2. 顺手把云端最新进度写回本地历史账本，下次连网都不用等，直接秒出
+                          let history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
+                          let list = history[currentPlaylist] || [];
+                          list = list.filter(item => item.name !== cSong);
+                          list.unshift({ name: cSong, time: cTime });
+                          history[currentPlaylist] = list;
+                          localStorage.setItem('iwebplayer.resume_history', JSON.stringify(history));
+                      }
+                  }
+              }).catch(()=>{});
+      }
     }
 
     /* ==========================================
@@ -2351,11 +2412,30 @@
 
     function bindAllEvents() {
         document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') {
+          if (document.hidden) {
+              // ➡️ 1. 切走时：如果正在播放，记下精确时间并打上记号
+              if (currentIndex !== -1 && !audioEl.paused && audioEl.currentTime > 0) {
+                  window._wasPlayingBeforeHidden = true;
+                  window._interruptedTime = audioEl.currentTime;
+                  const actualPlayingPl = audioEl.dataset.playingPlaylist || currentPlaylist;
+                  syncToCloud(actualPlayingPl, currentSongName, audioEl.currentTime, audioEl.playbackRate, true);
+              } else {
+                  window._wasPlayingBeforeHidden = false;
+              }
+          } else {
+              // ⬅️ 2. 切回时：滚动到视口，并接管播放状态
               scrollToCurrentSong();
-              if (currentIndex !== -1) {
+
+              if (currentIndex !== -1 && audioEl.paused) {
                   const isSrcEmpty = !audioEl.src || audioEl.src === window.location.href || audioEl.src.includes('blob:');
-                  if (audioEl.paused && isSrcEmpty) {
+
+                  if (window._wasPlayingBeforeHidden) {
+                      // 🎯 核心复活逻辑：切走前在播，回来全自动重新装填并无缝播放！
+                      window._wasPlayingBeforeHidden = false;
+                      playSong(currentIndex, true, window._interruptedTime);
+                  } else if (isSrcEmpty) {
+                      // 兜底：PWA模式下切走前本来就是暂停的，但底层连接被系统清空了
+                      // 只做静默装填（不自动播放），保证用户点击播放键时能出声
                       const resumeTime = parseFloat(localStorage.getItem('iwebplayer.standalone_resume_time')) || 0;
                       playSong(currentIndex, false, resumeTime);
                   }
@@ -2465,12 +2545,13 @@
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
           window.setupMediaSession(audioEl, btnPrev, btnNext);
           const conf = getPlaylistConfig(currentPlaylist);
-          if (!conf.resume) {
+          if (conf.resumeLocal === 'off') {
               document.querySelectorAll('[id^="time-wrap-"]').forEach(el => el.innerHTML = '');
           }
         });
 
         audioEl.addEventListener('playing', () => {
+          audioEl.dataset.hasStarted = "1";
           consecutiveFailures = 0;
           deadSongIndexes = [];
           if ('mediaSession' in navigator) window.setupMediaSession(audioEl, btnPrev, btnNext);
@@ -2479,10 +2560,19 @@
         audioEl.addEventListener('pause', () => {
           updatePlayButtonUI(false);
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+          if (audioEl.src && !audioEl.ended && currentSongName) {
+              const actualPlayingPl = audioEl.dataset.playingPlaylist || currentPlaylist;
+              syncToCloud(actualPlayingPl, currentSongName, audioEl.currentTime, audioEl.playbackRate, true);
+          }
         });
 
         audioEl.addEventListener('error', () => {
           if (audioEl.src && audioEl.src !== window.location.href) {
+
+            if (audioEl.dataset.hasStarted === "1") {
+                updatePlayButtonUI(false);
+                return;
+            }
 
             window.showToast("⚠️ 歌曲链接拒绝访问，自动跳过...");
             if (currentIndex !== -1) {
@@ -2494,8 +2584,8 @@
                 consecutiveFailures = 0;
             } else {
                 setTimeout(() => {
-                    const btnNext = document.getElementById('btn-next');
-                    if (btnNext) btnNext.click();
+                    playNextSong(true);
+
                 }, 1000);
             }
           }
@@ -2522,7 +2612,7 @@
 
               // 2. 写入旧版单轨账本：同样只记到实际发声的歌单下
               const conf = getPlaylistConfig(actualPlayingPl);
-              if (conf.resume) {
+              if (conf.resumeLocal !== 'off') {
                   let history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
                   let list = history[actualPlayingPl] || [];
 
@@ -2532,12 +2622,14 @@
 
                   history[actualPlayingPl] = list;
                   localStorage.setItem('iwebplayer.resume_history', JSON.stringify(history));
+                  syncToCloud(actualPlayingPl, currentSongName, current, audioEl.playbackRate, false);
 
                   // 仅当用户正在看的就是播放歌单时，才动态更新右侧的时间跳动
                   if (actualPlayingPl === currentPlaylist) {
                       const timeWrap = document.getElementById(`time-wrap-${currentIndex}`);
                       if (timeWrap) {
-                          timeWrap.innerHTML = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(current)}</div>`;
+                        const targetSvg = conf.resumeLocal === 'global' ? window.SVG_ICONS.cloud_clock : window.SVG_ICONS.stopwatch;
+                        timeWrap.innerHTML = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(current)}</div>`;
                       }
                   }
               }
@@ -2658,12 +2750,10 @@
                 if (opts.length > 0) {
                     let currentOptIdx = opts.indexOf(currentPlaylist);
                     let nextPlaylistName = opts[(currentOptIdx + 1) % opts.length];
-                    const targetOpt = document.querySelector(`#playlist-opts .select-option[data-key="${nextPlaylistName}"]`);
-                    if (targetOpt) {
-                        targetOpt.click(); // 同步无缝切换歌单数据
-                        playSong(0); // 🌟 核心修复：直接纯同步播放！不给 iOS 锁屏断流留任何可乘之机
-                        return;
-                    }
+                    switchPlaylistSilently(nextPlaylistName);
+                    playSong(0);
+                    return;
+
                 } else playSong(0);
                 return;
             }
@@ -2692,11 +2782,9 @@
                     let currentOptIdx = opts.indexOf(currentPlaylist);
                     let prevPlaylistName = opts[(currentOptIdx - 1 + opts.length) % opts.length];
                     const targetOpt = document.querySelector(`#playlist-opts .select-option[data-key="${prevPlaylistName}"]`);
-                    if (targetOpt) {
-                        targetOpt.click();
-                        playSong(songList.length - 1); // 🌟 核心修复：直接同步切回上一个歌单尾曲
-                        return;
-                    }
+                    switchPlaylistSilently(prevPlaylistName);
+                    playSong(songList.length - 1);
+                    return;
                 } else playSong(songList.length - 1);
                 return;
             }
@@ -2717,12 +2805,10 @@
                     let currentOptIdx = opts.indexOf(currentPlaylist);
                     let nextPlaylistName = opts[(currentOptIdx + 1) % opts.length];
                     if (preloadCache.playlist === nextPlaylistName) {
-                        const targetOpt = document.querySelector(`#playlist-opts .select-option[data-key="${nextPlaylistName}"]`);
-                        if (targetOpt) {
-                            targetOpt.click();
-                            playSong(0);
-                            return;
-                        }
+                        switchPlaylistSilently(nextPlaylistName);
+
+                        playSong(0);
+                        return;
                     }
                 } else if (preloadCache.index !== currentIndex) {
                     playSong(preloadCache.index);
@@ -3193,9 +3279,18 @@
         }
     }
 
+    // 🌟 账本配置读取：拆分各端独立的续播状态
     function getPlaylistConfig(plName) {
         const configs = JSON.parse(localStorage.getItem('iwebplayer.pl_configs') || '{}');
-        return configs[plName] || { speed: 1.0, resume: false, scope: 'local' };
+        let conf = configs[plName] || {};
+
+        // 初始化默认值
+        if (conf.speedLocal === undefined) conf.speedLocal = 1.0;
+        if (conf.speedXiaoai === undefined) conf.speedXiaoai = 1.0;
+        if (conf.resumeLocal === undefined) conf.resumeLocal = 'off';
+        if (conf.resumeXiaoai === undefined) conf.resumeXiaoai = 'off';
+
+        return conf;
     }
 
     function savePlaylistConfig(plName, config) {
@@ -3210,6 +3305,32 @@
         audioEl.playbackRate = speed;
     }
 
+    // 🌟 云端接力节流汇报阀：严格基于“本机”是否开启了 global 策略
+    let cloudSyncTimer = null;
+    let lastCloudSyncTime = 0;
+    function syncToCloud(playlist, songName, time, speed, force = false) {
+        if (!playlist || !songName) return;
+        const conf = getPlaylistConfig(playlist);
+        if (conf.resumeLocal !== 'global') return; // 本机不是接力，绝对不上报
+
+        const now = Date.now();
+        if (!force && now - lastCloudSyncTime < 10000) {
+            if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+            cloudSyncTimer = setTimeout(() => syncToCloud(playlist, songName, time, speed, true), 10000 - (now - lastCloudSyncTime));
+            return;
+        }
+
+        if (cloudSyncTimer) { clearTimeout(cloudSyncTimer); cloudSyncTimer = null; }
+        lastCloudSyncTime = now;
+
+        fetch('./sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playlist, songName, time })
+        }).catch(()=>{});
+    }
+
+    // (沉浸页控制面板的交互保留不变...)
     fpCornerFav.addEventListener('click', (e) => {
         e.stopPropagation();
         if(currentSongName && currentIndex !== -1) {
@@ -3238,7 +3359,7 @@
         updateFpSpeedUI(parseFloat(fpSpeedSlider.value));
     });
 
-    // 🌟 修复：统一的关闭逻辑，关闭时恢复背景滑动
+    // 🌟 定制设置面板的显示、关闭及保存联动逻辑
     function closeConfigModal() {
         configBackdrop.classList.remove('show');
         configBackdrop.setAttribute('aria-hidden', 'true');
@@ -3247,13 +3368,14 @@
 
     document.getElementById('config-close').addEventListener('click', closeConfigModal);
     document.getElementById('config-cancel').addEventListener('click', closeConfigModal);
-    // 顺手补个好体验：点击黑色半透明背景也能关闭弹窗
     configBackdrop.addEventListener('click', (e) => { if (e.target === configBackdrop) closeConfigModal(); });
 
+    // 绑定单一维度的速度滑块
+    const configSpeedSlider = document.getElementById('config-speed-slider');
+    const configSpeedVal = document.getElementById('config-speed-val');
     configSpeedSlider.addEventListener('input', (e) => {
         configSpeedVal.textContent = window.formatSpeed(e.target.value);
     });
-
     document.getElementById('config-speed-plus').addEventListener('click', () => {
         configSpeedSlider.value = Math.min(3.0, parseFloat(configSpeedSlider.value) + 0.1).toFixed(1);
         configSpeedSlider.dispatchEvent(new Event('input'));
@@ -3263,20 +3385,35 @@
         configSpeedSlider.dispatchEvent(new Event('input'));
     });
 
+    // 🌟 核心保存：写入本地配置大字典 (上下文智能感知)
     document.getElementById('config-save').addEventListener('click', () => {
-        const newConf = {
-            speed: parseFloat(configSpeedSlider.value),
-            resume: configResumeCheck.checked,
-            scope: document.querySelector('input[name="config-scope"]:checked').value
-        };
-        savePlaylistConfig(currentPlaylist, newConf);
+        const currentDevice = document.getElementById('device-val').textContent.trim();
+        const isXiaoai = currentDevice === '小爱音箱';
+        const conf = getPlaylistConfig(currentPlaylist);
+
+        const newSpeed = parseFloat(configSpeedSlider.value);
+        const newResume = document.querySelector('input[name="config-resume-mode"]:checked').value;
+
+        // 根据右上角的上下文，精准写入对应设备的账本变量
+        if (isXiaoai) {
+            conf.speedXiaoai = newSpeed;
+            conf.resumeXiaoai = newResume;
+        } else {
+            conf.speedLocal = newSpeed;
+            conf.resumeLocal = newResume;
+        }
+
+        savePlaylistConfig(currentPlaylist, conf);
         closeConfigModal();
         window.showToast("✅ 设置已保存");
 
         initPlaylistDropdown();
-        updateFpSpeedUI(newConf.speed);
+        if (!isXiaoai) {
+            updateFpSpeedUI(conf.speedLocal); // 只有本机的配置变更才立刻热应用给 Audio 引擎
+        }
     });
 
+    // 🌟 核心打开：捕获列表控制菜单中的 [续播&调速] 点击
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('.global-dev-btn');
         if (btn) {
@@ -3289,19 +3426,44 @@
                 return;
             }
 
+            const currentDevice = document.getElementById('device-val').textContent.trim();
+            const isXiaoai = currentDevice === '小爱音箱';
+
+            // 动态替换界面的所有文案，假装它是专为当前设备设计的
             document.getElementById('config-pl-name').textContent = currentPlaylist;
+            document.getElementById('config-device-speed-title').textContent = isXiaoai ? '小爱音箱速度' : '本机播放速度';
+            document.getElementById('config-device-resume-title').textContent = isXiaoai ? '小爱生效' : '本机生效';
+            document.getElementById('config-resume-label-off').textContent = isXiaoai ? '关闭小爱续播' : '关闭本机续播';
+
             const conf = getPlaylistConfig(currentPlaylist);
+            // 读取对应上下文的配置
+            const currentSpeed = isXiaoai ? conf.speedXiaoai : conf.speedLocal;
+            const currentResume = isXiaoai ? conf.resumeXiaoai : conf.resumeLocal;
 
-            configSpeedSlider.value = conf.speed;
-            configSpeedVal.textContent = window.formatSpeed(conf.speed);
-            configResumeCheck.checked = conf.resume;
-            document.querySelector(`input[name="config-scope"][value="${conf.scope}"]`).checked = true;
+            // 赋值滑块 UI 状态
+            configSpeedSlider.value = currentSpeed;
+            configSpeedVal.textContent = window.formatSpeed(currentSpeed);
 
+            // 场景化 Radio 状态反选
+            const targetRadio = document.querySelector(`input[name="config-resume-mode"][value="${currentResume}"]`);
+            if (targetRadio) targetRadio.checked = true;
+
+            // 高级云端状态探针反查 (只有当选择 global 接力时才去服务器刺探情报)
             const cloudTextEl = document.getElementById('config-cloud-text');
-            if (conf.scope === 'local') {
+            if (currentResume === 'global') {
                 configCloudHint.style.display = 'flex';
                 if (cloudTextEl) {
-                    cloudTextEl.textContent = `云端设置: 1x | 未开启续播 (待接入API)`;
+                    cloudTextEl.textContent = `正在拉取云端记录...`;
+                    fetch(`./sync?playlist=${encodeURIComponent(currentPlaylist)}`)
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.data && res.data.songName) {
+                                cloudTextEl.textContent = `云端最近播放记录：${res.data.songName} (${window.formatTime(res.data.time)})`;
+                            } else {
+                                cloudTextEl.textContent = `云端暂无记录，将以本次播放为准`;
+                            }
+                        })
+                        .catch(() => cloudTextEl.textContent = `云端连接失败，请检查网络`);
                 }
             } else {
                 configCloudHint.style.display = 'none';
