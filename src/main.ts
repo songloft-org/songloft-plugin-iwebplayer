@@ -137,6 +137,68 @@ router.get('/musicinfo', async (req) => {
   }
 });
 
+// ==========================================
+// ☁️ 云端接力：读取/保存云端账本 (防弹升级版)
+// ==========================================
+router.get('/sync', async (req) => {
+    try {
+        const urlParams = new URLSearchParams(String(req.query));
+        const playlist = urlParams.get('playlist');
+        if (!playlist) return jsonResponse({ error: "Missing playlist" }, 400);
+
+        let dataStr = "";
+        const key = `sync_${playlist}`;
+
+        // 稳妥探测底层 API
+        if (typeof songloft.storage.getItem === 'function') {
+            dataStr = await songloft.storage.getItem(key);
+        } else if (typeof songloft.storage.get === 'function') {
+            dataStr = await songloft.storage.get(key);
+        }
+
+        if (!dataStr) return jsonResponse({ data: null });
+        return jsonResponse({ data: JSON.parse(dataStr) });
+    } catch (error) {
+        return jsonResponse({ error: "云端读取崩溃: " + String(error) });
+    }
+});
+
+router.post('/sync', async (req) => {
+    try {
+        // 🌟 修复 1：规避 req.json() 不是函数的问题，直接手撕 req.body 字符串
+        let bodyStr = req.body;
+        if (typeof bodyStr !== 'string') {
+            bodyStr = String(bodyStr);
+        }
+        const body = JSON.parse(bodyStr);
+
+        const playlist = body.playlist;
+        if (!playlist) return jsonResponse({ error: "Missing playlist" }, 400);
+
+        const dataToSave = {
+            songName: body.songName,
+            time: body.time,
+            updateAt: Date.now()
+        };
+
+        const key = `sync_${playlist}`;
+        const val = JSON.stringify(dataToSave);
+
+        // 🌟 修复 2：稳妥调用，不玩 .call() 的花活
+        if (typeof songloft.storage.setItem === 'function') {
+            await songloft.storage.setItem(key, val);
+        } else if (typeof songloft.storage.set === 'function') {
+            await songloft.storage.set(key, val);
+        } else {
+            throw new Error("存储引擎不支持写入");
+        }
+
+        return jsonResponse({ ret: "OK" });
+    } catch (error) {
+        return jsonResponse({ error: "云端写入崩溃: " + String(error) });
+    }
+});
+
 // 🌟 专供 debug 页面调用的后门接口
 // http://10.0.91.11:10333/api/v1/jsplugin/iwebplayer/static/debug.html
 router.get('/debug', async (req) => {
