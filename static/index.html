@@ -458,10 +458,11 @@
   .pl-status-tag { display: inline-flex; align-items: center; justify-content: center; height: 16px; box-sizing: border-box; font-size: 10px; line-height: 1; padding: 0 4px; border-radius: 4px; border: 1px solid currentColor; margin-left: 6px; opacity: 0.85; vertical-align: middle; transform: translateY(2px); font-weight: normal; }
   </style>
 
-  <script src="./static/icons.js?v0.3.7" defer></script>
+  <script src="./static/icons.js?v0.5.0" defer></script>
   <script src="./static/utils.js" defer></script>
   <script src="./static/lyrics.js" defer></script>
   <script src="./static/scraper.js" defer></script>
+  <script src="./static/playlist.js?v0.5.0" defer></script>
 
 </head>
 <body>
@@ -476,10 +477,10 @@
         </div>
         <ul class="select-options" id="settings-opts" style="left: 0; right: auto; min-width: 100px;">
 
-          <li class="select-option disabled-text" id="setting-refresh">
+          <li class="select-option" id="setting-refresh">
              <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> 刷新曲库
           </li>
-          <li class="select-option disabled-text" id="setting-create-playlist">
+          <li class="select-option" id="setting-create-playlist">
              <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> 编辑歌单
           </li>
           <li class="select-option" id="setting-config">
@@ -548,11 +549,15 @@
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
           </div>
           <ul class="select-options" id="global-menu-1-opts" style="right: 0; min-width: 130px; top: 100%;">
-            <li class="select-option global-add-btn disabled-text">
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right:8px; vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>创建/加入
+            <li class="select-option global-cover-btn" style="color: var(--text-sub);">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:-3px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>设置封面
             </li>
+            <li class="select-option global-add-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right:8px; vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>新建/加入歌单
+            </li>
+
             <li class="select-option disabled global-dev-btn">
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:-3px;"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>续播&调速
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:-3px;"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>调速&续播
             </li>
           </ul>
         </div>
@@ -815,7 +820,7 @@
       <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 6px;">
           <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">续播&调速</h2>
+          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">调速&续播</h2>
         </div>
         <div style="font-size: 13px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
           <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="color: var(--primary);"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
@@ -983,7 +988,7 @@
     /* ==========================================
      * 1. 核心配置与全局状态
      * ========================================== */
-    const APP_VERSION = 'v0.3.7';
+    const APP_VERSION = 'v0.5.1';
     const APP_LOGO = document.getElementById('app-logo')?.content || '';
     const PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '曲库搜索', 'cache_songs'];
     const API = {
@@ -1007,22 +1012,22 @@
     const configBackdrop = document.getElementById('config-modal-backdrop');
     const configCloudHint = document.getElementById('config-cloud-hint');
 
-    let allPlaylists = {};
-    let songList = [];
-    let favoriteList = [];
+    var allPlaylists = {};
+    var songList = [];
+    var favoriteList = [];
 
-    let currentIndex = -1;
-    let activeSongMenuIndex = -1;
-    let currentSongName = "";
+    var currentIndex = -1;
+    var activeSongMenuIndex = -1;
+    var currentSongName = "";
 
-    let preloadCache = null;
-    let deadSongIndexes = [];
-    let consecutiveFailures = 0;
-    let isScouting = false;
+    var preloadCache = null;
+    var deadSongIndexes = [];
+    var consecutiveFailures = 0;
+    var isScouting = false;
 
-    let isPlaying = false;
-    let currentPlaylist = "";
-    let playMode = isNaN(storedMode) ? 1 : storedMode;
+    var isPlaying = false;
+    var currentPlaylist = "";
+    var playMode = isNaN(storedMode) ? 1 : storedMode;
 
     let localState = { playlist: "", songName: "" };
 
@@ -1355,69 +1360,62 @@
     /* ==========================================
      * 4. 数据交互核心功能
      * ========================================== */
-    function toggleFavorite(songName, index) {
+    async function toggleFavorite(songName, index) {
       if (navigator.vibrate) navigator.vibrate(50);
       const isFav = favoriteList.includes(songName);
-      const favIcon = document.getElementById(`fav-${index}`);
-      if (isFav) {
-        favoriteList = favoriteList.filter(s => s !== songName);
-        if (favIcon) favIcon.style.display = 'none';
-        window.showToast(`已取消收藏: ${songName}`);
-      } else {
-        favoriteList.unshift(songName);
-        if (favIcon) favIcon.style.display = 'block';
-        window.showToast(`已收藏: ${songName}`);
+      const rawSong = songList[index];
+      if (!rawSong || !rawSong.id) return;
+
+      // 1. 获取真实收藏歌单 ID (原生 Songloft API 规范)
+      let plId = null;
+      if (window.playlistMeta) {
+          const favPl = window.playlistMeta.find(p => p.name === '收藏');
+          if (favPl) plId = favPl.id;
       }
+      if (!plId) { window.showToast("❌ 找不到收藏歌单"); return; }
 
-      allPlaylists["收藏"] = favoriteList;
-      const favOpt = document.querySelector('#playlist-opts .select-option[data-key="收藏"]');
-      if (favOpt) favOpt.innerHTML = formatPlaylistTextWithTags('收藏', favoriteList.length);
-      if (currentPlaylist === '收藏') {
-        playlistVal.innerHTML = formatPlaylistTextWithTags('收藏', favoriteList.length);
-      }
-
-      if (songName === currentSongName) {
-        updateNpTitleUI(currentSongName);
-        window.updateMediaSession(currentSongName, document.getElementById('fp-cover').src, favoriteList, APP_LOGO);
-      }
-
-      fetch('../playlistupdatemusic', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '收藏', music_list: favoriteList })
-      }).then(res => res.json()).then(data => {
-          if (data.ret === "OK") fetch('/api/music/refreshlist', { method: 'POST', body: JSON.stringify({}) }).catch(()=>{});
-      }).catch(()=>{});
-    }
-
-    async function refreshMusicList(isSilent = false) {
-      if (!isSilent) window.showToast("🔄 正在触发曲库刷新，请稍候...");
+      window.showToast("⏳ 正在同步...");
       try {
-        await fetch(API.refreshList, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({})
-        });
-        checkRefreshStatus(3, isSilent);
-      } catch (err) {
-        if (!isSilent) window.showToast("❌ 刷新请求失败，请检查网络或后端配置");
+          // 2. 根据状态增删
+          if (isFav) {
+              await fetch(`/api/v1/playlists/${plId}/songs/${rawSong.id}`, { method: 'DELETE' });
+          } else {
+              await fetch(`/api/v1/playlists/${plId}/songs`, {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: [rawSong.id] })
+              });
+          }
+
+          // 3. 重新拉取图纸，刷新全局状态
+          if (window.reloadGlobalData) await window.reloadGlobalData();
+
+          // 4. 热更新 UI 状态
+          const currentlyFav = favoriteList.includes(songName);
+          const favIcon = document.getElementById(`fav-${index}`);
+          if (favIcon) favIcon.style.display = currentlyFav ? 'block' : 'none';
+
+          if (currentlyFav) window.showToast(`❤️ 已收藏: ${songName}`);
+          else window.showToast(`💔 已取消收藏: ${songName}`);
+
+          // 如果操作的是正在播放的歌，同步更新所有关联控件
+          if (songName === currentSongName) {
+              updateNpTitleUI(currentSongName);
+              window.updateMediaSession(currentSongName, document.getElementById('fp-cover').src, favoriteList, APP_LOGO);
+              const cornerFav = document.getElementById('fp-corner-fav');
+              if (cornerFav) {
+                  cornerFav.style.color = currentlyFav ? 'var(--primary)' : 'var(--text-main)';
+                  cornerFav.querySelector('svg').setAttribute('fill', currentlyFav ? 'currentColor' : 'none');
+              }
+          }
+      } catch (e) {
+          window.showToast("❌ 操作失败，请检查网络");
       }
     }
 
-    function checkRefreshStatus(retries, isSilent = false) {
-      fetch(API.cmdStatus).then(res => res.json()).then(data => {
-        if (data.status === "finish" || retries <= 0) {
-          if (!isSilent) window.showToast("✅ 刷新成功！正在重载...");
-          setTimeout(() => { window.location.reload(); }, 600);
-        } else {
-          setTimeout(() => checkRefreshStatus(retries - 1, isSilent), 1000);
-        }
-      }).catch(err => window.location.reload());
-    }
 
     /* ==========================================
      * 6. 播放核心与大图拿来主义
      * ========================================== */
+
     async function playSong(index, autoPlay = true, resumeTime = 0) {
       if (index < 0 || index >= songList.length) return;
       if (consecutiveFailures >= 5) {
@@ -1632,116 +1630,21 @@
      * 7. 全局业务逻辑 (Add, Remove)
      * ========================================== */
 
-    window.getCustomPlaylists = function() {
-        return [...(window.customPlaylistNames || [])].sort((a, b) => a.localeCompare(b, 'zh-CN'));
-    };
-
-    window.renderPlaylistRadioList = function(listEl) {
-        if (!listEl) return;
-        listEl.innerHTML = '';
-        const customKeys = window.getCustomPlaylists();
-        if (customKeys.length === 0) {
-            listEl.innerHTML = '<li style="padding: 12px; text-align: center; color: var(--text-sub);">暂无自定义歌单，请在上方创建</li>';
-        } else {
-            customKeys.forEach(k => {
-                const li = document.createElement('li');
-                li.style.cssText = 'padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; color: var(--text-main); font-size: 14px; display: flex; align-items: center; gap: 10px; transition: background 0.2s;';
-                let displayName = k;
-                const songCount = window.getMergedSongList(k).length;
-                li.innerHTML = `<input type="radio" name="add_target_pl" style="pointer-events: none; margin: 0; width: 16px; height: 16px; accent-color: var(--primary);"> <span>${displayName} <span style="opacity: 0.6; font-size: 12px; margin-left: 2px;">(${songCount})</span></span>`;
-                li.onmousedown = () => { li.style.backgroundColor = 'var(--border)'; };
-                li.onclick = () => {
-                    Array.from(listEl.children).forEach(el => {
-                        el.style.backgroundColor = 'transparent'; el.style.fontWeight = 'normal';
-                        const radio = el.querySelector('input[type="radio"]');
-                        if (radio) radio.checked = false;
-                    });
-                    li.style.backgroundColor = 'var(--card-bg)'; li.style.fontWeight = 'bold';
-                    const myRadio = li.querySelector('input[type="radio"]');
-                    if (myRadio) myRadio.checked = true;
-                    window.tempSelectedPlaylist = k;
-                };
-                listEl.appendChild(li);
-            });
-        }
-    };
-
     window.getSongNameObj = function(rawItem) {
         if (!rawItem) return "未知歌曲";
 
-        // 🌟 修复：针对外部歌单，如果没有 file_path，就老老实实拿 title 和 artist 拼接
+        // 针对外部歌单，如果没有 file_path，就拿 title 和 artist 拼接
         if (!rawItem.file_path) {
             if (rawItem.title) {
                 let name = rawItem.title.trim();
                 if (rawItem.artist) name += "-" + rawItem.artist.trim();
                 return name;
             }
-            return "未知歌曲"; // 终极防呆，彻底封杀 [object Object]
+            return "未知歌曲";
         }
 
         // 兼容原有的本地歌单切文件名的逻辑
         return rawItem.file_path.split('/').pop().replace(/\.[^/.]+$/, "");
-    };
-
-    window.getMergedSongList = function(baseName) {
-        return allPlaylists[baseName] || [];
-    };
-
-    window.executeRemoveSong = async function(index, songName) {
-        if (currentPlaylist === '收藏') {
-            if (favoriteList.includes(songName)) toggleFavorite(songName, index);
-        } else {
-            songList.splice(index, 1);
-            window.showToast(`🗑️ 已将 ${songName.split('-')[0].trim()} 移出歌单`);
-            renderPlaylist();
-
-            if (window.customPlaylistNames && window.customPlaylistNames.includes(currentPlaylist)) {
-                const totalRemaining = songList.length;
-                if (totalRemaining === 0) {
-                    await fetch('../playlistdel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: currentPlaylist }) });
-                    currentPlaylist = "所有歌曲";
-                    localState.playlist = "所有歌曲";
-                    localStorage.setItem('iwebplayer.local_state', JSON.stringify(localState));
-                    initPlaylistDropdown();
-                    updateSearchUI(currentPlaylist);
-                    songList = window.getMergedSongList(currentPlaylist);
-                    renderPlaylist();
-                } else {
-                    await fetch('../playlistupdatemusic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: currentPlaylist, music_list: songList }) });
-                }
-            }
-        }
-    };
-
-    window.executeAddSong = async function(index, songName, targetPlaylist) {
-        let isNewPlaylist = !allPlaylists[targetPlaylist];
-        if (isNewPlaylist) allPlaylists[targetPlaylist] = [];
-        if (!allPlaylists[targetPlaylist].includes(songName)) allPlaylists[targetPlaylist].unshift(songName);
-
-        window.showToast(`⏳ 正在加入 ${targetPlaylist}...`);
-        try {
-            const res = await fetch('../playlistupdatemusic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: targetPlaylist, music_list: allPlaylists[targetPlaylist] }) });
-            const data = await res.json();
-            if (data.ret === "OK") {
-                window.showToast(`🎉 已成功加入`);
-                if (isNewPlaylist && typeof initPlaylistDropdown === 'function') initPlaylistDropdown();
-            } else { window.showToast("❌ 保存失败：" + data.ret); }
-        } catch(e) { window.showToast("❌ 网络异常"); }
-    };
-
-    window.executeBulkAdd = async function(targetPlaylist) {
-        if (!songList || songList.length === 0) return;
-        window.showToast(`⏳ 正在批量加入 ${songList.length} 首歌到 ${targetPlaylist}...`, true);
-
-        if (!allPlaylists[targetPlaylist]) allPlaylists[targetPlaylist] = [];
-        const newLocals = songList.filter(songName => !allPlaylists[targetPlaylist].includes(songName));
-        allPlaylists[targetPlaylist] = [...newLocals, ...allPlaylists[targetPlaylist]];
-
-        try {
-            const res = await fetch('../playlistupdatemusic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: targetPlaylist, music_list: allPlaylists[targetPlaylist] }) });
-            if ((await res.json()).ret === "OK") window.showToast(`🎉 批量加入成功！`);
-            else window.showToast("⚠️ 加入失败");
-        } catch(e) { window.showToast("⚠️ 网络异常"); }
     };
 
     function performLocalSearch(keyword) {
@@ -1834,8 +1737,6 @@
 
           playlistOpts.querySelectorAll('.select-option').forEach(el => el.classList.remove('active'));
           li.classList.add('active');
-
-          if (key === '收藏') window.showToast("💡 提示：长按任意歌曲可 加入/移出 收藏");
 
           updateSearchUI(key);
 
@@ -2189,10 +2090,10 @@
           isCurrentSongInNewList = true;
         }
 
-        let menuItems = currentPlaylist === '收藏' ? ['加入'] : ['加入', '移出'];
+        let menuItems = ['加入', '移出'];
         let menuHtml = `<ul class="song-more-menu" id="song-menu-${index}">`;
         menuItems.forEach(item => {
-            menuHtml += `<li class="song-more-menu-item disabled-text" data-action="${item}" onclick="void(0)">${MENU_ICONS[item] || ''}${item}</li>`;
+            menuHtml += `<li class="song-more-menu-item" data-action="${item}" onclick="void(0)">${MENU_ICONS[item] || ''}${item}</li>`;
         });
         menuHtml += `</ul>`;
 
@@ -2283,17 +2184,33 @@
             menuEl.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const action = menuEl.dataset.action;
+                closeAllSongMenus(); // 👈 先关菜单
 
-                if (action === '加入' || action === '移出') {
-                    const featureNameEl = document.getElementById('dev-modal-feature-name');
-                    if (featureNameEl) featureNameEl.textContent = action + '歌曲';
-                    if (devBackdrop) {
-                        devBackdrop.classList.add('show');
-                        devBackdrop.setAttribute('aria-hidden', 'false');
+                if (action === '移出') {
+                    if (window.skipRemoveConfirm) {
+                        window.executeRemoveSong(index, songName);
+                    } else {
+                        window.pendingRemoveIndex = index;
+                        window.pendingRemoveSongName = songName;
+                        document.getElementById('remove-song-name').textContent = songName;
+                        removeSongModal.classList.add('show');
+                        removeSongModal.setAttribute('aria-hidden', 'false');
                         document.body.style.overflow = 'hidden';
                     }
-                    closeAllSongMenus();
-                    return;
+                } else if (action === '加入') {
+                    window.pendingAddIndex = index;
+                    window.pendingAddSongName = songName;
+                    window.pendingBulkAdd = false;
+
+                    if (window.skipAddConfirm && window.lastAddedPlaylist) {
+                        window.executeAddSong(index, songName, window.lastAddedPlaylist);
+                    } else {
+                        document.getElementById('add-song-name').textContent = songName;
+                        if(window.renderPlaylistRadioList) window.renderPlaylistRadioList(document.getElementById('add-song-playlist-list'));
+                        addSongModal.classList.add('show');
+                        addSongModal.setAttribute('aria-hidden', 'false');
+                        document.body.style.overflow = 'hidden';
+                    }
                 }
             });
         });
@@ -2508,15 +2425,8 @@
           settingRefreshBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (settingsOpts) settingsOpts.classList.remove('show');
-
-            const featureNameEl = document.getElementById('dev-modal-feature-name');
-            if (featureNameEl) featureNameEl.textContent = '刷新曲库';
-            if (devBackdrop) {
-              devBackdrop.classList.add('show');
-              devBackdrop.setAttribute('aria-hidden', 'false');
-              document.body.style.overflow = 'hidden';
-            }
-            return;
+            // 🚀 直接触发封装好的引擎
+            window.refreshMusicList(false);
           });
         }
 
@@ -2951,96 +2861,23 @@
         document.getElementById('edit-playlist-close')?.addEventListener('click', closeEditPlaylistModal);
         editPlBackdrop?.addEventListener('click', (e) => { if (e.target === editPlBackdrop) closeEditPlaylistModal(); });
 
-        const renderEditPlaylistItems = () => {
-            if (!editPlList) return;
-            editPlList.innerHTML = '';
-            const customKeys = window.getCustomPlaylists();
-            if (customKeys.length === 0) {
-                editPlList.innerHTML = '<li style="padding: 30px; text-align: center; color: var(--text-sub); font-size: 15px;">暂无自定义歌单</li>';
-                return;
-            }
-            customKeys.forEach(k => {
-                const li = document.createElement('li');
-                li.className = 'edit-pl-item';
-                let displayName = k;
-                const songCount = window.getMergedSongList ? window.getMergedSongList(k).length : 0;
-                li.innerHTML = `
-                  <div class="edit-pl-name-wrap">
-                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>
-                    <span class="edit-pl-name-text">${displayName} <span style="opacity: 0.6; font-size: 14px; font-weight: normal; margin-left: 2px;">(${songCount})</span></span>
-                  </div>
-                  <div class="edit-pl-actions">
-                    <button class="edit-pl-icon-btn rename" title="重命名"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
-                    <button class="edit-pl-icon-btn delete" title="删除"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                  </div>
-                `;
-                li.querySelector('.rename').addEventListener('click', () => {
-                    li.style.backgroundColor = 'var(--bg-color)';
-                    li.innerHTML = `
-                      <input type="text" class="edit-pl-inline-input" value="${displayName}">
-                      <div class="edit-pl-actions">
-                        <button class="edit-pl-text-btn edit-pl-cancel">取消</button>
-                        <button class="edit-pl-text-btn edit-pl-confirm-rename">保存</button>
-                      </div>
-                    `;
-                    const inputEl = li.querySelector('.edit-pl-inline-input');
-                    inputEl.focus(); inputEl.select();
-                    li.querySelector('.edit-pl-cancel').addEventListener('click', renderEditPlaylistItems);
-                    li.querySelector('.edit-pl-confirm-rename').addEventListener('click', async () => {
-                        const newName = inputEl.value.trim();
-                        if (!newName || newName === displayName) { renderEditPlaylistItems(); return; }
-                        const finalOldName = k;
-                        const finalNewName = newName;
-                        window.showToast("⏳ 正在重命名...");
-                        try {
-                            await fetch('../playlistupdatename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldname: finalOldName, newname: finalNewName }) });
-                            window.showToast("🎉 重命名成功！");
-                            if (currentPlaylist === finalOldName) currentPlaylist = finalNewName;
-                            await reloadGlobalData();
-                            initPlaylistDropdown();
-                            renderEditPlaylistItems();
-                        } catch (e) { window.showToast("❌ 网络异常"); renderEditPlaylistItems(); }
-                    });
-                });
-                li.querySelector('.delete').addEventListener('click', () => {
-                    li.style.backgroundColor = 'rgba(239,68,68,0.05)';
-                    li.innerHTML = `
-                      <span class="edit-pl-delete-warn">确定删除该歌单？</span>
-                      <div class="edit-pl-actions">
-                        <button class="edit-pl-text-btn edit-pl-cancel">取消</button>
-                        <button class="edit-pl-text-btn edit-pl-confirm-delete">删除</button>
-                      </div>
-                    `;
-                    li.querySelector('.edit-pl-cancel').addEventListener('click', renderEditPlaylistItems);
-                    li.querySelector('.edit-pl-confirm-delete').addEventListener('click', async () => {
-                        window.showToast("⏳ 正在彻底删除...");
-                        try {
-                            await fetch('../playlistdel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: k }) });
-                            window.showToast("🗑️ 歌单已删除！");
-                            if (currentPlaylist === k) { currentPlaylist = "所有歌曲"; updateSearchUI(currentPlaylist); }
-                            await reloadGlobalData();
-                            initPlaylistDropdown();
-                            renderEditPlaylistItems();
-                        } catch (e) { window.showToast("❌ 删除异常"); renderEditPlaylistItems(); }
-                    });
-                });
-                editPlList.appendChild(li);
-            });
-        };
-        window.renderEditPlaylistItems = renderEditPlaylistItems;
-
         document.getElementById('edit-pl-create-btn')?.addEventListener('click', async () => {
             const inputVal = editPlNewInput.value.trim();
             if (!inputVal) { window.showToast("歌单名称不能为空哦"); return; }
-            const newListName = inputVal;
+
             window.showToast("⏳ 正在创建...");
             try {
-                const res = await fetch('../playlistadd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newListName }) });
-                const data = await res.json();
-                if (data.ret === "OK" || data === "success") {
+                // 👉 适配 Songloft: POST /api/v1/playlists
+                const res = await fetch('/api/v1/playlists', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: inputVal, type: 'normal' })
+                });
+
+                if (res.ok) {
                     window.showToast("🎉 创建成功！"); editPlNewInput.value = '';
                     await reloadGlobalData(); initPlaylistDropdown(); renderEditPlaylistItems();
-                } else { window.showToast("❌ 创建失败：" + (data.ret || "未知错误")); }
+                } else { window.showToast("❌ 创建失败"); }
             } catch(e) { window.showToast("❌ 网络异常"); }
         });
 
@@ -3049,14 +2886,13 @@
             e.stopPropagation();
             if (settingsOpts) settingsOpts.classList.remove('show');
 
-            const featureNameEl = document.getElementById('dev-modal-feature-name');
-            if (featureNameEl) featureNameEl.textContent = '编辑歌单';
-            if (devBackdrop) {
-              devBackdrop.classList.add('show');
-              devBackdrop.setAttribute('aria-hidden', 'false');
-              document.body.style.overflow = 'hidden';
+            const editPlBackdrop = document.getElementById('edit-playlist-backdrop');
+            if (editPlBackdrop) {
+                if (window.renderEditPlaylistItems) window.renderEditPlaylistItems();
+                editPlBackdrop.classList.add('show');
+                editPlBackdrop.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
             }
-            return;
           });
         }
 
@@ -3130,15 +2966,33 @@
             const gm1Opts = document.getElementById('global-menu-1-opts');
             if (gm1Opts) gm1Opts.classList.remove('show');
 
-            const featureNameEl = document.getElementById('dev-modal-feature-name');
-            if (featureNameEl) featureNameEl.textContent = '创建/加入歌单';
-            if (devBackdrop) {
-                devBackdrop.classList.add('show');
-                devBackdrop.setAttribute('aria-hidden', 'false');
-                document.body.style.overflow = 'hidden';
+            if (!songList || songList.length === 0) {
+                window.showToast("当前列表为空，无歌可加");
+                return;
             }
-            return;
+
+            window.pendingBulkAdd = true;
+            document.getElementById('add-song-name').textContent = `当前列表 ${songList.length} 首歌曲`;
+            if(window.renderPlaylistRadioList) window.renderPlaylistRadioList(document.getElementById('add-song-playlist-list'));
+            addSongModal.classList.add('show');
+            addSongModal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
         };
+
+        // 新增：设置封面点击事件
+        document.querySelector('.global-cover-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('global-menu-1-opts')?.classList.remove('show');
+
+            // 核心拦截：系统大杂烩列表不能设置封面
+            if (currentPlaylist === '我的歌单' || currentPlaylist === '曲库搜索') {
+                window.showToast("💡 请先进入具体的歌单进行设置"); return;
+            }
+
+            // 弹出通用的敬请期待
+            document.getElementById('dev-modal-feature-name').textContent = '设置歌单封面';
+            document.getElementById('dev-backdrop').classList.add('show');
+        });
 
         document.querySelectorAll('.global-add-btn').forEach(btn => {
             btn.addEventListener('click', handleBulkAddClick);
@@ -3335,9 +3189,8 @@
         e.stopPropagation();
         if(currentSongName && currentIndex !== -1) {
             toggleFavorite(currentSongName, currentIndex);
-            const isFav = favoriteList.includes(currentSongName);
-            fpCornerFav.style.color = isFav ? 'var(--primary)' : 'var(--text-main)';
-            fpCornerFav.querySelector('svg').setAttribute('fill', isFav ? 'currentColor' : 'none');
+        } else {
+            window.showToast("💡 当前没有正在播放的歌曲");
         }
     });
 
@@ -3552,7 +3405,7 @@
             allPlaylists["我的歌单"] = [];
             if (!allPlaylists["收藏"]) allPlaylists["收藏"] = [];
             if (!allPlaylists["曲库搜索"]) allPlaylists["曲库搜索"] = [];
-            favoriteList = allPlaylists["收藏"];
+            favoriteList = allPlaylists["收藏"].map(item => window.getSongNameObj(item));
 
         } catch (e) {
             console.error("重载全局数据失败:", e);
