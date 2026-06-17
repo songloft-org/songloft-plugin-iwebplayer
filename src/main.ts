@@ -68,7 +68,6 @@ router.get('/musiclist', async (req) => {
       // 完善大盘的骨架映射
       structure["所有歌曲"] = allSongsArray.map((s: any) => s.id);
       structure["曲库搜索"] = [];
-      structure["收藏"] = [];
 
       // 2. 将实体歌曲停入沙盒，等待前端召唤
       flashSongsCache = allSongsArray;
