@@ -198,6 +198,54 @@ router.post('/sync', async (req) => {
     }
 });
 
+// ==========================================
+// 🗄️ 通用配置存储接口 (用于保存平台排序等配置)
+// ==========================================
+router.get('/store', async (req) => {
+    try {
+        const urlParams = new URLSearchParams(String(req.query));
+        const key = urlParams.get('key');
+        if (!key) return jsonResponse({ error: "Missing key" }, 400);
+
+        let dataStr = "";
+        if (typeof songloft.storage.getItem === 'function') {
+            dataStr = await songloft.storage.getItem(key);
+        } else if (typeof songloft.storage.get === 'function') {
+            dataStr = await songloft.storage.get(key);
+        }
+
+        return jsonResponse({ data: dataStr });
+    } catch (error) {
+        return jsonResponse({ error: "读取配置失败: " + String(error) });
+    }
+});
+
+router.post('/store', async (req) => {
+    try {
+        let bodyStr = req.body;
+        if (typeof bodyStr !== 'string') {
+            bodyStr = String(bodyStr);
+        }
+        const body = JSON.parse(bodyStr);
+
+        const key = body.key;
+        const value = body.value;
+        if (!key) return jsonResponse({ error: "Missing key" }, 400);
+
+        if (typeof songloft.storage.setItem === 'function') {
+            await songloft.storage.setItem(key, value);
+        } else if (typeof songloft.storage.set === 'function') {
+            await songloft.storage.set(key, value);
+        } else {
+            throw new Error("存储引擎不支持写入");
+        }
+
+        return jsonResponse({ ret: "OK" });
+    } catch (error) {
+        return jsonResponse({ error: "保存配置失败: " + String(error) });
+    }
+});
+
 // 🌟 专供 debug 页面调用的后门接口
 // http://10.0.91.11:10333/api/v1/jsplugin/iwebplayer/static/debug.html
 router.get('/debug', async (req) => {
@@ -208,8 +256,8 @@ router.get('/debug', async (req) => {
         // ==========================================
         // 🟢 模块 1：查看所有歌曲（不需要时直接注释掉整块）
         // ==========================================
-        // const rawSongs = (await songloft.songs.list({ limit: 10000 })) ?? {};
-        // debugResult.songs = rawSongs;
+        const rawSongs = (await songloft.songs.list({ limit: 10000 })) ?? {};
+        debugResult.songs = rawSongs;
 
 
         // ==========================================
