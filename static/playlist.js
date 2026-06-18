@@ -66,15 +66,20 @@
         }
     };
 
+    // 🌟 单曲加入：双通道分流（本地歌曲 / 在线资源）
     window.executeAddSong = async function(index, songName, targetPlaylist) {
         let plId = getPlaylistIdByName(targetPlaylist);
         const rawSong = window.songList[index];
         const songId = rawSong ? rawSong.id : null;
 
-        if (!songId) { window.showToast("❌ 缺少歌曲ID，无法添加"); return; }
+        if (!rawSong) { window.showToast("❌ 无法获取歌曲信息"); return; }
+        // 如果是本地歌没拿到 ID 就拦截（在线歌不需要验证本地ID）
+        if (!songId && !rawSong._isOnlineObj) { window.showToast("❌ 缺少歌曲ID，无法添加"); return; }
+
         window.showToast(`⏳ 正在加入...`);
 
         try {
+            // 1. 歌单不存在则自动创建
             if (!plId) {
                 const createRes = await fetch('/api/v1/playlists', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: targetPlaylist, type: 'normal' })
@@ -86,28 +91,66 @@
             }
             if (!plId) throw new Error("歌单创建失败");
 
-            const res = await fetch(`/api/v1/playlists/${plId}/songs`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: [songId] })
-            });
+            let res;
+            if (rawSong._isOnlineObj) {
+                // 🌐 【通道 1：在线歌曲】走 LXMusic 专属导入接口
+                const songPayload = { ...rawSong.source_data };
+                if (!songPayload.quality) songPayload.quality = "128k"; // 兜底音质防报错
+
+                res = await fetch('/api/v1/jsplugin/lxmusic/api/songs/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        songs: [songPayload], // 直接将组装好的歌曲数据扔进数组
+                        playlist_id: String(plId),
+                        new_playlist_name: ""
+                    })
+                });
+            } else {
+                // 📁 【通道 2：本地歌曲】走原生加入接口
+                res = await fetch(`/api/v1/playlists/${plId}/songs`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: [songId] })
+                });
+            }
 
             if (res.ok) {
+                const data = await res.json();
+                // 针对在线接口的特殊错误捕获
+                if (rawSong._isOnlineObj && data.code !== 0) {
+                    window.showToast("❌ 添加失败: " + (data.msg || "未知错误"));
+                    return;
+                }
+
                 window.showToast(`🎉 已成功加入`);
+
+                // 只更新后台数据和下拉框数字，绝不碰当前的视图列表
                 if (window.reloadGlobalData) await window.reloadGlobalData();
                 if (typeof window.initPlaylistDropdown === 'function') window.initPlaylistDropdown();
-                if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
-            } else { window.showToast("❌ 添加被服务器拒绝"); }
+            } else {
+                window.showToast("❌ 添加被服务器拒绝");
+            }
         } catch(e) { console.error(e); window.showToast("❌ 网络异常"); }
     };
 
+    // 🌟 批量加入：双通道混合处理
     window.executeBulkAdd = async function(targetPlaylist) {
         if (!window.songList || window.songList.length === 0) return;
-        const songIds = window.songList.map(s => s.id).filter(Boolean);
-        if (songIds.length === 0) { window.showToast("❌ 列表中无有效歌曲"); return; }
 
-        window.showToast(`⏳ 批量加入 ${songIds.length} 首歌...`, true);
+        // 区分开本地歌曲 ID 和在线歌曲对象
+        const localSongIds = window.songList.filter(s => !s._isOnlineObj).map(s => s.id).filter(Boolean);
+        const onlineSongs = window.songList.filter(s => s._isOnlineObj).map(s => {
+            const payload = { ...s.source_data };
+            if (!payload.quality) payload.quality = "128k";
+            return payload;
+        });
+
+        if (localSongIds.length === 0 && onlineSongs.length === 0) { window.showToast("❌ 列表中无有效歌曲"); return; }
+
+        window.showToast(`⏳ 批量加入 ${localSongIds.length + onlineSongs.length} 首歌...`, true);
         let plId = getPlaylistIdByName(targetPlaylist);
 
         try {
+            // 1. 歌单不存在则自动创建
             if (!plId) {
                 const createRes = await fetch('/api/v1/playlists', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: targetPlaylist, type: 'normal' })
@@ -119,11 +162,36 @@
             }
             if (!plId) throw new Error("歌单创建失败");
 
-            const res = await fetch(`/api/v1/playlists/${plId}/songs`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: songIds })
-            });
+            let successCount = 0;
 
-            if (res.ok) {
+            // 📁 批量加入本地歌曲
+            if (localSongIds.length > 0) {
+                const resLocal = await fetch(`/api/v1/playlists/${plId}/songs`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: localSongIds })
+                });
+                if (resLocal.ok) successCount += localSongIds.length;
+            }
+
+            // 🌐 批量加入在线歌曲
+            if (onlineSongs.length > 0) {
+                const resOnline = await fetch('/api/v1/jsplugin/lxmusic/api/songs/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        songs: onlineSongs,
+                        playlist_id: String(plId),
+                        new_playlist_name: ""
+                    })
+                });
+                if (resOnline.ok) {
+                    const data = await resOnline.json();
+                    if (data.code === 0 && data.data && data.data.success) {
+                        successCount += data.data.success;
+                    }
+                }
+            }
+
+            if (successCount > 0) {
                 window.showToast(`🎉 批量加入成功！`);
                 if (window.reloadGlobalData) await window.reloadGlobalData();
                 if (typeof window.initPlaylistDropdown === 'function') window.initPlaylistDropdown();
@@ -149,16 +217,32 @@
             li.className = 'edit-pl-item';
             let displayName = k;
             const songCount = window.getMergedSongList ? window.getMergedSongList(k).length : 0;
+            // 🌟 1. 注入正常态的 HTML（将重命名按钮背景设为紫红色 var(--primary)）
             li.innerHTML = `
-              <div class="edit-pl-name-wrap">
-                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>
-                <span class="edit-pl-name-text">${displayName} <span style="opacity: 0.6; font-size: 14px; font-weight: normal; margin-left: 2px;">(${songCount})</span></span>
+              <div class="pl-normal-view" style="width: 100%; display: flex; align-items: center; justify-content: space-between; transition: opacity 0.2s;">
+                <div class="edit-pl-name-wrap">
+                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>
+                  <span class="edit-pl-name-text">${displayName} <span style="opacity: 0.6; font-size: 14px; font-weight: normal; margin-left: 2px;">(${songCount})</span></span>
+                </div>
+                <div class="edit-pl-actions">
+                  <button class="edit-pl-icon-btn rename" style="background: var(--primary);" title="重命名"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                  <button class="edit-pl-icon-btn delete" title="删除"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                </div>
               </div>
-              <div class="edit-pl-actions">
-                <button class="edit-pl-icon-btn rename" title="重命名"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
-                <button class="edit-pl-icon-btn delete" title="删除"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+              
+              <div class="pl-delete-view" style="position: absolute; inset: 0; padding: 12px 18px; background: rgba(239, 68, 68, 0.05); display: flex; align-items: center; justify-content: space-between; transform: translateX(100%); transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);">
+                <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden;">
+                  <div style="font-size: 15px; font-weight: bold; color: var(--text-main); opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</div>
+                </div>
+                <div class="edit-pl-actions" style="margin-left: 12px;">
+                  <button class="edit-pl-text-btn btn-cancel-del" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border);">取消</button>
+                  <button class="edit-pl-text-btn edit-pl-confirm-delete" style="background: #6b7280; color: #fff; border: none;">确认删除</button>
+                </div>
               </div>
             `;
+            // 给 li 加上关键的相对定位和溢出隐藏，为了能装下这个滑出的绝对定位面板
+            li.style.position = 'relative';
+            li.style.overflow = 'hidden';
 
             // 💡 辅助：获取歌单ID
             const getPlId = (name) => {
@@ -207,39 +291,44 @@
                 });
             });
 
+            // 🌟 提前获取两个视图容器
+            const normalView = li.querySelector('.pl-normal-view');
+            const deleteView = li.querySelector('.pl-delete-view');
+
+            // 1. 点击红色垃圾桶：滑出删除确认面板
             li.querySelector('.delete').addEventListener('click', () => {
-                li.style.backgroundColor = 'rgba(239,68,68,0.05)';
-                li.innerHTML = `
-                  <span class="edit-pl-delete-warn">确定删除该歌单？</span>
-                  <div class="edit-pl-actions">
-                    <button class="edit-pl-text-btn edit-pl-cancel">取消</button>
-                    <button class="edit-pl-text-btn edit-pl-confirm-delete">删除</button>
-                  </div>
-                `;
-                li.querySelector('.edit-pl-cancel').addEventListener('click', window.renderEditPlaylistItems);
+                normalView.style.opacity = '0';
+                deleteView.style.transform = 'translateX(0)';
+            });
 
-                li.querySelector('.edit-pl-confirm-delete').addEventListener('click', async () => {
-                    const plId = getPlId(k);
-                    if (!plId) return;
+            // 2. 点击取消：滑回收起面板
+            li.querySelector('.btn-cancel-del').addEventListener('click', () => {
+                normalView.style.opacity = '1';
+                deleteView.style.transform = 'translateX(100%)';
+            });
 
-                    window.showToast("⏳ 正在彻底删除...");
-                    try {
-                        const res = await fetch(`/api/v1/playlists/${plId}`, { method: 'DELETE' });
+            // 3. 点击确认删除：执行实际的 API 请求逻辑
+            li.querySelector('.edit-pl-confirm-delete').addEventListener('click', async () => {
+                const plId = getPlId(k);
+                if (!plId) return;
 
-                        if (res.ok) {
-                            window.showToast("🗑️ 歌单已删除！");
-                            if (window.currentPlaylist === k) {
-                                window.currentPlaylist = "所有歌曲";
-                                if (window.updateSearchUI) window.updateSearchUI(window.currentPlaylist);
-                            }
-                            if (window.reloadGlobalData) await window.reloadGlobalData();
-                            if (window.initPlaylistDropdown) window.initPlaylistDropdown();
-                            window.renderEditPlaylistItems();
-                        } else {
-                            window.showToast("❌ 删除被拒绝"); window.renderEditPlaylistItems();
+                window.showToast("⏳ 正在彻底删除...");
+                try {
+                    const res = await fetch(`/api/v1/playlists/${plId}`, { method: 'DELETE' });
+
+                    if (res.ok) {
+                        window.showToast("🗑️ 歌单已删除！");
+                        if (window.currentPlaylist === k) {
+                            window.currentPlaylist = "所有歌曲";
+                            if (window.updateSearchUI) window.updateSearchUI(window.currentPlaylist);
                         }
-                    } catch (e) { window.showToast("❌ 删除异常"); window.renderEditPlaylistItems(); }
-                });
+                        if (window.reloadGlobalData) await window.reloadGlobalData();
+                        if (window.initPlaylistDropdown) window.initPlaylistDropdown();
+                        window.renderEditPlaylistItems();
+                    } else {
+                        window.showToast("❌ 删除被拒绝"); window.renderEditPlaylistItems();
+                    }
+                } catch (e) { window.showToast("❌ 删除异常"); window.renderEditPlaylistItems(); }
             });
             editPlList.appendChild(li);
         });
@@ -290,6 +379,29 @@
             .catch(err => {
                 setTimeout(() => { window.location.reload(); }, 2000);
             });
+    };
+
+    window.switchPlaylistSilently = function(targetPlaylistName) {
+        window.currentPlaylist = targetPlaylistName;
+
+        let stateObj = window.localState || { playlist: "", songName: "" };
+        stateObj.playlist = window.currentPlaylist;
+        localStorage.setItem('iwebplayer.local_state', JSON.stringify(stateObj));
+        if (window.localState) window.localState = stateObj;
+
+        const playlistVal = document.getElementById('playlist-val');
+        if (playlistVal) {
+            playlistVal.innerHTML = window.formatPlaylistTextWithTags(targetPlaylistName, window.getMergedSongList(targetPlaylistName).length);
+        }
+
+        document.querySelectorAll('#playlist-opts .select-option').forEach(el => el.classList.remove('active'));
+        const targetOpt = document.querySelector(`#playlist-opts .select-option[data-key="${targetPlaylistName}"]`);
+        if (targetOpt) targetOpt.classList.add('active');
+
+        if (typeof window.updateSearchUI === 'function') window.updateSearchUI(targetPlaylistName);
+
+        window.songList = window.getMergedSongList(targetPlaylistName);
+        if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
     };
 
 })(window);
