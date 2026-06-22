@@ -7,6 +7,9 @@ const router = createRouter();
 let flashSongsCache: any[] | null = null;
 let flashTimeout: any = null;
 
+// 🌟 新增：搞一个全局变量，用来专门记录最新一次探测失败的底层原始错误
+let lastSystemError: any = null;
+
 router.get('/musiclist', async (req) => {
   try {
     const urlParams = new URLSearchParams(String(req.query));
@@ -115,24 +118,33 @@ router.get('/musiclist', async (req) => {
   }
 });
 
-// 播放歌曲（极限瘦身版！）
+// 播放歌曲（极限瘦身 + 智能探测 + 统一极简报错）
 router.get('/musicinfo', async (req) => {
   try {
     const id = new URLSearchParams(String(req.query)).get('id') || "";
-    if (!id) return jsonResponse({ error: "缺少歌曲ID" }, 400);
+    if (!id) throw new Error("缺少歌曲ID");
 
     const token = await songloft.plugin.getToken();
-
-    // 🌟 核心修改：因为前端已经在列表里拿到了封面和歌词，这里完全不需要再去查询大系统了！
-    // 直接拼接带 Token 的播放直链，0毫秒延迟打回给前端！
     const audioUrl = `/api/v1/songs/${id}/play?access_token=${token}`;
+    const fullUrl = `${await songloft.plugin.getHostUrl()}${audioUrl}`;
 
-    return jsonResponse({
-      url: audioUrl
-    });
+    // 🌟 赛跑机制探测 (3秒超时)
+    const probeRes: any = await Promise.race([
+        fetch(fullUrl, { method: 'HEAD' }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("探测超时")), 3000))
+    ]);
+
+    // 如果文件丢失或拒绝访问，直接抛出错误
+    if (!probeRes.ok) throw new Error(`资源拒绝访问 (HTTP ${probeRes.status})`);
+
+    // 探测通过，清空上一次的错误记录，下发直链
+    lastSystemError = null;
+    return jsonResponse({ url: audioUrl });
 
   } catch (error) {
-    return jsonResponse({ error: "获取歌曲直链失败: " + String(error) });
+    // 🌟 统一兜底：所有报错都汇聚于此
+    lastSystemError = String(error); // 塞给全局变量，留给 /debug 后门排查
+    return jsonResponse({ error: "音频链接已失效" }); // 给前端极简回复（不带url字段触发前端切歌）
   }
 });
 
@@ -256,15 +268,15 @@ router.get('/debug', async (req) => {
         // ==========================================
         // 🟢 模块 1：查看所有歌曲（不需要时直接注释掉整块）
         // ==========================================
-        const rawSongs = (await songloft.songs.list({ limit: 10000 })) ?? {};
-        debugResult.songs = rawSongs;
+        //const rawSongs = (await songloft.songs.list({ limit: 10000 })) ?? {};
+        //debugResult.songs = rawSongs;
 
 
         // ==========================================
         // 🟢 模块 2：查看所有歌单（不需要时直接注释掉整块）
         // ==========================================
-         const playlists = (await songloft.playlists.list()) ?? [];
-         debugResult.playlists = playlists;
+        // const playlists = (await songloft.playlists.list()) ?? [];
+        // debugResult.playlists = playlists;
 
 
         // ==========================================
@@ -294,6 +306,10 @@ router.get('/debug', async (req) => {
         // const configDetail = res.ok ? await res.json() : { value: "false" };
         // debugResult.ttt = configDetail.value
 
+        // ==========================================
+        // 🌟 新增：把最新捕获的探子死因放进托盘输出
+        // ==========================================
+        debugResult.lastProbeError = lastSystemError;
 
         // ==========================================
         // 📤 最终输出：把托盘里收集到的所有数据一把推给浏览器
