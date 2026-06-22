@@ -163,6 +163,7 @@
   .song-info { flex: 1; overflow: hidden; }
   .song-name { font-size: 16px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
   .song-playlist-tag { font-size: 11px; color: var(--text-sub); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; }
+  .song-dead-tag { font-size: 11px; color: var(--text-sub); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; background-color: var(--border); font-weight: normal; display: inline-flex; align-items: center; justify-content: center; }
 
   .song-item.menu-open { background-color: rgba(236, 72, 153, 0.08); border-color: rgba(236, 72, 153, 0.3); z-index: 50; }
   @media (prefers-color-scheme: dark) { .song-item.menu-open { background-color: rgba(236, 72, 153, 0.15); border-color: rgba(236, 72, 153, 0.4); } }
@@ -513,10 +514,10 @@
 </style>
 
   <script src="./static/icons.js?v0.6.1" defer></script>
-  <script src="./static/utils.js?v0.6.1" defer></script>
+  <script src="./static/utils.js?v0.6.2" defer></script>
   <script src="./static/lyrics.js?v0.6.1" defer></script>
-  <script src="./static/scraper.js?v0.6.1" defer></script>
-  <script src="./static/playlist.js?v0.6.1" defer></script>
+  <script src="./static/scraper.js?v0.6.2" defer></script>
+  <script src="./static/playlist.js?v0.6.2" defer></script>
 
 </head>
 <body>
@@ -566,7 +567,7 @@
         </div>
       </div>
     </div>
-
+<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; opacity:0.85; transform:translateY(-1px);"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
     <div class="header-controls">
       <div class="custom-select" id="device-container">
         <div class="select-value" id="device-val">本机</div>
@@ -1152,7 +1153,7 @@
     /* ==========================================
      * 1. 核心配置与全局状态
      * ========================================== */
-    const APP_VERSION = 'v0.6.1';
+    const APP_VERSION = 'v0.6.2';
     const APP_LOGO = document.getElementById('app-logo')?.content || '';
     const PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     const API = {
@@ -1184,7 +1185,7 @@
     var currentSongName = "";
 
     var preloadCache = null;
-    var deadSongIndexes = [];
+    var deadSongIndexes = {};
     var consecutiveFailures = 0;
     var isScouting = false;
 
@@ -1292,6 +1293,22 @@
      * 3. 基础渲染与 UI 控制工具
      * ========================================== */
 
+    // 🌟 统一的坏歌账本安全写入与 UI 药丸贴签函数
+    window.markSongAsDead = function(playlistName, songIndex) {
+        if (!deadSongIndexes[playlistName]) {
+            deadSongIndexes[playlistName] = [];
+        }
+        if (!deadSongIndexes[playlistName].includes(songIndex)) {
+            deadSongIndexes[playlistName].push(songIndex);
+        }
+        // 如果当前正在看的就是这个歌单，立刻原地贴上精美的统一类名标签
+        if (playlistName === currentPlaylist) {
+            const timeWrap = document.getElementById('time-wrap-' + songIndex);
+            if (timeWrap) {
+                timeWrap.innerHTML = `<div class="song-dead-tag">失效</div>`;
+            }
+        }
+    };
 
     function updateNpTitleUI(text, checkFav = true, formatReady = true) {
       if (!text) return;
@@ -1527,12 +1544,31 @@
           consecutiveFailures = 0;
           return;
       }
-      if (deadSongIndexes.includes(index)) {
+      // 🌟 修改：从字典中获取当前歌单对应的失效黑名单
+      const currentDeadList = deadSongIndexes[currentPlaylist] || [];
+      if (currentDeadList.includes(index)) {
           window.showToast(`⚠️ 已自动跳过失效歌曲`);
-          let nextIdx = index + 1 >= songList.length ? 0 : index + 1;
-          return playSong(nextIdx, autoPlay, resumeTime);
-      }
 
+          // 🌟 拦截跳过时，原地贴上统一的 Class 标签
+          const timeWrap = document.getElementById('time-wrap-' + index);
+          if (timeWrap) {
+              timeWrap.innerHTML = `<div class="song-dead-tag">失效</div>`;
+          }
+
+          if (currentDeadList.length >= songList.length) {
+              window.showToast(`🛑 当前歌单所有歌曲均已失效，已停止播放`);
+              updatePlayButtonUI(false);
+              consecutiveFailures = 0;
+              return;
+          }
+
+          let nextIdx = index + 1 >= songList.length ? 0 : index + 1;
+
+          setTimeout(() => {
+              playSong(nextIdx, autoPlay, resumeTime);
+          }, 50);
+          return;
+      }
       highlightSongUI(index);
       const targetSongName = currentSongName;
 
@@ -1667,11 +1703,17 @@
 
         preloadCache = null;
 
+        // 🌟 新增：如果接口没返回音频链接（无论是在线源 404，还是本地 main.ts 拦截），主动抛出异常
+        if (!info || !info.url) {
+            throw new Error("接口未返回有效的播放直链");
+        }
+
         if (info && info.url) {
           localState.playlist = currentPlaylist;
           localState.songName = currentSongName;
           localStorage.setItem('iwebplayer.local_state', JSON.stringify(localState));
           audioEl.dataset.playingPlaylist = currentPlaylist;
+          audioEl.dataset.playingSongName = targetSongName;
 
           audioEl.dataset.hasStarted = "0";
           audioEl.src = info.url;
@@ -1754,7 +1796,30 @@
             window.LyricsEngine.parse(null);
         }
 
-      } catch (err) {}
+      } catch (err) {
+          console.error("播放请求失败:", err);
+          window.showToast("⚠️ 获取链接失败，自动跳过...");
+
+          if (currentIndex !== -1) {
+              consecutiveFailures++;
+              // 🌟 净化：一律交由公共函数统一打理，账本和新 Class 样式一步到位
+              window.markSongAsDead(currentPlaylist, currentIndex);
+          }
+
+          updatePlayButtonUI(false);
+
+          if (consecutiveFailures >= 5) {
+              window.showToast(`🛑 连续 5 首歌曲无法播放，已暂停。`);
+              consecutiveFailures = 0;
+          } else {
+              // 🌟 听你的：过 1 秒再切下一首
+              setTimeout(() => {
+                  if (typeof window.playNextSong === 'function') {
+                      window.playNextSong(true);
+                  }
+              }, 1000);
+          }
+      }
     }
 
     // 🌟 修复后的下一首歌曲探针函数：完美兼容本地与 LXMusic 在线预解析
@@ -1817,8 +1882,7 @@
 
         } catch (e) {
             console.warn(`📡 [预读失败] 第 ${targetIndex} 首歌曲探测异常:`, e);
-            if (!deadSongIndexes.includes(targetIndex)) deadSongIndexes.push(targetIndex);
-
+            window.markSongAsDead(currentPlaylist, targetIndex);
             // 探针失败后自动跳下一首探测的固有逻辑
             let nextNextIdx = (playMode === 2 && songList.length > 1) ?
                 Math.floor(Math.random() * songList.length) :
@@ -2217,7 +2281,7 @@
 
         li.addEventListener('click', async (e) => {
           e.stopPropagation();
-
+          consecutiveFailures = 0;
           currentPlaylist = key;
 
           localState.playlist = currentPlaylist;
@@ -2635,20 +2699,29 @@
 
         let timeTagHtml = '';
         const plConf = getPlaylistConfig(currentPlaylist);
-        // 新过滤规则应用：只要续播模式开启
-        if (plConf.resumeLocal !== 'off') {
-            const targetSvg = plConf.resumeLocal === 'global' ? window.SVG_ICONS.cloud_clock : window.SVG_ICONS.stopwatch;
 
-            const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
-            const list = history[currentPlaylist] || [];
-            const found = list.find(item => item.name === songName);
-            if (found && found.time > 0) {
-                timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${targetSvg}${window.formatTime(found.time)}</div>`;
-            }
+        // 🌟 修改：重绘列表时，从字典专属账本中反查当前歌曲是否失效
+        const currentDeadList = deadSongIndexes[currentPlaylist] || [];
+        if (currentDeadList.includes(index)) {
+            // 🎯 终极归一：不再去操作 timeWrap 的 innerHTML，直接把统一的 Class 塞给 timeTagHtml 驱动框架完美渲染！
+            timeTagHtml = `<div class="song-dead-tag">失效</div>`;
         } else {
-            const plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
-            if (plTracks[currentPlaylist] && plTracks[currentPlaylist].name === songName && plTracks[currentPlaylist].time > 0) {
-                timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(plTracks[currentPlaylist].time)}</div>`;
+            // 原有逻辑被包裹在这里：只要不在黑名单，才去显示续播时间
+            // 新过滤规则应用：只要续播模式开启
+            if (plConf.resumeLocal !== 'off') {
+                const targetSvg = plConf.resumeLocal === 'global' ? window.SVG_ICONS.cloud_clock : window.SVG_ICONS.stopwatch;
+
+                const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
+                const list = history[currentPlaylist] || [];
+                const found = list.find(item => item.name === songName);
+                if (found && found.time > 0) {
+                    timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${targetSvg}${window.formatTime(found.time)}</div>`;
+                }
+            } else {
+                const plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
+                if (plTracks[currentPlaylist] && plTracks[currentPlaylist].name === songName && plTracks[currentPlaylist].time > 0) {
+                    timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(plTracks[currentPlaylist].time)}</div>`;
+                }
             }
         }
 
@@ -2668,7 +2741,12 @@
           if (e.target.closest('.song-more-btn') || e.target.closest('.song-more-menu')) return;
           if (activeSongMenuIndex !== -1) { e.preventDefault(); e.stopPropagation(); closeAllSongMenus(); return; }
           consecutiveFailures = 0;
-          deadSongIndexes = deadSongIndexes.filter(i => i !== index);
+
+          // 🌟 修复：从当前歌单的专属字典账本中，剔除这个索引，允许手动点击重试
+          if (deadSongIndexes[currentPlaylist]) {
+              deadSongIndexes[currentPlaylist] = deadSongIndexes[currentPlaylist].filter(i => i !== index);
+          }
+
           playSong(index);
         });
 
@@ -2849,7 +2927,9 @@
                   window._wasPlayingBeforeHidden = true;
                   window._interruptedTime = audioEl.currentTime;
                   const actualPlayingPl = audioEl.dataset.playingPlaylist || currentPlaylist;
-                  syncToCloud(actualPlayingPl, currentSongName, audioEl.currentTime, audioEl.playbackRate, true);
+                  // 🌟 同样用钢印名字
+                  const actualPlayingSong = audioEl.dataset.playingSongName || currentSongName;
+                  syncToCloud(actualPlayingPl, actualPlayingSong, audioEl.currentTime, audioEl.playbackRate, true);
               } else {
                   window._wasPlayingBeforeHidden = false;
               }
@@ -2991,14 +3071,22 @@
           window.setupMediaSession(audioEl, btnPrev, btnNext);
           const conf = getPlaylistConfig(currentPlaylist);
           if (conf.resumeLocal === 'off') {
-              document.querySelectorAll('[id^="time-wrap-"]').forEach(el => el.innerHTML = '');
+              // 🌟 修改：从字典获取当前专属黑名单
+              const currentDeadList = deadSongIndexes[currentPlaylist] || [];
+              document.querySelectorAll('[id^="time-wrap-"]').forEach(el => {
+                  const idx = parseInt(el.id.replace('time-wrap-', ''));
+                  if (!currentDeadList.includes(idx)) {
+                      el.innerHTML = '';
+                  }
+              });
           }
         });
 
         audioEl.addEventListener('playing', () => {
           audioEl.dataset.hasStarted = "1";
           consecutiveFailures = 0;
-          deadSongIndexes = [];
+          // 🌟 修复：彻底移除 deadSongIndexes = [];
+          // 绝不能在歌曲正常播放时去清空整本字典，否则历史失效歌曲的钢印会被抹除！
           if ('mediaSession' in navigator) window.setupMediaSession(audioEl, btnPrev, btnNext);
         });
 
@@ -3007,7 +3095,9 @@
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
           if (audioEl.src && !audioEl.ended && currentSongName) {
               const actualPlayingPl = audioEl.dataset.playingPlaylist || currentPlaylist;
-              syncToCloud(actualPlayingPl, currentSongName, audioEl.currentTime, audioEl.playbackRate, true);
+              // 🌟 同样用钢印名字
+              const actualPlayingSong = audioEl.dataset.playingSongName || currentSongName;
+              syncToCloud(actualPlayingPl, actualPlayingSong, audioEl.currentTime, audioEl.playbackRate, true);
           }
         });
 
@@ -3022,15 +3112,18 @@
             window.showToast("⚠️ 歌曲链接拒绝访问，自动跳过...");
             if (currentIndex !== -1) {
                 consecutiveFailures++;
+
+                // 🌟 净化：同样交由公共函数打理，账本和 UI 自动一步到位
+                window.markSongAsDead(currentPlaylist, currentIndex);
             }
             updatePlayButtonUI(false);
+
             if (consecutiveFailures >= 5) {
                 window.showToast(`🛑 连续 5 首歌曲无法播放，已暂停。`);
                 consecutiveFailures = 0;
             } else {
                 setTimeout(() => {
                     playNextSong(true);
-
                 }, 1000);
             }
           }
@@ -3047,30 +3140,31 @@
               localState.currentTime = current;
               localStorage.setItem('iwebplayer.local_state', JSON.stringify(localState));
 
-              // 🌟 获取真正发声的源歌单
+              // 🌟 获取真正发声的源歌单和真实歌曲名，绝不使用容易被异步污染的 currentSongName
               const actualPlayingPl = audioEl.dataset.playingPlaylist || currentPlaylist;
+              const actualPlayingSong = audioEl.dataset.playingSongName || currentSongName;
 
               // 1. 写入多轨账本：只记到实际发声的歌单下
               let plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
-              plTracks[actualPlayingPl] = { name: currentSongName, time: current };
+              plTracks[actualPlayingPl] = { name: actualPlayingSong, time: current };
               localStorage.setItem('iwebplayer.playlist_tracks', JSON.stringify(plTracks));
 
-              // 2. 写入旧版单轨账本：同样只记到实际发声的歌单下
+              // 2. 写入旧版单轨账本
               const conf = getPlaylistConfig(actualPlayingPl);
               if (conf.resumeLocal !== 'off') {
                   let history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
                   let list = history[actualPlayingPl] || [];
 
-                  list = list.filter(item => item.name !== currentSongName);
-                  list.unshift({ name: currentSongName, time: current });
+                  list = list.filter(item => item.name !== actualPlayingSong);
+                  list.unshift({ name: actualPlayingSong, time: current });
                   if (list.length > 5) list = list.slice(0, 5);
 
                   history[actualPlayingPl] = list;
                   localStorage.setItem('iwebplayer.resume_history', JSON.stringify(history));
-                  syncToCloud(actualPlayingPl, currentSongName, current, audioEl.playbackRate, false);
+                  syncToCloud(actualPlayingPl, actualPlayingSong, current, audioEl.playbackRate, false);
 
-                  // 仅当用户正在看的就是播放歌单时，才动态更新右侧的时间跳动
-                  if (actualPlayingPl === currentPlaylist) {
+                  // 仅当用户正在看的就是播放歌单，且当前UI高亮的正是这首歌时，才动态更新右侧的时间跳动
+                  if (actualPlayingPl === currentPlaylist && actualPlayingSong === currentSongName) {
                       const timeWrap = document.getElementById(`time-wrap-${currentIndex}`);
                       if (timeWrap) {
                         const targetSvg = conf.resumeLocal === 'global' ? window.SVG_ICONS.cloud_clock : window.SVG_ICONS.stopwatch;
@@ -3237,7 +3331,7 @@
             if (prevIdx < 0) prevIdx = songList.length - 1;
             playSong(prevIdx);
         }
-
+        window.playNextSong = playNextSong;
         // 绑定接管事件
         audioEl.addEventListener('ended', () => playNextSong(true));
         btnNext.addEventListener('click', () => {

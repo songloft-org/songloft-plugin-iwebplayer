@@ -382,12 +382,15 @@
     };
 
     window.switchPlaylistSilently = function(targetPlaylistName) {
+        // 🌟 修改：因为全局变成了字典隔离，所以这里绝对不能再清空记录，只重置失败计数即可
+        window.consecutiveFailures = 0;
+
         window.currentPlaylist = targetPlaylistName;
 
         let stateObj = window.localState || { playlist: "", songName: "" };
         stateObj.playlist = window.currentPlaylist;
         localStorage.setItem('iwebplayer.local_state', JSON.stringify(stateObj));
-        if (window.localState) window.localState = stateObj;
+        if (window.localState) window.isLocalState = stateObj;
 
         const playlistVal = document.getElementById('playlist-val');
         if (playlistVal) {
