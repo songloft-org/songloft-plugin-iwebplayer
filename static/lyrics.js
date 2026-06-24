@@ -7,6 +7,7 @@ window.LyricsEngine = (function() {
     let startOffset = 0;
     let wrapperEl = null;
     let containerEl = null;
+    let lastActiveIndex = -1; // 🌟 新增：追踪上一次的歌词行，防止疯狂刷屏
 
     function init(wrapperId, containerId) {
         wrapperEl = document.getElementById(wrapperId);
@@ -16,6 +17,13 @@ window.LyricsEngine = (function() {
 
     function parse(lrcString) {
         parsedLyrics = [];
+        lastActiveIndex = -1; // 🌟 换歌时重置追踪器
+
+        // 🌟 换歌或清空歌词时，通知锁屏恢复显示常规歌名
+        if (typeof window.updateMediaSessionLyric === 'function') {
+            window.updateMediaSessionLyric(null);
+        }
+
         if (!lrcString) {
             containerEl.innerHTML = '<div class="no-lyrics">暂无歌词，请欣赏音乐吧</div>';
             containerEl.style.transform = `translateY(0px)`;
@@ -50,14 +58,31 @@ window.LyricsEngine = (function() {
             if (currentTime >= parsedLyrics[i].time) activeIndex = i;
             else break;
         }
-        if (activeIndex !== -1) {
+
+        // 🌟 核心拦截：只有当歌词真的跳到下一句时，才去执行昂贵的 DOM 渲染和锁屏更新
+        if (activeIndex !== -1 && activeIndex !== lastActiveIndex) {
+            lastActiveIndex = activeIndex;
+
             const oldActive = document.querySelector('.lyric-line.active');
             if (oldActive) oldActive.classList.remove('active');
             const currentLine = document.getElementById(`lyric-${activeIndex}`);
+
             if (currentLine) {
                 currentLine.classList.add('active');
                 const offset = currentLine.offsetTop - (wrapperEl.offsetHeight / 2) + (currentLine.offsetHeight / 2);
                 containerEl.style.transform = `translateY(-${Math.max(0, offset)}px)`;
+
+                // 🌟 将当前歌词行推送到手机锁屏
+                if (typeof window.updateMediaSessionLyric === 'function') {
+                    const lyricText = parsedLyrics[activeIndex].text;
+                    // 过滤掉顶部的占位符和空字符串
+                    if (lyricText && lyricText.trim() && lyricText !== '\u200B') {
+                        window.updateMediaSessionLyric(lyricText);
+                    } else {
+                        // 遇到纯音乐间奏/空白，优雅地恢复显示歌名
+                        window.updateMediaSessionLyric(null);
+                    }
+                }
             }
         }
     }

@@ -515,8 +515,8 @@
 </style>
 
   <script src="./static/icons.js?v0.6.3" defer></script>
-  <script src="./static/utils.js?v0.6.3" defer></script>
-  <script src="./static/lyrics.js?v0.6.3" defer></script>
+  <script src="./static/utils.js?v0.7.1" defer></script>
+  <script src="./static/lyrics.js?v0.7.1" defer></script>
   <script src="./static/scraper.js?v0.6.3" defer></script>
   <script src="./static/playlist.js?v0.6.3" defer></script>
   <script src="./static/online.js?v0.6.3" defer></script>
@@ -544,6 +544,9 @@
           </li>
           <li class="select-option" id="setting-plugin">
              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> 插件管理
+          </li>
+          <li class="select-option" id="setting-preferences-btn">
+             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> 参数设置
           </li>
           <li class="select-option" id="setting-config">
              <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -800,6 +803,69 @@
       <div class="about-footer">
         <button class="about-secondary" id="about-migrate-btn" style="display: none;">升级旧版歌单</button>
         <button class="about-primary" id="about-ok">我知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="about-modal-backdrop" id="preferences-backdrop" aria-hidden="true">
+    <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 85vh; display: flex; flex-direction: column;">
+      <button class="about-close" id="preferences-close" aria-label="关闭">×</button>
+      <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 15px;">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" style="color: var(--text-main);"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">参数设置</h2>
+        </div>
+      </div>
+      <div class="about-body" style="flex: 1; padding: 0 18px 25px 18px; overflow-y: auto;">
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px;">
+          <div style="min-width: 0; padding-right: 15px;">
+            <div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 4px;">锁屏歌词</div>
+            <div style="font-size: 12px; color: var(--text-sub); line-height: 1.4;">在系统锁屏和控制中心的歌曲标题处动态显示当前歌词。</div>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="switch-lock-lyric">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px;">
+          <div style="min-width: 0; padding-right: 15px;">
+            <div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 4px;">沉浸氛围背景</div>
+            <div style="font-size: 12px; color: var(--text-sub); line-height: 1.4;">在全屏播放器背景显示基于当前封面的动态高斯模糊效果。(开发中...)</div>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="switch-ambient-bg" disabled>
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px dashed var(--border); text-align: center;">
+
+          <div style="position: relative; overflow: hidden; border-radius: 10px;">
+            <div id="reset-normal-view" style="transition: opacity 0.2s; width: 100%;">
+              <button id="btn-reset-app" style="background: transparent; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 10px; padding: 12px 20px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.2s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;" onmousedown="this.style.background='rgba(239, 68, 68, 0.05)'" onmouseup="this.style.background='transparent'" onmouseleave="this.style.background='transparent'">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                清除本地数据并恢复默认
+              </button>
+            </div>
+
+            <div id="reset-confirm-view" style="position: absolute; inset: 0; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; transform: translateX(100%); transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);">
+              <div style="font-size: 13px; font-weight: bold; color: #ef4444; text-align: left; line-height: 1.2;">
+                不可逆操作<br><span style="font-size: 11px; font-weight: normal; opacity: 0.8;">将抹除所有进度与配置</span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button id="btn-reset-cancel" class="edit-pl-text-btn" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); height: 28px;">取消</button>
+                <button id="btn-reset-confirm" class="edit-pl-text-btn" style="background: #ef4444; color: #fff; border: none; height: 28px;">确定清除</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="font-size: 11px; color: var(--text-sub); margin-top: 10px; line-height: 1.4;">
+            将彻底清空本机存储的播放进度记忆、搜索历史以及所有界面偏好设置。（不会删除服务端的任何真实歌单或音乐）
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -1157,7 +1223,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v0.7.0';
+    window.APP_VERSION = 'v0.7.1';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -1977,7 +2043,106 @@
                 setTimeout(() => { window.scrollTo({ top: window._gridScrollY || 0, behavior: 'auto' }); }, 10);
             });
         }
+
+        // 🌟 参数设置弹窗逻辑
+        const prefBtn = document.getElementById('setting-preferences-btn');
+        const prefBackdrop = document.getElementById('preferences-backdrop');
+        const switchLockLyric = document.getElementById('switch-lock-lyric');
+        const switchAmbientBg = document.getElementById('switch-ambient-bg');
+
+        if (prefBtn && prefBackdrop) {
+            // 打开弹窗
+            prefBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (settingsOpts) settingsOpts.classList.remove('show');
+
+                // 每次打开前，读取最新配置并渲染开关状态
+                const currentPrefs = window.getPreferences();
+                switchLockLyric.checked = currentPrefs.lockLyric;
+                switchAmbientBg.checked = currentPrefs.ambientBg;
+
+                prefBackdrop.classList.add('show');
+                prefBackdrop.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            });
+
+            // 监听：锁屏歌词开关变化
+            switchLockLyric.addEventListener('change', (e) => {
+                window.savePreferences({ lockLyric: e.target.checked });
+                // 即刻生效：如果不勾选，立刻清空当前的锁屏歌词
+                if (!e.target.checked && typeof window.updateMediaSessionLyric === 'function') {
+                    window.updateMediaSessionLyric(null);
+                }
+            });
+
+            // 监听：氛围背景开关变化
+            switchAmbientBg.addEventListener('change', (e) => {
+                window.savePreferences({ ambientBg: e.target.checked });
+                // 💡 氛围背景的具体应用逻辑，我们可以在下一步专门写
+            });
+
+            // 🌟 监听：清除本地数据并恢复默认 (内联互动版)
+            const btnResetApp = document.getElementById('btn-reset-app');
+            const resetNormalView = document.getElementById('reset-normal-view');
+            const resetConfirmView = document.getElementById('reset-confirm-view');
+            const btnResetCancel = document.getElementById('btn-reset-cancel');
+            const btnResetConfirm = document.getElementById('btn-reset-confirm');
+
+            if (btnResetApp && resetConfirmView) {
+                // 1. 点击原按钮：隐藏自己，滑出红色的确认警告面板
+                btnResetApp.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    resetNormalView.style.opacity = '0';
+                    resetConfirmView.style.transform = 'translateX(0)';
+                });
+
+                // 2. 点击取消：滑回安全状态
+                btnResetCancel.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    resetNormalView.style.opacity = '1';
+                    resetConfirmView.style.transform = 'translateX(100%)';
+                });
+
+                // 3. 点击确定清除：执行屠魔逻辑
+                btnResetConfirm.addEventListener('click', (e) => {
+                    e.stopPropagation();
+
+                    // a. 找出所有 iwebplayer. 开头的键名
+                    const keysToDelete = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const keyName = localStorage.key(i);
+                        if (keyName && keyName.startsWith('iwebplayer.')) {
+                            keysToDelete.push(keyName);
+                        }
+                    }
+                    // b. 无情抹杀
+                    keysToDelete.forEach(k => localStorage.removeItem(k));
+
+                    // c. 防止连续点击，改变按钮状态
+                    btnResetConfirm.innerHTML = '正在重启...';
+                    btnResetConfirm.style.opacity = '0.5';
+                    btnResetConfirm.style.pointerEvents = 'none';
+                    if (btnResetCancel) btnResetCancel.style.display = 'none';
+
+                    if (window.showToast) window.showToast('✅ 数据已清空，即将重启...');
+
+                    setTimeout(() => {
+                        window.location.reload(true);
+                    }, 1200);
+                });
+            }
+
+            // 关闭弹窗
+            const closePrefModal = () => {
+                prefBackdrop.classList.remove('show');
+                prefBackdrop.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            };
+            document.getElementById('preferences-close')?.addEventListener('click', closePrefModal);
+            prefBackdrop.addEventListener('click', (e) => { if (e.target === prefBackdrop) closePrefModal(); });
+        }
     }
+
 
     /* ==========================================
      * 7. 调速与续播面板设置交互

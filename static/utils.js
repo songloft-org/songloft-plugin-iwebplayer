@@ -1,4 +1,30 @@
 // static/utils.js
+// 🌟 全局偏好设置管家
+window.defaultPreferences = {
+    lockLyric: true,  // 默认开启锁屏歌词
+    ambientBg: false  // 默认关闭氛围背景
+};
+
+// 获取当前设置
+window.getPreferences = function() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('iwebplayer.preferences'));
+        return { ...window.defaultPreferences, ...stored };
+    } catch (e) {
+        return window.defaultPreferences;
+    }
+};
+
+// 保存并分发设置
+window.savePreferences = function(newPrefs) {
+    const current = window.getPreferences();
+    const updated = { ...current, ...newPrefs };
+    localStorage.setItem('iwebplayer.preferences', JSON.stringify(updated));
+
+    // 触发一个自定义事件，通知其他组件设置已变
+    window.dispatchEvent(new CustomEvent('preferencesUpdated', { detail: updated }));
+};
+
 window.showToast = function(msg, persist = false) {
     let toast = document.getElementById('global-toast');
     if (!toast) {
@@ -52,15 +78,46 @@ window.setupMediaSession = function(audioEl, btnPrev, btnNext) {
     }
 };
 
+window._lastMediaSessionParams = null; // 暂存基础参数
+window._currentLockScreenLyric = null; // 暂存当前播放的歌词
+
 window.updateMediaSession = function(songName, coverUrl, favoriteList, appLogo) {
     if ('mediaSession' in navigator) {
-      const displayTitle = favoriteList.includes(songName) ? `${songName} ♡︎` : songName;
+      // 🌟 缓存基础参数，供后面的歌词滚动复用
+      window._lastMediaSessionParams = { songName, coverUrl, favoriteList, appLogo };
+
+      let displayTitle = favoriteList.includes(songName) ? `${songName} ♡︎` : songName;
+      let displayArtist = 'iWebPlayer';
+
+      // 🌟 核心魔术：如果当前有歌词，将歌名降级为副标题（歌手位），将歌词提升为大标题（歌名位）
+      if (window._currentLockScreenLyric) {
+          displayArtist = displayTitle;
+          displayTitle = window._currentLockScreenLyric;
+      }
+
       navigator.mediaSession.metadata = new MediaMetadata({
         title: displayTitle,
-        artist: 'iWebPlayer',
+        artist: displayArtist,
         album: '我的曲库',
         artwork: [ { src: coverUrl || appLogo || '/static/favicon.ico' } ]
       });
+    }
+};
+
+// 🌟 由歌词引擎专门呼叫的动态注入函数
+window.updateMediaSessionLyric = function(lyricText) {
+    // 💡 核心：如果用户关闭了锁屏歌词，强行拦截，并强制清空锁屏歌词缓存
+    const prefs = window.getPreferences();
+    if (!prefs.lockLyric) {
+        window._currentLockScreenLyric = null;
+    } else {
+        window._currentLockScreenLyric = lyricText;
+    }
+
+    // 唤醒主函数重新渲染锁屏
+    if (window._lastMediaSessionParams) {
+        const { songName, coverUrl, favoriteList, appLogo } = window._lastMediaSessionParams;
+        window.updateMediaSession(songName, coverUrl, favoriteList, appLogo);
     }
 };
 
