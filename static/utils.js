@@ -199,3 +199,28 @@ window.savePlaylistConfig = function(plName, config) {
     configs[plName] = config;
     localStorage.setItem('iwebplayer.pl_configs', JSON.stringify(configs));
 };
+
+// 🌟 核心工具：万能歌曲名称与后缀提取器
+window.getSongNameObj = function(rawItem) {
+    if (!rawItem) return "未知歌曲";
+
+    // 1. 如果是前端临时抓取的在线歌曲
+    if (rawItem._isOnlineObj) {
+        let title = rawItem.title || "未知";
+        let artist = rawItem.artist || "未知歌手";
+        return `${title} - ${artist}`;
+    }
+
+    // 2. 如果是有真实物理路径的本地歌曲（原汁原味截取文件名）
+    if (rawItem.file_path) {
+        return String(rawItem.file_path).split('/').pop().replace(/\.[^/.]+$/, "");
+    }
+
+    // 3. 🌟 新增：如果是已入库的在线歌曲（file_path 为空，但有 title 和 artist）
+    if (rawItem.title && rawItem.artist) {
+        return `${rawItem.title} - ${rawItem.artist}`;
+    }
+
+    // 4. 终极兜底方案
+    return rawItem.title || rawItem.name || "未知歌曲";
+};

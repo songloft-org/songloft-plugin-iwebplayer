@@ -3,14 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <title>Songloft 数据透视镜</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Consolas, monospace; background: #1e1e1e; color: #d4d4d4; padding: 20px; }
-    h2 { color: #4ade80; }
-    pre { white-space: pre-wrap; word-wrap: break-word; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f3f4f6; /* 外层柔和浅色背景 */
+      color: #1f2937;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h2 {
+      color: #ec4899; /* 沿用猛男粉主色调 */
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    pre {
+      background: #111827; /* 极黑底色 */
+      color: #34d399; /* 荧光绿代码色，极度护眼且对比度极高 */
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 15px;
+      line-height: 1.6;
+      border: 1px solid #374151;
+    }
   </style>
 </head>
 <body>
-  <pre id="output">正在努力向大系统请求数据中...</pre>
+  <div class="container">
+    <h2>🔍 iWebPlayer Debug 页面</h2>
+    <pre id="output">正在努力向大系统请求数据中...</pre>
+  </div>
 
   <script>
     // 1. 自动从你的浏览器里偷取大系统的通行证
@@ -28,13 +58,14 @@
     };
 
     // 2. 去请求我们在 main.ts 留下的后门接口
-    // 注意：因为我们在 static/ 文件夹里，所以接口路径要往上跳一级用 ../
     fetch('/api/v1/jsplugin/iwebplayer/debug')
       .then(res => res.json())
       .then(data => {
+        document.getElementById('output').style.color = "#34d399"; // 成功为荧光绿
         document.getElementById('output').textContent = JSON.stringify(data, null, 2);
       })
       .catch(err => {
+        document.getElementById('output').style.color = "#f87171"; // 报错为醒目红
         document.getElementById('output').textContent = "抓取失败：" + err;
       });
   </script>
