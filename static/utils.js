@@ -257,27 +257,76 @@ window.savePlaylistConfig = function(plName, config) {
     localStorage.setItem('iwebplayer.pl_configs', JSON.stringify(configs));
 };
 
-// 🌟 核心工具：万能歌曲名称与后缀提取器
+// 🌟 核心工具：万能歌曲名称与后缀提取器 (强制统一输出格式：歌名 - 歌手)
 window.getSongNameObj = function(rawItem) {
     if (!rawItem) return "未知歌曲";
 
-    // 1. 如果是前端临时抓取的在线歌曲
-    if (rawItem._isOnlineObj) {
-        let title = rawItem.title || "未知";
-        let artist = rawItem.artist || "未知歌手";
+    // 1. 获取基础字段
+    let title = String(rawItem.title || rawItem.name || "").trim();
+    let artist = String(rawItem.artist || rawItem.singer || "").trim();
+
+    // 如果没名字但有物理路径，用文件名充当暂定歌名
+    if (!title && rawItem.file_path) {
+        title = String(rawItem.file_path).split('/').pop().replace(/\.[^/.]+$/, "");
+    }
+
+    // 2. 核心净化：如果 title 里混入了 artist，我们要精确地把它剥离出来！
+    if (title && artist && artist !== "未知" && artist !== "未知歌手") {
+
+        // 场景 A：命中 "歌手 - 歌名" 或 "歌手-歌名" (例如: "龚玥 - 美丽的草原")
+        if (title.startsWith(artist + " - ")) {
+            title = title.substring(artist.length + 3).trim(); // 砍掉前面的歌手名
+        } else if (title.startsWith(artist + "-")) {
+            title = title.substring(artist.length + 1).trim();
+        }
+        // 场景 B：命中 "歌名 - 歌手" 或 "歌名-歌手" (例如: "日不落 - 蔡依林")
+        else if (title.endsWith(" - " + artist)) {
+            title = title.substring(0, title.length - artist.length - 3).trim(); // 砍掉后面的歌手名
+        } else if (title.endsWith("-" + artist)) {
+            title = title.substring(0, title.length - artist.length - 1).trim();
+        }
+
+        // 剥离出最干净的歌名后，强制统一格式输出！
         return `${title} - ${artist}`;
     }
 
-    // 2. 如果是有真实物理路径的本地歌曲（原汁原味截取文件名）
-    if (rawItem.file_path) {
-        return String(rawItem.file_path).split('/').pop().replace(/\.[^/.]+$/, "");
+    // 3. 终极兜底：缺少某一项信息时，有啥显示啥
+    return title || artist || "未知歌曲";
+};
+
+// 🌟 刮削桥接器：统一向后端请求封面与歌词 (V2: 纯净参数提取版)
+window.fetchScrape = async function(rawItem, type, currentSongName = null) {
+    if (!rawItem) return null;
+
+    let filename = '';
+    // 1. 获取经过严格清洗、绝对标准的 "歌名 - 歌手" 格式
+    const nameObj = window.getSongNameObj ? window.getSongNameObj(rawItem) : (currentSongName || '');
+
+    if (nameObj) {
+        filename = nameObj.replace(/\.(mp3|flac|wav|m4a|aac|ogg|ape|wma|alac)(.*)$/i, '').replace(/#.*$/, '');
+    } else if (rawItem.file_path) {
+        filename = String(rawItem.file_path).split('/').pop().replace(/\.[^/.]+$/, "");
     }
 
-    // 3. 🌟 新增：如果是已入库的在线歌曲（file_path 为空，但有 title 和 artist）
-    if (rawItem.title && rawItem.artist) {
-        return `${rawItem.title} - ${rawItem.artist}`;
+    // 2. 原始脏数据兜底
+    let title = rawItem.title || rawItem.name || '';
+    let artist = rawItem.artist || rawItem.singer || '';
+
+    // 3. 🌟 核心修复：直接从纯净的 filename 中拆分出完美的 title 和 artist！
+    if (filename && filename.includes(' - ')) {
+        const parts = filename.split(' - ');
+        title = parts[0].trim(); // 拿到绝对纯净的歌名 (例如: 温柔)
+        artist = parts.slice(1).join(' - ').trim(); // 拿到绝对纯净的歌手 (例如: 五月天)
     }
 
-    // 4. 终极兜底方案
-    return rawItem.title || rawItem.name || "未知歌曲";
+    const url = `/api/v1/jsplugin/iwebplayer/scrape?type=${type}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&filename=${encodeURIComponent(filename)}`;
+
+    try {
+        const res = await fetch(url);
+        if (res.ok) {
+            const data = await res.json();
+            return type === 'cover' ? data.cover : data.lyric;
+        }
+    } catch(e) {}
+    return null;
 };

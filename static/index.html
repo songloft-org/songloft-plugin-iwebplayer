@@ -515,13 +515,12 @@
 </style>
 
   <script src="./static/icons.js?v0.6.3" defer></script>
-  <script src="./static/utils.js?v0.7.1" defer></script>
+  <script src="./static/utils.js?v0.7.2" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/scraper.js?v0.6.3" defer></script>
-  <script src="./static/playlist.js?v0.6.3" defer></script>
-  <script src="./static/online.js?v0.6.3" defer></script>
+  <script src="./static/playlist.js?v0.7.2" defer></script>
+  <script src="./static/online.js?v0.7.2" defer></script>
   <script src="./static/plugins.js?v0.6.3" defer></script>
-  <script src="./static/player.js?v0.6.3" defer></script>
+  <script src="./static/player.js?v0.7.2" defer></script>
 
 </head>
 <body>
@@ -1223,7 +1222,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v0.7.1';
+    window.APP_VERSION = 'v0.7.2';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2017,10 +2016,7 @@
             });
         }
 
-        window.addEventListener('scroll', () => {
-            const popup = document.getElementById('search-history-popup');
-            if (popup) popup.style.display = 'none';
-        }, { passive: true });
+
 
         const mfSearchBackBtn = document.getElementById('mf-search-back-btn');
         if (mfSearchBackBtn) {

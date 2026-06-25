@@ -47,7 +47,21 @@
             popup.innerHTML = '<li class="select-option" style="color: var(--text-sub); justify-content: center; font-size: 13px; pointer-events: none;">暂无搜索历史</li>';
             return;
         }
-        popup.innerHTML = history.map((item, idx) => {
+
+        // 🌟 修改点：低调的右上角“收起”横条
+        const closeBarHtml = `
+            <div onclick="
+                document.getElementById('search-history-popup').style.display='none'; 
+                if(document.activeElement) document.activeElement.blur();
+            " style="padding: 8px 16px; border-bottom: 1px solid var(--border); color: var(--text-sub); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: flex-end; gap: 2px; background: var(--card-bg); border-radius: 8px 8px 0 0; position: sticky; top: 0; z-index: 10; opacity: 0.8; user-select: none;">
+                <span>收起</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+            </div>
+        `;
+
+        const listHtml = history.map((item, idx) => {
             if (item.type === 'keyword') {
                 return `<li class="select-option" data-idx="${idx}" style="justify-content: space-between;"><div class="flex-y-center" style="min-width: 0;"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; opacity:0.6; flex-shrink:0;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.text}</span></div></li>`;
             } else {
@@ -60,6 +74,8 @@
                 </li>`;
             }
         }).join('');
+
+        popup.innerHTML = closeBarHtml + listHtml; // 🌟 拼合
 
         popup.querySelectorAll('.select-option').forEach(li => {
             li.addEventListener('click', (e) => {

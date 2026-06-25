@@ -685,7 +685,7 @@
                                     card._scrapeTimer = setTimeout(async () => {
                                         if (!card._inView) return;
                                         window.playlistObserver.unobserve(card);
-                                        const hdCover = await window.Scraper.getCover(firstSong);
+                                        const hdCover = await window.fetchScrape(firstSong, 'cover');
                                         if (!card._inView) return;
                                         if (hdCover) {
                                             img.src = hdCover;
@@ -775,7 +775,7 @@
                             if (!li._inView) return;
                             img.removeAttribute('data-scrape');
                             const rawItem = window.songList[index];
-                            const hdCover = await window.Scraper.getCover(rawItem);
+                            const hdCover = await window.fetchScrape(rawItem, 'cover');
                             if (!li._inView) return;
                             if (hdCover) {
                                 img.src = hdCover;

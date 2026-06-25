@@ -39,8 +39,10 @@
         let extension = '';
         let isVisible = false;
 
+        // 🌟 常见合法音频后缀白名单，防止 PHP 等伪装者混入
+        const validExts = ['MP3', 'FLAC', 'WAV', 'M4A', 'AAC', 'OGG', 'APE', 'WMA'];
+
         if (formatReady && text !== "暂无播放") {
-            // 拿到当前正在播放的原始歌曲数据对象
             let rawItem = null;
             if (window.currentIndex !== -1 && window.songList[window.currentIndex]) {
                 const currentName = window.getSongNameObj(window.songList[window.currentIndex]);
@@ -51,8 +53,11 @@
             if (rawItem && rawItem.file_path) {
                 const match = String(rawItem.file_path).match(/\.([a-zA-Z0-9]+)$/);
                 if (match) {
-                    extension = match[1].toUpperCase();
-                    isVisible = true;
+                    let ext = match[1].toUpperCase();
+                    if (validExts.includes(ext)) {
+                        extension = ext;
+                        isVisible = true;
+                    }
                 }
             }
 
@@ -64,19 +69,33 @@
                         const b64 = new URL(urlToParse).searchParams.get('urlb64');
                         try { urlToParse = decodeURIComponent(escape(window.atob(b64))); } catch(e) { urlToParse = window.atob(b64); }
                     }
-                    let cleanUrl = urlToParse.split('?')[0].split('#')[0];
-                    const match = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
-                    if (match) {
-                        extension = match[1].toUpperCase();
-                        isVisible = true;
+
+                    // 🌟 进阶嗅探：在剪掉问号前，先看看 URL 参数里有没有 type=mp3
+                    try {
+                        const urlObj = new URL(urlToParse);
+                        const typeParam = urlObj.searchParams.get('type') || urlObj.searchParams.get('format');
+                        if (typeParam && validExts.includes(typeParam.toUpperCase())) {
+                            extension = typeParam.toUpperCase();
+                            isVisible = true;
+                        }
+                    } catch(e) {}
+
+                    // 🌟 如果参数里没写，再去干净的 URL 末尾找，并用白名单拦截 PHP
+                    if (!isVisible) {
+                        let cleanUrl = urlToParse.split('?')[0].split('#')[0];
+                        const match = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
+                        if (match) {
+                            let ext = match[1].toUpperCase();
+                            if (validExts.includes(ext)) {
+                                extension = ext;
+                                isVisible = true;
+                            }
+                        }
                     }
                 } catch(e) {}
             }
-
-            // 不再使用兜底的 NET 逻辑，没有就是没有
         }
 
-        // 🌟 终极修复：如果 isVisible 为 false，则彻底不渲染这段 HTML，连 1px 的空隙都不留！
         if (isVisible && extension) {
             const tagStyle = `display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 14px; box-sizing: border-box; font-size: 8px; border: 1px solid var(--tag-local); color: var(--tag-local); border-radius: 4px; padding: 0 2px; margin-left: 6px; font-weight: bold; flex-shrink: 0; line-height: 1; transform: translateY(2px);`;
             extHtml = `<span style="${tagStyle}">${extension}</span>`;
@@ -106,7 +125,6 @@
             }
         }, 50);
     };
-
     window.highlightSongUI = function(index) {
         if (window.currentIndex !== -1) {
             $('song-' + window.currentIndex)?.classList.remove('playing');
@@ -461,10 +479,12 @@
                 }
             }
 
-            if (!finalLrc && !rawItem._isOnlineObj && window.Scraper) {
-                finalLrc = await window.Scraper.getLyrics(rawItem, globalToken, window.currentSongName);
+            // 🌟 终极修复：解除在线歌曲的封印！只要前面没拿到有效歌词，统统交给全网刮削器兜底！
+            //if ((!finalLrc || finalLrc.trim() === '') && window.Scraper) {
+            // 如果连本地歌词都没拿到，呼叫后端刮削！
+            if (!finalLrc || finalLrc.trim() === '') {
+                finalLrc = await window.fetchScrape(rawItem, 'lyric', window.currentSongName);
             }
-
             if (finalLrc) applyUI();
             if (!finalLrc && targetSongName === window.currentSongName && window.LyricsEngine) {
                 window.LyricsEngine.parse(null);
