@@ -1,5 +1,7 @@
 /// <reference types="@songloft/plugin-sdk" />
 import { jsonResponse, createRouter } from '@songloft/plugin-sdk';
+import { scrapeCover, scrapeLyric } from './scraper';
+import { scrapeCover, scrapeLyric, getLastScrapeLog } from './scraper';
 
 const router = createRouter();
 
@@ -258,8 +260,44 @@ router.post('/store', async (req) => {
     }
 });
 
+// ==========================================
+// 🕷️ 刮削网关：统一处理封面与歌词请求
+// ==========================================
+router.get('/scrape', async (req) => {
+    try {
+        const urlParams = new URLSearchParams(String(req.query));
+        const type = urlParams.get('type'); // 允许: 'cover' | 'lyric' | 'all'
+        const title = urlParams.get('title') || '';
+        const artist = urlParams.get('artist') || '';
+        const filename = urlParams.get('filename') || '';
+
+        let result: any = {};
+
+        // 1. 刮封面
+        if (type === 'cover' || type === 'all') {
+            let searchTerm = filename;
+            if (filename.includes('-')) {
+                searchTerm = `${filename.split('-')[1].trim()} ${filename.split('-')[0].trim()}`;
+            }
+            if (!searchTerm && title) searchTerm = `${title} ${artist}`.trim();
+
+            result.cover = await scrapeCover(searchTerm);
+        }
+
+        // 2. 刮歌词
+        if (type === 'lyric' || type === 'all') {
+            result.lyric = await scrapeLyric(title, artist, filename);
+        }
+
+        return jsonResponse(result);
+    } catch (error) {
+        return jsonResponse({ error: "刮削引擎发生错误: " + String(error) });
+    }
+});
+
 // 🌟 专供 debug 页面调用的后门接口
 // http://10.0.91.11:10333/api/v1/jsplugin/iwebplayer/static/debug.html
+/*
 router.get('/debug', async (req) => {
     try {
         // 准备一个空托盘，用来装你想要输出的数据
@@ -307,9 +345,14 @@ router.get('/debug', async (req) => {
         // debugResult.ttt = configDetail.value
 
         // ==========================================
-        // 🌟 新增：把最新捕获的探子死因放进托盘输出
+        // 🌟 把最新捕获的探子死因放进托盘输出
         // ==========================================
-        debugResult.lastProbeError = lastSystemError;
+        //debugResult.lastProbeError = lastSystemError;
+
+        // ==========================================
+        // 🌟 新增：把最新一次的【歌词刮削打分全过程】放进托盘！
+        // ==========================================
+        debugResult.lastScrapeLog = getLastScrapeLog() || "暂无刮削记录，请先在前端播放一首没有本地歌词的歌";
 
         // ==========================================
         // 📤 最终输出：把托盘里收集到的所有数据一把推给浏览器
@@ -322,6 +365,8 @@ router.get('/debug', async (req) => {
     }
 });
 
+ */
+
 // ==== 核心生命周期函数 ====
 function onInit(): void { songloft.log.info('iWebPlayer 原生架构已就绪！'); }
 function onDeinit(): void {}
@@ -333,3 +378,4 @@ globalThis.onInit = onInit;
 globalThis.onDeinit = onDeinit;
 // @ts-expect-error
 globalThis.onHTTPRequest = onHTTPRequest;
+
