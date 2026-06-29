@@ -517,7 +517,7 @@
   <script src="./static/icons.js?v0.6.3" defer></script>
   <script src="./static/utils.js?v0.7.2" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v0.7.2" defer></script>
+  <script src="./static/playlist.js?v0.7.3" defer></script>
   <script src="./static/online.js?v0.7.2" defer></script>
   <script src="./static/plugins.js?v0.6.3" defer></script>
   <script src="./static/player.js?v0.7.2" defer></script>
@@ -545,7 +545,7 @@
              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> 插件管理
           </li>
           <li class="select-option" id="setting-preferences-btn">
-             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> 参数设置
+             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> 偏好设置
           </li>
           <li class="select-option" id="setting-config">
              <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -835,6 +835,17 @@
           </div>
           <label class="ios-switch">
             <input type="checkbox" id="switch-ambient-bg" disabled>
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; margin-top: 12px;">
+          <div style="min-width: 0; padding-right: 15px;">
+            <div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 4px;">高性能同步模式</div>
+            <div style="font-size: 12px; color: var(--text-sub); line-height: 1.4;">开启后极速同步全量曲库。仅限高配服务器使用，低配开启可能导致 504 错误。</div>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="switch-high-perf">
             <span class="slider round"></span>
           </label>
         </div>
@@ -1151,7 +1162,7 @@
       <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--card-bg);">
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 12px;">
           <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">音源插件管理</h2>
+          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">插件管理</h2>
         </div>
 
         <div style="display: flex; align-items: center; width: 100%; gap: 20px;">
@@ -1222,7 +1233,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v0.7.2';
+    window.APP_VERSION = 'v0.7.3';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2045,98 +2056,114 @@
         const prefBackdrop = document.getElementById('preferences-backdrop');
         const switchLockLyric = document.getElementById('switch-lock-lyric');
         const switchAmbientBg = document.getElementById('switch-ambient-bg');
+        const switchHighPerf = document.getElementById('switch-high-perf');
 
         if (prefBtn && prefBackdrop) {
-            // 打开弹窗
-            prefBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (settingsOpts) settingsOpts.classList.remove('show');
-
-                // 每次打开前，读取最新配置并渲染开关状态
-                const currentPrefs = window.getPreferences();
-                switchLockLyric.checked = currentPrefs.lockLyric;
-                switchAmbientBg.checked = currentPrefs.ambientBg;
-
-                prefBackdrop.classList.add('show');
-                prefBackdrop.setAttribute('aria-hidden', 'false');
-                document.body.style.overflow = 'hidden';
-            });
-
-            // 监听：锁屏歌词开关变化
-            switchLockLyric.addEventListener('change', (e) => {
-                window.savePreferences({ lockLyric: e.target.checked });
-                // 即刻生效：如果不勾选，立刻清空当前的锁屏歌词
-                if (!e.target.checked && typeof window.updateMediaSessionLyric === 'function') {
-                    window.updateMediaSessionLyric(null);
-                }
-            });
-
-            // 监听：氛围背景开关变化
-            switchAmbientBg.addEventListener('change', (e) => {
-                window.savePreferences({ ambientBg: e.target.checked });
-                // 💡 氛围背景的具体应用逻辑，我们可以在下一步专门写
-            });
-
-            // 🌟 监听：清除本地数据并恢复默认 (内联互动版)
-            const btnResetApp = document.getElementById('btn-reset-app');
-            const resetNormalView = document.getElementById('reset-normal-view');
-            const resetConfirmView = document.getElementById('reset-confirm-view');
-            const btnResetCancel = document.getElementById('btn-reset-cancel');
-            const btnResetConfirm = document.getElementById('btn-reset-confirm');
-
-            if (btnResetApp && resetConfirmView) {
-                // 1. 点击原按钮：隐藏自己，滑出红色的确认警告面板
-                btnResetApp.addEventListener('click', (e) => {
+                // 打开弹窗
+                prefBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    resetNormalView.style.opacity = '0';
-                    resetConfirmView.style.transform = 'translateX(0)';
+                    if (settingsOpts) settingsOpts.classList.remove('show');
+
+                    // 每次打开前，读取最新配置并渲染开关状态
+                    const currentPrefs = window.getPreferences();
+                    if (switchLockLyric) switchLockLyric.checked = currentPrefs.lockLyric;
+                    if (switchAmbientBg) switchAmbientBg.checked = currentPrefs.ambientBg;
+                    if (switchHighPerf) switchHighPerf.checked = currentPrefs.highPerf !== false;
+
+                    prefBackdrop.classList.add('show');
+                    prefBackdrop.setAttribute('aria-hidden', 'false');
+                    document.body.style.overflow = 'hidden';
                 });
 
-                // 2. 点击取消：滑回安全状态
-                btnResetCancel.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    resetNormalView.style.opacity = '1';
-                    resetConfirmView.style.transform = 'translateX(100%)';
-                });
-
-                // 3. 点击确定清除：执行屠魔逻辑
-                btnResetConfirm.addEventListener('click', (e) => {
-                    e.stopPropagation();
-
-                    // a. 找出所有 iwebplayer. 开头的键名
-                    const keysToDelete = [];
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const keyName = localStorage.key(i);
-                        if (keyName && keyName.startsWith('iwebplayer.')) {
-                            keysToDelete.push(keyName);
+                // 监听：锁屏歌词开关变化
+                if (switchLockLyric) {
+                    switchLockLyric.addEventListener('change', (e) => {
+                        window.savePreferences({ lockLyric: e.target.checked });
+                        // 即刻生效：如果不勾选，立刻清空当前的锁屏歌词
+                        if (!e.target.checked && typeof window.updateMediaSessionLyric === 'function') {
+                            window.updateMediaSessionLyric(null);
                         }
-                    }
-                    // b. 无情抹杀
-                    keysToDelete.forEach(k => localStorage.removeItem(k));
+                    });
+                }
 
-                    // c. 防止连续点击，改变按钮状态
-                    btnResetConfirm.innerHTML = '正在重启...';
-                    btnResetConfirm.style.opacity = '0.5';
-                    btnResetConfirm.style.pointerEvents = 'none';
-                    if (btnResetCancel) btnResetCancel.style.display = 'none';
+                // 监听：氛围背景开关变化
+                if (switchAmbientBg) {
+                    switchAmbientBg.addEventListener('change', (e) => {
+                        window.savePreferences({ ambientBg: e.target.checked });
+                        // 💡 氛围背景的具体应用逻辑，我们可以在下一步专门写
+                    });
+                }
 
-                    if (window.showToast) window.showToast('✅ 数据已清空，即将重启...');
+                // 🌟 新增监听：高性能模式开关变化
+                if (switchHighPerf) {
+                    switchHighPerf.addEventListener('change', (e) => {
+                        window.savePreferences({ highPerf: e.target.checked });
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(e.target.checked ? "🚀 已开启高性能模式，下次同步生效" : "🐌 已切换至兼容模式");
+                        }
+                    });
+                }
 
-                    setTimeout(() => {
-                        window.location.reload(true);
-                    }, 1200);
-                });
+                // 🌟 监听：清除本地数据并恢复默认 (内联互动版)
+                const btnResetApp = document.getElementById('btn-reset-app');
+                const resetNormalView = document.getElementById('reset-normal-view');
+                const resetConfirmView = document.getElementById('reset-confirm-view');
+                const btnResetCancel = document.getElementById('btn-reset-cancel');
+                const btnResetConfirm = document.getElementById('btn-reset-confirm');
+
+                if (btnResetApp && resetConfirmView) {
+                    // 1. 点击原按钮：隐藏自己，滑出红色的确认警告面板
+                    btnResetApp.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        resetNormalView.style.opacity = '0';
+                        resetConfirmView.style.transform = 'translateX(0)';
+                    });
+
+                    // 2. 点击取消：滑回安全状态
+                    btnResetCancel.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        resetNormalView.style.opacity = '1';
+                        resetConfirmView.style.transform = 'translateX(100%)';
+                    });
+
+                    // 3. 点击确定清除：执行屠魔逻辑
+                    btnResetConfirm.addEventListener('click', (e) => {
+                        e.stopPropagation();
+
+                        // a. 找出所有 iwebplayer. 开头的键名
+                        const keysToDelete = [];
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const keyName = localStorage.key(i);
+                            if (keyName && keyName.startsWith('iwebplayer.')) {
+                                keysToDelete.push(keyName);
+                            }
+                        }
+                        // b. 无情抹杀
+                        keysToDelete.forEach(k => localStorage.removeItem(k));
+
+                        // c. 防止连续点击，改变按钮状态
+                        btnResetConfirm.innerHTML = '正在重启...';
+                        btnResetConfirm.style.opacity = '0.5';
+                        btnResetConfirm.style.pointerEvents = 'none';
+                        if (btnResetCancel) btnResetCancel.style.display = 'none';
+
+                        if (window.showToast) window.showToast('✅ 数据已清空，即将重启...');
+
+                        setTimeout(() => {
+                            window.location.reload(true);
+                        }, 1200);
+                    });
+                }
+
+                // 关闭弹窗
+                const closePrefModal = () => {
+                    prefBackdrop.classList.remove('show');
+                    prefBackdrop.setAttribute('aria-hidden', 'true');
+                    document.body.style.overflow = '';
+                };
+                document.getElementById('preferences-close')?.addEventListener('click', closePrefModal);
+                prefBackdrop.addEventListener('click', (e) => { if (e.target === prefBackdrop) closePrefModal(); });
             }
-
-            // 关闭弹窗
-            const closePrefModal = () => {
-                prefBackdrop.classList.remove('show');
-                prefBackdrop.setAttribute('aria-hidden', 'true');
-                document.body.style.overflow = '';
-            };
-            document.getElementById('preferences-close')?.addEventListener('click', closePrefModal);
-            prefBackdrop.addEventListener('click', (e) => { if (e.target === prefBackdrop) closePrefModal(); });
-        }
     }
 
 
@@ -2362,6 +2389,38 @@
         if (window.location.protocol === 'file:') {
             loadingEl.innerText = '🚫 加载失败：前端代码必须部署在 SongLoft 服务端运行，请勿直接双击本地 HTML 文件打开！';
         } else {
+            // 🌟 1. 探查当前是否为高性能模式
+            let isHighPerf = true;
+            try {
+                const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : JSON.parse(localStorage.getItem('iwebplayer.preferences') || '{}');
+                isHighPerf = prefs.highPerf !== false;
+            } catch(e){}
+
+            // 🌟 2. 动态生成下方的辅助容灾按钮（完全复刻主按钮的紫红色高颜值样式）
+            let fallbackBtnHtml = "";
+            if (isHighPerf) {
+                fallbackBtnHtml = `
+                  <div style="display: flex; align-items: center; margin: 16px 0; color: var(--text-sub); font-size: 12px; user-select: none;">
+                    <div style="flex: 1; height: 1px; border-top: 1px dashed var(--border); opacity: 0.6;"></div>
+                    <span style="padding: 0 14px; font-weight: bold; opacity: 0.5;">或</span>
+                    <div style="flex: 1; height: 1px; border-top: 1px dashed var(--border); opacity: 0.6;"></div>
+                  </div>
+
+                  <button onclick="
+                    try {
+                      let p = JSON.parse(localStorage.getItem('iwebplayer.preferences') || '{}');
+                      p.highPerf = false;
+                      localStorage.setItem('iwebplayer.preferences', JSON.stringify(p));
+                    } catch(e){}
+                    window.location.reload();
+                  " style="width: 100%; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 6px 20px rgba(236, 72, 153, 0.25); transition: all 0.2s ease; outline: none; display: flex; align-items: center; justify-content: center; gap: 6px;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='none'" onmouseleave="this.style.transform='none'">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+                    低配置兼容模式
+                  </button>
+                `;
+            }
+
+            // 🌟 3. 原封不动保留你最喜欢的精美向导路径 UI
             loadingEl.innerHTML = `
               <div style="margin: 50px auto 0 auto; max-width: 400px; padding: 0 16px; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
                 <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 32px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-bottom: 3px solid var(--primary);">
@@ -2373,6 +2432,7 @@
                   </div>
                   <div style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; letter-spacing: -0.5px;">访问令牌已失效</div>
                   <div style="font-size: 13px; color: var(--text-sub); line-height: 1.5; margin-bottom: 24px;">您的本地临时身份账本（Token）已过期或丢失，请按以下路径重新激活：</div>
+
                   <div style="display: flex; flex-direction: column; gap: 8px; background: var(--bg-color); padding: 14px; border-radius: 12px; margin-bottom: 28px; text-align: left; border: 1px solid var(--border);">
                     <div style="font-size: 11px; font-weight: bold; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; display: flex; align-items: center; gap: 4px;">
                       <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>重新登入向导路径：
@@ -2381,9 +2441,12 @@
                       <span style="color: var(--text-sub);">主程序</span><span style="opacity: 0.3; font-weight: normal; font-size: 11px;">➔</span><span>首页</span><span style="opacity: 0.3; font-weight: normal; font-size: 11px;">➔</span><span style="color: var(--primary);">JS插件</span><span style="opacity: 0.3; font-weight: normal; font-size: 11px;">➔</span><span style="background: var(--primary); color: #fff; padding: 1px 6px; border-radius: 4px; font-size: 12px;">iWebPlayer</span>
                     </div>
                   </div>
+
                   <button onclick="window.location.href='/'" style="width: 100%; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 6px 20px rgba(236, 72, 153, 0.25); transition: all 0.2s ease; outline: none; display: flex; align-items: center; justify-content: center; gap: 6px;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='none'" onmouseleave="this.style.transform='none'">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>返回主程序首页
                   </button>
+
+                  ${fallbackBtnHtml}
                 </div>
               </div>
             `;

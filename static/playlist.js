@@ -800,178 +800,203 @@
             '加入': `<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>`
         };
 
-        window.songList.forEach((rawItem, index) => {
-            const songName = window.getSongNameObj(rawItem);
-            let coverUrl = null;
-            let needsScrape = false;
+        // ======= 🚀 性能优化：在渲染前预先计算当前播放歌曲的索引 =======
+        window.currentIndex = window.songList.findIndex(item => window.getSongNameObj(item) === window.currentSongName);
 
-            if (rawItem._scrapedCover) {
-                coverUrl = rawItem._scrapedCover;
-            } else if (rawItem.cover_url) {
-                coverUrl = `${rawItem.cover_url}?access_token=${globalToken}`;
-            } else {
-                needsScrape = true;
-            }
+        // ======= 🚀 性能优化：分片渲染 (Time Slicing) + DocumentFragment =======
+        const CHUNK_SIZE = 150; // 每次渲染 150 首，保证首屏极速，不卡死主线程
+        let renderIndex = 0;
+        const totalSongs = window.songList.length;
 
-            const imgId = `list-cover-${index}`;
-            const coverHtml = `<img id="${imgId}" class="song-cover-img" src="${window.defaultCover}" ${coverUrl ? `data-src="${coverUrl}"` : ''} ${needsScrape ? `data-scrape="true"` : ''} onerror="this.src='${window.defaultCover}'" alt="cover">`;
+        // 防止快速切换歌单时，上一个歌单的渲染任务还在继续
+        if (window._renderTimer) clearTimeout(window._renderTimer);
 
-            const li = document.createElement('li');
-            li.className = 'song-item';
-            li.id = 'song-' + index;
-            li.style.position = 'relative';
-            li.dataset.index = index;
+        const renderChunk = () => {
+            const fragment = document.createDocumentFragment(); // 使用内存碎片，减少页面重绘
+            const end = Math.min(renderIndex + CHUNK_SIZE, totalSongs);
 
-            if (songName === window.currentSongName) {
-                li.classList.add('playing');
-                window.currentIndex = index;
-                isCurrentSongInNewList = true;
-            }
+            for (; renderIndex < end; renderIndex++) {
+                const index = renderIndex;
+                const rawItem = window.songList[index];
+                const songName = window.getSongNameObj(rawItem);
+                let coverUrl = null;
+                let needsScrape = false;
 
-            let menuItems = ['加入', '移出'];
-            let menuHtml = `<ul class="song-more-menu" id="song-menu-${index}">`;
-            menuItems.forEach(item => {
-                menuHtml += `<li class="song-more-menu-item" data-action="${item}" onclick="void(0)">${MENU_ICONS[item] || ''}${item}</li>`;
-            });
-            menuHtml += `</ul>`;
-
-            const moreBtnHtml = `
-              <div class="song-more-btn" id="more-btn-${index}" title="更多操作">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
-              </div>
-            `;
-
-            let sourceTagHtml = '';
-            if (window.currentPlaylist === '曲库搜索') {
-                let foundPl = '';
-                const skipPls = ['全部', '所有歌曲', '最近新增', '曲库搜索', '收藏', '下载', '所有电台'];
-                for (const [plName, plSongs] of Object.entries(window.allPlaylists)) {
-                    if (skipPls.includes(plName)) continue;
-                    if (plSongs.some(item => item.id === rawItem.id)) {
-                        foundPl = plName === 'cache_songs' ? '缓存歌曲' : plName;
-                        break;
-                    }
-                }
-                if (foundPl) {
-                    sourceTagHtml = `<div class="song-playlist-tag">${foundPl}</div>`;
-                }
-            }
-
-            let timeTagHtml = '';
-            const plConf = window.getPlaylistConfig(window.currentPlaylist);
-
-            const currentDeadList = window.deadSongIndexes[window.currentPlaylist] || [];
-            if (currentDeadList.includes(index)) {
-                timeTagHtml = `<div class="song-dead-tag">失效</div>`;
-            } else {
-                if (plConf.resumeLocal !== 'off') {
-                    const targetSvg = plConf.resumeLocal === 'global' ? window.SVG_ICONS.cloud_clock : window.SVG_ICONS.stopwatch;
-                    const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
-                    const list = history[window.currentPlaylist] || [];
-                    const found = list.find(item => item.name === songName);
-                    if (found && found.time > 0) {
-                        timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${targetSvg}${window.formatTime(found.time)}</div>`;
-                    }
+                if (rawItem._scrapedCover) {
+                    coverUrl = rawItem._scrapedCover;
+                } else if (rawItem.cover_url) {
+                    coverUrl = `${rawItem.cover_url}?access_token=${globalToken}`;
                 } else {
-                    const plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
-                    if (plTracks[window.currentPlaylist] && plTracks[window.currentPlaylist].name === songName && plTracks[window.currentPlaylist].time > 0) {
-                        timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(plTracks[window.currentPlaylist].time)}</div>`;
+                    needsScrape = true;
+                }
+
+                const imgId = `list-cover-${index}`;
+                const coverHtml = `<img id="${imgId}" class="song-cover-img" src="${window.defaultCover}" ${coverUrl ? `data-src="${coverUrl}"` : ''} ${needsScrape ? `data-scrape="true"` : ''} onerror="this.src='${window.defaultCover}'" alt="cover">`;
+
+                const li = document.createElement('li');
+                li.className = 'song-item';
+                li.id = 'song-' + index;
+                li.style.position = 'relative';
+                li.dataset.index = index;
+
+                // 使用预计算的 index 匹配
+                if (index === window.currentIndex) {
+                    li.classList.add('playing');
+                }
+
+                let menuItems = ['加入', '移出'];
+                let menuHtml = `<ul class="song-more-menu" id="song-menu-${index}">`;
+                menuItems.forEach(item => {
+                    menuHtml += `<li class="song-more-menu-item" data-action="${item}" onclick="void(0)">${MENU_ICONS[item] || ''}${item}</li>`;
+                });
+                menuHtml += `</ul>`;
+
+                const moreBtnHtml = `
+                  <div class="song-more-btn" id="more-btn-${index}" title="更多操作">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
+                  </div>
+                `;
+
+                let sourceTagHtml = '';
+                if (window.currentPlaylist === '曲库搜索') {
+                    let foundPl = '';
+                    const skipPls = ['全部', '所有歌曲', '最近新增', '曲库搜索', '收藏', '下载', '所有电台'];
+                    for (const [plName, plSongs] of Object.entries(window.allPlaylists)) {
+                        if (skipPls.includes(plName)) continue;
+                        if (plSongs.some(item => item.id === rawItem.id)) {
+                            foundPl = plName === 'cache_songs' ? '缓存歌曲' : plName;
+                            break;
+                        }
+                    }
+                    if (foundPl) {
+                        sourceTagHtml = `<div class="song-playlist-tag">${foundPl}</div>`;
                     }
                 }
-            }
 
-            li.innerHTML = `
-              ${coverHtml}
-              <div class="song-info"><div class="song-name">${songName}</div></div>
-              ${sourceTagHtml}
-              <div id="time-wrap-${index}" style="display: flex; align-items: center;">${timeTagHtml}</div>
-              <div class="song-fav-icon" id="fav-${index}" style="display: ${window.favoriteList.includes(songName) ? 'block' : 'none'};">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--primary)" color="var(--primary)"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-              </div>
-              ${moreBtnHtml}
-              ${menuHtml}
-            `;
+                let timeTagHtml = '';
+                const plConf = window.getPlaylistConfig(window.currentPlaylist);
+                const currentDeadList = window.deadSongIndexes[window.currentPlaylist] || [];
 
-            li.addEventListener('click', (e) => {
-                if (e.target.closest('.song-more-btn') || e.target.closest('.song-more-menu')) return;
-                if (window.activeSongMenuIndex !== -1) { e.preventDefault(); e.stopPropagation(); window.closeAllSongMenus(); return; }
-                window.consecutiveFailures = 0;
-
-                if (window.deadSongIndexes[window.currentPlaylist]) {
-                    window.deadSongIndexes[window.currentPlaylist] = window.deadSongIndexes[window.currentPlaylist].filter(i => i !== index);
-                }
-
-                if(window.playSong) window.playSong(index);
-            });
-
-            const moreBtn = li.querySelector(`#more-btn-${index}`);
-            const currentMenu = li.querySelector(`#song-menu-${index}`);
-            moreBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (window.activeSongMenuIndex === index) {
-                    window.closeAllSongMenus();
+                if (currentDeadList.includes(index)) {
+                    timeTagHtml = `<div class="song-dead-tag">失效</div>`;
                 } else {
-                    window.closeAllSongMenus();
-                    window.activeSongMenuIndex = index;
-                    li.classList.add('menu-open');
-                    const rect = moreBtn.getBoundingClientRect();
-                    const spaceBelow = window.innerHeight - rect.bottom;
-                    if (spaceBelow < 200) {
-                        currentMenu.style.top = 'auto'; currentMenu.style.bottom = '40px'; currentMenu.style.boxShadow = '0 -6px 20px rgba(0,0,0,0.12)';
+                    if (plConf.resumeLocal !== 'off') {
+                        const targetSvg = plConf.resumeLocal === 'global' ? window.SVG_ICONS.cloud_clock : window.SVG_ICONS.stopwatch;
+                        const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
+                        const list = history[window.currentPlaylist] || [];
+                        const found = list.find(item => item.name === songName);
+                        if (found && found.time > 0) {
+                            timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${targetSvg}${window.formatTime(found.time)}</div>`;
+                        }
                     } else {
-                        currentMenu.style.top = '36px'; currentMenu.style.bottom = 'auto'; currentMenu.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)';
+                        const plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
+                        if (plTracks[window.currentPlaylist] && plTracks[window.currentPlaylist].name === songName && plTracks[window.currentPlaylist].time > 0) {
+                            timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(plTracks[window.currentPlaylist].time)}</div>`;
+                        }
                     }
-                    currentMenu.classList.add('show');
                 }
-            });
 
-            const menuEls = li.querySelectorAll(`#song-menu-${index} .song-more-menu-item`);
-            menuEls.forEach(menuEl => {
-                menuEl.addEventListener('click', (e) => {
+                li.innerHTML = `
+                  ${coverHtml}
+                  <div class="song-info"><div class="song-name">${songName}</div></div>
+                  ${sourceTagHtml}
+                  <div id="time-wrap-${index}" style="display: flex; align-items: center;">${timeTagHtml}</div>
+                  <div class="song-fav-icon" id="fav-${index}" style="display: ${window.favoriteList.includes(songName) ? 'block' : 'none'};">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--primary)" color="var(--primary)"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                  </div>
+                  ${moreBtnHtml}
+                  ${menuHtml}
+                `;
+
+                li.addEventListener('click', (e) => {
+                    if (e.target.closest('.song-more-btn') || e.target.closest('.song-more-menu')) return;
+                    if (window.activeSongMenuIndex !== -1) { e.preventDefault(); e.stopPropagation(); window.closeAllSongMenus(); return; }
+                    window.consecutiveFailures = 0;
+
+                    if (window.deadSongIndexes[window.currentPlaylist]) {
+                        window.deadSongIndexes[window.currentPlaylist] = window.deadSongIndexes[window.currentPlaylist].filter(i => i !== index);
+                    }
+                    if(window.playSong) window.playSong(index);
+                });
+
+                const moreBtn = li.querySelector(`#more-btn-${index}`);
+                const currentMenu = li.querySelector(`#song-menu-${index}`);
+                moreBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const action = menuEl.dataset.action;
-                    window.closeAllSongMenus();
-
-                    if (action === '移出') {
-                        if (window.skipRemoveConfirm) {
-                            window.executeRemoveSong(index, songName);
+                    if (window.activeSongMenuIndex === index) {
+                        window.closeAllSongMenus();
+                    } else {
+                        window.closeAllSongMenus();
+                        window.activeSongMenuIndex = index;
+                        li.classList.add('menu-open');
+                        const rect = moreBtn.getBoundingClientRect();
+                        const spaceBelow = window.innerHeight - rect.bottom;
+                        if (spaceBelow < 200) {
+                            currentMenu.style.top = 'auto'; currentMenu.style.bottom = '40px'; currentMenu.style.boxShadow = '0 -6px 20px rgba(0,0,0,0.12)';
                         } else {
-                            window.pendingRemoveIndex = index;
-                            window.pendingRemoveSongName = songName;
-                            document.getElementById('remove-song-name').textContent = songName;
-                            const removeSongModal = document.getElementById('remove-song-modal-backdrop');
-                            if(removeSongModal) {
-                                removeSongModal.classList.add('show');
-                                removeSongModal.setAttribute('aria-hidden', 'false');
-                                document.body.style.overflow = 'hidden';
-                            }
+                            currentMenu.style.top = '36px'; currentMenu.style.bottom = 'auto'; currentMenu.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)';
                         }
-                    } else if (action === '加入') {
-                        window.pendingAddIndex = index;
-                        window.pendingAddSongName = songName;
-                        window.pendingBulkAdd = false;
-
-                        if (window.skipAddConfirm && window.lastAddedPlaylist) {
-                            window.executeAddSong(index, songName, window.lastAddedPlaylist);
-                        } else {
-                            document.getElementById('add-song-name').textContent = songName;
-                            if (window.renderPlaylistRadioList) window.renderPlaylistRadioList(document.getElementById('add-song-playlist-list'));
-                            const addSongModal = document.getElementById('add-song-modal-backdrop');
-                            if(addSongModal) {
-                                addSongModal.classList.add('show');
-                                addSongModal.setAttribute('aria-hidden', 'false');
-                                document.body.style.overflow = 'hidden';
-                            }
-                        }
+                        currentMenu.classList.add('show');
                     }
                 });
-            });
 
-            playlistEl.appendChild(li);
-            window.playlistObserver.observe(li);
-        });
+                const menuEls = li.querySelectorAll(`#song-menu-${index} .song-more-menu-item`);
+                menuEls.forEach(menuEl => {
+                    menuEl.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const action = menuEl.dataset.action;
+                        window.closeAllSongMenus();
 
-        if (!isCurrentSongInNewList) window.currentIndex = -1;
+                        if (action === '移出') {
+                            if (window.skipRemoveConfirm) {
+                                window.executeRemoveSong(index, songName);
+                            } else {
+                                window.pendingRemoveIndex = index;
+                                window.pendingRemoveSongName = songName;
+                                document.getElementById('remove-song-name').textContent = songName;
+                                const removeSongModal = document.getElementById('remove-song-modal-backdrop');
+                                if(removeSongModal) {
+                                    removeSongModal.classList.add('show');
+                                    removeSongModal.setAttribute('aria-hidden', 'false');
+                                    document.body.style.overflow = 'hidden';
+                                }
+                            }
+                        } else if (action === '加入') {
+                            window.pendingAddIndex = index;
+                            window.pendingAddSongName = songName;
+                            window.pendingBulkAdd = false;
+
+                            if (window.skipAddConfirm && window.lastAddedPlaylist) {
+                                window.executeAddSong(index, songName, window.lastAddedPlaylist);
+                            } else {
+                                document.getElementById('add-song-name').textContent = songName;
+                                if (window.renderPlaylistRadioList) window.renderPlaylistRadioList(document.getElementById('add-song-playlist-list'));
+                                const addSongModal = document.getElementById('add-song-modal-backdrop');
+                                if(addSongModal) {
+                                    addSongModal.classList.add('show');
+                                    addSongModal.setAttribute('aria-hidden', 'false');
+                                    document.body.style.overflow = 'hidden';
+                                }
+                            }
+                        }
+                    });
+                });
+
+                fragment.appendChild(li);
+                window.playlistObserver.observe(li);
+            }
+
+            playlistEl.appendChild(fragment);
+
+            if (renderIndex < totalSongs) {
+                // 核心：让出主线程给浏览器，5毫秒后继续渲染下一批
+                window._renderTimer = setTimeout(renderChunk, 5);
+            }
+        };
+
+        // 启动第一批渲染
+        renderChunk();
+        // =========================================================================
         const listPlConf = window.getPlaylistConfig(window.currentPlaylist);
         if (listPlConf.resumeLocal === 'global') {
             fetch(`./sync?playlist=${encodeURIComponent(window.currentPlaylist)}`)
@@ -999,63 +1024,200 @@
         }
     };
 
+    // =========================================================================
+    // 🌟 终极预存分流引擎 V3.1：首屏秒开 + 智能双擎 + 401权限击杀修复
+    // =========================================================================
     window.reloadGlobalData = async function() {
         try {
-            const metaRes = await fetch(`${window.API.list}?action=meta`);
-            if (!metaRes.ok) throw new Error("AUTH_FAILED");
-            const metaData = await metaRes.json();
-            if (metaData.error || metaData.ret === "FAIL") throw new Error("AUTH_FAILED");
+            const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
+            const isHighPerf = prefs.highPerf !== false;
 
-            window.customPlaylistNames = metaData._custom_playlists || [];
-            window.playlistMeta = metaData._playlist_meta || [];
+            // 1. 🔍 尝试读取 V2 版极简压缩缓存
+            const cachedDataStr = localStorage.getItem('iwebplayer.global_cache');
+            let hasCache = false;
 
-            const allSongsMap = new Map();
-            let page = 1;
+            if (cachedDataStr) {
+                try {
+                    const cache = JSON.parse(cachedDataStr);
+                    window.customPlaylistNames = cache.customPlaylistNames || [];
+                    window.playlistMeta = cache.playlistMeta || [];
 
-            while (true) {
-                if (typeof window.showToast === 'function' && page > 1) {
-                    window.showToast(`⏳ 正在同步全库曲目 (第 ${page} 批)...`, false);
+                    const poolMap = new Map((cache.songsPool || []).map(s => [s.id, s]));
+                    window.allPlaylists = {};
+
+                    for (const [plName, idArray] of Object.entries(cache.playlistsMap || {})) {
+                        window.allPlaylists[plName] = idArray.map(id => poolMap.get(id)).filter(Boolean);
+                    }
+
+                    window.allPlaylists["我的歌单"] = [];
+                    if (!window.allPlaylists["收藏"]) window.allPlaylists["收藏"] = [];
+                    window.allPlaylists["曲库搜索"] = [];
+                    window.allPlaylists["在线资源"] = [];
+                    window.favoriteList = window.allPlaylists["收藏"].map(item => window.getSongNameObj(item));
+
+                    hasCache = true;
+                } catch (e) {
+                    console.error("缓存解析失败，准备重建:", e);
                 }
+            }
 
-                const chunkRes = await fetch(`${window.API.list}?action=chunk&page=${page}`);
-                if (!chunkRes.ok) break;
+            // 2. 🐜/🚀 后台静默同步核心进程
+            const doBackgroundSync = async () => {
+                try {
+                    const syncSongsMap = new Map();
+                    const syncReconstructed = {};
+                    const loadingEl = document.getElementById('loading');
 
-                const songsChunk = await chunkRes.json();
-                if (!Array.isArray(songsChunk) || songsChunk.length === 0) break;
+                    if (isHighPerf) {
+                        // =======================================
+                        // 🚀 引擎 B：高性能模式 (Bulk)
+                        // =======================================
+                        if (!hasCache) {
+                            if (loadingEl && loadingEl.style.display !== 'none') loadingEl.innerHTML = "🚀 正在使用高性能模式全量拉取...";
+                            else if (typeof window.showToast === 'function') window.showToast("🚀 正在使用高性能模式同步...", false);
+                        }
 
-                for (const song of songsChunk) {
-                    if (song && song.id) {
-                        allSongsMap.set(song.id, song);
+                        const metaRes = await fetch(`${window.API.list}?action=meta_bulk`);
+                        if (metaRes.status === 401) throw new Error("AUTH_FAILED");
+                        if (!metaRes.ok) throw new Error("NETWORK_ERROR");
+                        const metaData = await metaRes.json();
+
+                        window.customPlaylistNames = metaData._custom_playlists || [];
+                        window.playlistMeta = metaData._playlist_meta || [];
+
+                        let page = 1;
+                        while (true) {
+                            if (!hasCache && page > 1) {
+                                if (loadingEl && loadingEl.style.display !== 'none') loadingEl.innerHTML = `🚀 高性能拉取中 (第 ${page} 批)...`;
+                                else if (typeof window.showToast === 'function') window.showToast(`🚀 同步全库曲目 (第 ${page} 批)...`, false);
+                            }
+
+                            const chunkRes = await fetch(`${window.API.list}?action=chunk&page=${page}`);
+                            if (!chunkRes.ok) break;
+                            const songsChunk = await chunkRes.json();
+                            if (!Array.isArray(songsChunk) || songsChunk.length === 0) break;
+
+                            for (const song of songsChunk) { if (song && song.id) syncSongsMap.set(song.id, song); }
+                            if (songsChunk.length < 1000) break;
+                            page++;
+                        }
+
+                        fetch(`${window.API.list}?action=destroy`).catch(() => {});
+
+                        for (const [plName, idArray] of Object.entries(metaData.structure)) {
+                            syncReconstructed[plName] = Array.isArray(idArray) ? idArray.map(id => syncSongsMap.get(id)).filter(Boolean) : idArray;
+                        }
+
+                    } else {
+                        // =======================================
+                        // 🐜 引擎 A：兼容模式 (Light 蚂蚁搬家)
+                        // =======================================
+                        const metaRes = await fetch(`${window.API.list}?action=meta_light`);
+                        // 🌟 修复：精准拦截 401，抛出致命鉴权错误
+                        if (metaRes.status === 401) throw new Error("AUTH_FAILED");
+                        if (!metaRes.ok) throw new Error("NETWORK_ERROR");
+                        const metaData = await metaRes.json();
+                        if (metaData.error || metaData.ret === "FAIL") throw new Error("AUTH_FAILED");
+
+                        window.customPlaylistNames = metaData._custom_playlists || [];
+                        window.playlistMeta = metaData._playlist_meta || [];
+
+                        for (let i = 0; i < window.playlistMeta.length; i++) {
+                            const pl = window.playlistMeta[i];
+
+                            if (!hasCache) {
+                                const msgText = `⏳ 正在同步曲库: ${pl.name} <br><span style="font-size:12px; opacity:0.6;">(${i + 1}/${window.playlistMeta.length})</span>`;
+                                if (loadingEl && loadingEl.style.display !== 'none') loadingEl.innerHTML = msgText;
+                                else if (typeof window.showToast === 'function') window.showToast(`⏳ 同步中: ${pl.name} (${i + 1}/${window.playlistMeta.length})`, true);
+                            }
+
+                            try {
+                                const res = await fetch(`${window.API.list}?action=playlist_songs&id=${pl.id}`);
+                                if (!res.ok) continue;
+                                const cleanedSongs = await res.json();
+
+                                if (pl.name !== 'music') syncReconstructed[pl.name] = cleanedSongs;
+
+                                const isBuiltIn = pl.labels && pl.labels.includes("built_in");
+                                if (!isBuiltIn) {
+                                    for (const s of cleanedSongs) { if (s && s.id) syncSongsMap.set(s.id, s); }
+                                }
+                            } catch (err) { console.error(`拉取 [${pl.name}] 失败:`, err); }
+                        }
+                        syncReconstructed["所有歌曲"] = Array.from(syncSongsMap.values());
+                    }
+
+                    // 3. 💾 统一极限压缩存盘 (骨肉分离)
+                    const playlistsMap = {};
+                    for (const [plName, songsObjArray] of Object.entries(syncReconstructed)) {
+                        playlistsMap[plName] = songsObjArray.map(s => s.id);
+                    }
+
+                    try {
+                        localStorage.removeItem('iwebplayer.global_cache');
+                        localStorage.setItem('iwebplayer.global_cache', JSON.stringify({
+                            customPlaylistNames: window.customPlaylistNames,
+                            playlistMeta: window.playlistMeta,
+                            songsPool: Array.from(syncSongsMap.values()),
+                            playlistsMap: playlistsMap
+                        }));
+                    } catch (quotaError) { console.error("存盘失败:", quotaError); }
+
+                    // 4. 🔄 覆写内存，激活界面
+                    const tempOnline = window.allPlaylists["在线资源"] || [];
+                    const tempSearch = window.allPlaylists["曲库搜索"] || [];
+
+                    window.allPlaylists = syncReconstructed;
+                    window.allPlaylists["我的歌单"] = [];
+                    if (!window.allPlaylists["收藏"]) window.allPlaylists["收藏"] = [];
+                    window.allPlaylists["曲库搜索"] = tempSearch;
+                    window.allPlaylists["在线资源"] = tempOnline;
+
+                    window.favoriteList = window.allPlaylists["收藏"].map(item => window.getSongNameObj(item));
+
+                    if (typeof window.initPlaylistDropdown === 'function') window.initPlaylistDropdown();
+                    if (window.currentPlaylist && window.currentPlaylist !== '在线资源' && window.currentPlaylist !== '曲库搜索') {
+                        window.songList = window.getMergedSongList(window.currentPlaylist);
+                        if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+                    }
+
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(hasCache ? "⚡ 曲库后台静默更新完成" : "✅ 全量曲库同步完成", false);
+                    }
+
+                } catch (syncErr) {
+                    console.error("同步进程异常:", syncErr);
+
+                    // 🌟 核心升级：丢掉霸道的自动修改配置逻辑。
+                    // 只要在“无缓存(首次加载白屏)”阶段报错，或者遇到了鉴权问题，
+                    // 统统原封不动抛给外层 init()，让 index.html 里的高智商面板去接管和展现 UI！
+                    if (!hasCache || syncErr.message === "AUTH_FAILED") {
+                        throw syncErr;
+                    }
+
+                    // 如果已经有缓存顺利进到主界面了，后台静默同步网络波动，只弹个低调提示，不打扰用户听歌
+                    if (typeof window.showToast === 'function') {
+                        window.showToast("❌ 数据同步失败，请检查网络", false);
                     }
                 }
-                if (songsChunk.length < 500) break;
-                page++;
+            };
+
+            // 5. 🔀 双轨分流路由
+            if (hasCache) {
+                // 如果是后台静默拉取时发生 401，强制清空假缓存，并瞬间刷新页面，让首页拦截器接管！
+                doBackgroundSync().catch(e => {
+                    if (e.message === "AUTH_FAILED") {
+                        localStorage.removeItem('iwebplayer.global_cache');
+                        window.location.reload();
+                    }
+                });
+                return;
+            } else {
+                await doBackgroundSync();
             }
-
-            fetch(`${window.API.list}?action=destroy`).catch(() => {});
-
-            const reconstructedPlaylists = {};
-            for (const [plName, idArray] of Object.entries(metaData.structure)) {
-                if (Array.isArray(idArray)) {
-                    reconstructedPlaylists[plName] = idArray.map(id => allSongsMap.get(id)).filter(Boolean);
-                } else {
-                    reconstructedPlaylists[plName] = idArray;
-                }
-            }
-
-            const tempOnline = window.allPlaylists["在线资源"] || [];
-            const tempSearch = window.allPlaylists["曲库搜索"] || [];
-
-            window.allPlaylists = reconstructedPlaylists;
-
-            window.allPlaylists["我的歌单"] = [];
-            if (!window.allPlaylists["收藏"]) window.allPlaylists["收藏"] = [];
-            window.allPlaylists["曲库搜索"] = tempSearch;
-            window.allPlaylists["在线资源"] = tempOnline;
-            window.favoriteList = window.allPlaylists["收藏"].map(item => window.getSongNameObj(item));
 
         } catch (e) {
-            console.error("重载全局数据失败:", e);
+            console.error("重载全局数据致命崩溃:", e);
             throw e;
         }
     };
