@@ -18,46 +18,68 @@ router.get('/musiclist', async (req) => {
     const action = urlParams.get('action') || 'legacy';
 
     // ==========================================
-    // 🚚 抽屉 1：获取轻量级骨架图纸 (action=meta)
+    // 🐜 引擎 A：低配兼容模式 (Light - 蚂蚁搬家)
     // ==========================================
-    if (action === 'meta') {
-      // 1. 安全清理残留的缓存和定时器
+    if (action === 'meta_light') {
+      const customNames: string[] = [];
+      const playlists = (await songloft.playlists.list()) ?? [];
+
+      playlists.forEach(pl => {
+          const isAutoCreated = pl.labels && pl.labels.includes("auto_created");
+          if (!isAutoCreated) customNames.push(pl.name);
+      });
+
+      return jsonResponse({
+          _custom_playlists: customNames,
+          _playlist_meta: playlists
+      });
+    }
+
+    if (action === 'playlist_songs') {
+      const idStr = urlParams.get('id');
+      if (!idStr) return jsonResponse({ error: "Missing playlist id" }, 400);
+
+      const id = parseInt(idStr, 10);
+      if (isNaN(id)) return jsonResponse({ error: "Invalid playlist id format" }, 400);
+
+      const plSongs = (await songloft.playlists.getSongs(id, { limit: 10000 })) ?? [];
+
+      const cleanedSongs = plSongs.map((s: any) => ({
+          id: s.id, title: s.title || "", artist: s.artist || "", album: s.album || "",
+          file_path: s.file_path || "", cover_url: s.cover_url || "", duration: s.duration || 0, type: s.type || "local"
+      }));
+
+      return jsonResponse(cleanedSongs);
+    }
+
+    // ==========================================
+    // 🚀 引擎 B：高性能模式 (Bulk - 并发抽水)
+    // ==========================================
+    if (action === 'meta_bulk') {
       if (flashTimeout) { clearTimeout(flashTimeout); flashTimeout = null; }
       flashSongsCache = null;
 
       const structure: any = {};
       const customNames: string[] = [];
-      const songMap = new Map(); // 用于全库去重
+      const songMap = new Map();
 
       const playlists = (await songloft.playlists.list()) ?? [];
 
       await Promise.all(playlists.map(async (pl) => {
         try {
           const plSongs = (await songloft.playlists.getSongs(pl.id, { limit: 10000 })) ?? [];
-          // 极速白名单瘦身，抹除 fingerprint 等 504 隐患
           const cleanedSongs = plSongs.map((s: any) => ({
-              id: s.id,
-              title: s.title || "",
-              artist: s.artist || "",
-              album: s.album || "",
-              file_path: s.file_path || "",
-              cover_url: s.cover_url || "",
-              duration: s.duration || 0,
-              type: s.type || "local"
+              id: s.id, title: s.title || "", artist: s.artist || "", album: s.album || "",
+              file_path: s.file_path || "", cover_url: s.cover_url || "", duration: s.duration || 0, type: s.type || "local"
           }));
 
-          // 骨肉分离：把实体歌曲替换成纯数字 ID 数组
           if (pl.name !== 'music') {
               structure[`${pl.name}`] = cleanedSongs.map((s: any) => s.id);
           }
 
-          // 判别自定义与外部歌单
           const isAutoCreated = pl.labels && pl.labels.includes("auto_created");
-          if (!isAutoCreated) {
-              customNames.push(pl.name);
-          }
+          if (!isAutoCreated) customNames.push(pl.name);
 
-          // 【最强方案一】合流：只要不是 built_in，统统倒进大池子去重
           const isBuiltIn = pl.labels && pl.labels.includes("built_in");
           if (!isBuiltIn) {
               for (const s of cleanedSongs) {
@@ -67,23 +89,16 @@ router.get('/musiclist', async (req) => {
         } catch (e) {}
       }));
 
-      // 提取去重后的全库实体数组，准备装车
       const allSongsArray = Array.from(songMap.values());
-
-      // 完善大盘的骨架映射
       structure["所有歌曲"] = allSongsArray.map((s: any) => s.id);
       structure["曲库搜索"] = [];
 
-      // 2. 将实体歌曲停入沙盒，等待前端召唤
       flashSongsCache = allSongsArray;
-
-      // 3. 💣 埋下自杀炸弹：60 秒后强制释放内存，保护 NAS！
       flashTimeout = setTimeout(() => {
           flashSongsCache = null;
           flashTimeout = null;
       }, 60000);
 
-      // 4. 秒回体积微小的骨架图纸
       return jsonResponse({
           structure: structure,
           _custom_playlists: customNames,
@@ -91,26 +106,18 @@ router.get('/musiclist', async (req) => {
       });
     }
 
-    // ==========================================
-    // 🚚 抽屉 2：蚂蚁搬家分页切片 (action=chunk)
-    // ==========================================
     if (action === 'chunk') {
       if (!flashSongsCache) return jsonResponse([]);
-
       const page = parseInt(urlParams.get('page') || '1');
-      const pageSize = 500; // 每次只传 500 首，丝滑无痛
+      const pageSize = 1000;
       const start = (page - 1) * pageSize;
       const end = start + pageSize;
-
-      return jsonResponse(flashSongsCache.slice(start, end)); // 0毫秒极速切片
+      return jsonResponse(flashSongsCache.slice(start, end));
     }
 
-    // ==========================================
-    // 🚚 抽屉 3：功成身退手动销毁 (action=destroy)
-    // ==========================================
     if (action === 'destroy') {
       if (flashTimeout) { clearTimeout(flashTimeout); flashTimeout = null; }
-      flashSongsCache = null; // 内存瞬间释放
+      flashSongsCache = null;
       return jsonResponse({ ret: "OK" });
     }
 
