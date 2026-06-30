@@ -95,7 +95,8 @@
             if (rawSong._isOnlineObj) {
                 // 🌐 【通道 1：在线歌曲】走 LXMusic 专属导入接口
                 const songPayload = { ...rawSong.source_data };
-                if (!songPayload.quality) songPayload.quality = "128k"; // 兜底音质防报错
+                // 🌟 核心：存入用户当前能享受的最高降级音质
+                songPayload.quality = window.getBestLxQuality(songPayload, window.getLxQuality());
 
                 res = await fetch('/api/v1/jsplugin/lxmusic/api/songs/import', {
                     method: 'POST',
@@ -140,7 +141,8 @@
         const localSongIds = window.songList.filter(s => !s._isOnlineObj).map(s => s.id).filter(Boolean);
         const onlineSongs = window.songList.filter(s => s._isOnlineObj).map(s => {
             const payload = { ...s.source_data };
-            if (!payload.quality) payload.quality = "128k";
+            // 🌟 核心：存入用户当前能享受的最高降级音质
+            payload.quality = window.getBestLxQuality(payload, window.getLxQuality());
             return payload;
         });
 
@@ -1038,7 +1040,15 @@
 
             if (cachedDataStr) {
                 try {
-                    const cache = JSON.parse(cachedDataStr);
+                    let parsedStr = cachedDataStr;
+                    if (window.LZString) {
+                        const decompressed = window.LZString.decompressFromUTF16(cachedDataStr);
+                        if (decompressed) parsedStr = decompressed;
+                    }
+
+                    // 🌟 修复：必须解析解压后的 parsedStr，而不是原始的 cachedDataStr
+                    const cache = JSON.parse(parsedStr);
+
                     window.customPlaylistNames = cache.customPlaylistNames || [];
                     window.playlistMeta = cache.playlistMeta || [];
 
@@ -1154,14 +1164,28 @@
                     }
 
                     try {
+                        localStorage.removeItem('iwebplayer.global_cache_v2');
                         localStorage.removeItem('iwebplayer.global_cache');
-                        localStorage.setItem('iwebplayer.global_cache', JSON.stringify({
+
+                        const cacheObj = {
                             customPlaylistNames: window.customPlaylistNames,
                             playlistMeta: window.playlistMeta,
                             songsPool: Array.from(syncSongsMap.values()),
                             playlistsMap: playlistsMap
-                        }));
-                    } catch (quotaError) { console.error("存盘失败:", quotaError); }
+                        };
+
+                        // 🌟 核心：将 JSON 字符串进行 UTF-16 极限压缩
+                        const jsonStr = JSON.stringify(cacheObj);
+                        const finalStorageStr = window.LZString ? window.LZString.compressToUTF16(jsonStr) : jsonStr;
+
+                        localStorage.setItem('iwebplayer.global_cache', finalStorageStr);
+
+                        // 可选：在控制台打印一下压缩成果，你会非常有成就感
+                        console.log(`🗜️ 压缩率: ${((finalStorageStr.length / jsonStr.length) * 100).toFixed(1)}% | 压缩后大小: ${(finalStorageStr.length / 1024).toFixed(1)} KB`);
+
+                    } catch (quotaError) {
+                        console.error("存盘失败，手机容量已满:", quotaError);
+                    }
 
                     // 4. 🔄 覆写内存，激活界面
                     const tempOnline = window.allPlaylists["在线资源"] || [];

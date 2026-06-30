@@ -49,7 +49,7 @@
                 if (currentName === text) rawItem = window.songList[window.currentIndex];
             }
 
-            // 策略 1：优先从真实的 file_path 中提取后缀
+            // 策略 1：优先从真实的 file_path 中提取后缀 (针对本地音乐)
             if (rawItem && rawItem.file_path) {
                 const match = String(rawItem.file_path).match(/\.([a-zA-Z0-9]+)$/);
                 if (match) {
@@ -61,7 +61,7 @@
                 }
             }
 
-            // 策略 2：退而求其次从真实的播放 URL 里抠
+            // 策略 2：只认物理路径，安全移除了 type=mp3 的瞎猜逻辑
             if (!isVisible && audioEl && audioEl.src) {
                 try {
                     let urlToParse = audioEl.src;
@@ -70,26 +70,14 @@
                         try { urlToParse = decodeURIComponent(escape(window.atob(b64))); } catch(e) { urlToParse = window.atob(b64); }
                     }
 
-                    // 🌟 进阶嗅探：在剪掉问号前，先看看 URL 参数里有没有 type=mp3
-                    try {
-                        const urlObj = new URL(urlToParse);
-                        const typeParam = urlObj.searchParams.get('type') || urlObj.searchParams.get('format');
-                        if (typeParam && validExts.includes(typeParam.toUpperCase())) {
-                            extension = typeParam.toUpperCase();
+                    // 🌟 剥离问号和井号，只看干净的 URL 末尾有没有真正的后缀
+                    let cleanUrl = urlToParse.split('?')[0].split('#')[0];
+                    const match = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
+                    if (match) {
+                        let ext = match[1].toUpperCase();
+                        if (validExts.includes(ext)) {
+                            extension = ext;
                             isVisible = true;
-                        }
-                    } catch(e) {}
-
-                    // 🌟 如果参数里没写，再去干净的 URL 末尾找，并用白名单拦截 PHP
-                    if (!isVisible) {
-                        let cleanUrl = urlToParse.split('?')[0].split('#')[0];
-                        const match = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
-                        if (match) {
-                            let ext = match[1].toUpperCase();
-                            if (validExts.includes(ext)) {
-                                extension = ext;
-                                isVisible = true;
-                            }
                         }
                     }
                 } catch(e) {}
@@ -384,15 +372,10 @@
                     const currentEngine = engineValEl ? engineValEl.dataset.value : 'LXMusic';
 
                     if (currentEngine === 'LXMusic') {
-                        const urlRes = await fetch('/api/v1/jsplugin/lxmusic/api/music/url', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                source_data: { platform: sd.source, quality: "320k", songInfo: sd },
-                                quality: "320k"
-                            })
-                        });
-                        const urlData = await urlRes.json();
+                        const bestQuality = window.getBestLxQuality(sd, window.getLxQuality());
+                        // 🌟 瘦身：直接调用封装好的请求中心
+                        const urlData = await window.fetchLxMusicUrl(sd, bestQuality);
+
                         if (urlData && urlData.url) info = { url: urlData.url };
                         else if (urlData && urlData.data) info = { url: typeof urlData.data === 'string' ? urlData.data : urlData.data.url };
 
@@ -525,15 +508,9 @@
 
             if (rawItem._isOnlineObj) {
                 const sd = rawItem.source_data;
-                const urlRes = await fetch('/api/v1/jsplugin/lxmusic/api/music/url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        source_data: { platform: sd.source, quality: "320k", songInfo: sd },
-                        quality: "320k"
-                    })
-                });
-                const urlData = await urlRes.json();
+                const bestQuality = window.getBestLxQuality(sd, window.getLxQuality());
+                // 🌟 瘦身
+                const urlData = await window.fetchLxMusicUrl(sd, bestQuality);
 
                 if (urlData && urlData.url) {
                     targetAudioUrl = urlData.url;
@@ -576,15 +553,9 @@
 
             if (rawItem._isOnlineObj) {
                 const sd = rawItem.source_data;
-                const urlRes = await fetch('/api/v1/jsplugin/lxmusic/api/music/url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        source_data: { platform: sd.source, quality: "320k", songInfo: sd },
-                        quality: "320k"
-                    })
-                });
-                const urlData = await urlRes.json();
+                const bestQuality = window.getBestLxQuality(sd, window.getLxQuality());
+                const urlData = await window.fetchLxMusicUrl(sd, bestQuality);
+
                 if (urlData && urlData.url) {
                     targetAudioUrl = urlData.url;
                     fetchedData = urlData;

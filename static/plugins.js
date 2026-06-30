@@ -222,6 +222,20 @@
     // 4. 事件监听器注入
     // ==========================================
     window.addEventListener('DOMContentLoaded', () => {
+        // 🌟 新增：绑定平铺单选框事件，并读取本地存储回显
+        const qualityRadios = document.querySelectorAll('input[name="lx-quality-radio"]');
+        if (qualityRadios.length > 0) {
+            const currentQ = typeof window.getLxQuality === 'function' ? window.getLxQuality() : '320k';
+            qualityRadios.forEach(radio => {
+                if (radio.value === currentQ) radio.checked = true;
+                radio.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        localStorage.setItem('iwebplayer.lx_quality', e.target.value);
+                        window.showToast(`✅ 优先音质已设为: ${e.target.nextElementSibling.innerText}`);
+                    }
+                });
+            });
+        }
         // 导入脚本本地文件
         const importBtn = document.getElementById('btn-import-plugin');
         const importInput = document.getElementById('plugin-upload-input');

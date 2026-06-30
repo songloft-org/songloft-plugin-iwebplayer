@@ -25,6 +25,90 @@ window.savePreferences = function(newPrefs) {
     window.dispatchEvent(new CustomEvent('preferencesUpdated', { detail: updated }));
 };
 
+// ==========================================
+// 🌟 在线音质：配置获取与智能降级算法
+// ==========================================
+window.LX_QUALITY_ORDER = ['master', 'flac24bit', 'flac', '320k', '128k'];
+
+window.getLxQuality = function() {
+    return localStorage.getItem('iwebplayer.lx_quality') || '320k';
+};
+
+window.getBestLxQuality = function(sourceData, prefQuality) {
+    if (!sourceData || !Array.isArray(sourceData.types) || sourceData.types.length === 0) return prefQuality || '320k';
+    const availableTypes = sourceData.types.map(t => t.type);
+    const prefIdx = window.LX_QUALITY_ORDER.indexOf(prefQuality);
+    for (let i = prefIdx; i < window.LX_QUALITY_ORDER.length; i++) {
+        if (availableTypes.includes(window.LX_QUALITY_ORDER[i])) return window.LX_QUALITY_ORDER[i];
+    }
+    return availableTypes[availableTypes.length - 1] || '128k';
+};
+
+// 🌟 新增：版本探针缓存
+window._lxPluginInfoCache = null;
+window.getLxPluginInfo = async function() {
+    if (window._lxPluginInfoCache) return window._lxPluginInfoCache;
+    try {
+        const res = await fetch('/api/v1/jsplugins');
+        const data = await res.json();
+        const plugin = data.plugins.find(p => p.name.includes('洛雪') || p.entry_path === 'lxmusic');
+        if (plugin) {
+            let type = 1;
+            if (plugin.version.startsWith('2026.')) type = 1;
+            else if (plugin.version.startsWith('2.')) type = 2;
+            else if (plugin.version.startsWith('3.')) type = 3;
+
+            window._lxPluginInfoCache = { type, version: plugin.version };
+            return window._lxPluginInfoCache;
+        }
+    } catch(e) {}
+    return { type: 1, version: 'unknown' };
+};
+
+// 🌟 新增：终极音频直链获取中心（封装了双版本夺权逻辑）
+window.fetchLxMusicUrl = async function(sd, quality) {
+    const pInfo = await window.getLxPluginInfo();
+
+    if (pInfo.type === 3) {
+        // 类型 3：直接拦截并提示不支持
+        if (!window._hasShownType3Toast) {
+            window.showToast("⚠️ 当前洛雪插件版本过高，暂不支持音质调节", true);
+            window._hasShownType3Toast = true;
+        }
+    } else if (pInfo.type === 2) {
+        // 类型 2：先发 POST 强行改写底层全局配置
+        try {
+            await fetch('/api/v1/jsplugin/lxmusic/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    enableImportQuality: false, // 导入不干涉
+                    importQuality: "320k",
+                    enablePlayQuality: true,    // 开启播放干涉
+                    playQuality: quality,       // 强写目标音质
+                    enableDownloadQuality: false,
+                    downloadQuality: "320k",
+                    probeTimeout: 5,
+                    playTimeout: 30,
+                    enableHoloLog: false,
+                    enableLogTruncation: false
+                })
+            });
+        } catch (e) { console.warn("改写音质配置失败", e); }
+    }
+    // 类型 1 和 兜底逻辑：按原样发送 URL 获取请求
+    const urlRes = await fetch('/api/v1/jsplugin/lxmusic/api/music/url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            source_data: { platform: sd.source, quality: quality, songInfo: sd },
+            quality: quality
+        })
+    });
+    return await urlRes.json();
+};
+// ==========================================
+
 window.showToast = function(msg, persist = false) {
     let toast = document.getElementById('global-toast');
     if (!toast) {

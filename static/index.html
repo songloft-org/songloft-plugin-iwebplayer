@@ -513,14 +513,15 @@
   .ios-switch .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 1px; bottom: 1px; background-color: white; transition: 0.3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
   .ios-switch input:checked + .slider:before { transform: translateX(20px); }
 </style>
-
+  <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.6.3" defer></script>
-  <script src="./static/utils.js?v0.7.2" defer></script>
+  <script src="./static/utils.js?v0.7.5" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v0.7.3" defer></script>
+  <script src="./static/playlist.js?v0.7.5" defer></script>
   <script src="./static/online.js?v0.7.2" defer></script>
-  <script src="./static/plugins.js?v0.6.3" defer></script>
-  <script src="./static/player.js?v0.7.2" defer></script>
+  <script src="./static/plugins.js?v0.7.5" defer></script>
+  <script src="./static/player.js?v0.7.5" defer></script>
+
 
 </head>
 <body>
@@ -1180,6 +1181,7 @@
           </div>
 
           <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+
             <div style="padding: 12px 18px; border-bottom: 1px solid var(--border);">
               <button id="btn-import-plugin" class="about-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold;">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
@@ -1191,6 +1193,39 @@
             <ul id="plugin-list-ul" style="margin: 0; padding: 0; list-style: none;">
               <div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">正在加载源脚本...</div>
             </ul>
+          </div>
+
+          <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">
+            LX音质
+          </div>
+
+          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 16px 10px; display: flex; justify-content: space-around; align-items: center;">
+
+            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+              <input type="radio" name="lx-quality-radio" value="128k" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">标准</span>
+            </label>
+
+            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+              <input type="radio" name="lx-quality-radio" value="320k" checked style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">高品质</span>
+            </label>
+
+            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+              <input type="radio" name="lx-quality-radio" value="flac" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">无损</span>
+            </label>
+
+            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+              <input type="radio" name="lx-quality-radio" value="flac24bit" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">Hi-Res</span>
+            </label>
+
+            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+              <input type="radio" name="lx-quality-radio" value="master" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">母带</span>
+            </label>
+
           </div>
 
           <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">
@@ -1233,7 +1268,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v0.7.3';
+    window.APP_VERSION = 'v0.7.5';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
