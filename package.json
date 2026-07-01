@@ -1,6 +1,6 @@
 {
   "name": "iwebplayer",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "适配iPhone的Web播放器，PWA模式下媲美原生APP。iPhone锁屏界面，灵动岛，耳机线控，平板模式，封面、歌词刮削展示，锁屏歌词，倍速播放，记忆续播，自建歌单，调用LXMusic插件……",
   "private": true,
   "scripts": {
