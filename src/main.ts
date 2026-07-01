@@ -46,7 +46,8 @@ router.get('/musiclist', async (req) => {
 
       const cleanedSongs = plSongs.map((s: any) => ({
           id: s.id, title: s.title || "", artist: s.artist || "", album: s.album || "",
-          file_path: s.file_path || "", cover_url: s.cover_url || "", duration: s.duration || 0, type: s.type || "local"
+          file_path: s.file_path || "", cover_url: s.cover_url || "", duration: s.duration || 0, type: s.type || "local",
+          plugin_entry_path: s.plugin_entry_path || "", dedup_key: s.dedup_key || ""
       }));
 
       return jsonResponse(cleanedSongs);
@@ -70,7 +71,8 @@ router.get('/musiclist', async (req) => {
           const plSongs = (await songloft.playlists.getSongs(pl.id, { limit: 10000 })) ?? [];
           const cleanedSongs = plSongs.map((s: any) => ({
               id: s.id, title: s.title || "", artist: s.artist || "", album: s.album || "",
-              file_path: s.file_path || "", cover_url: s.cover_url || "", duration: s.duration || 0, type: s.type || "local"
+              file_path: s.file_path || "", cover_url: s.cover_url || "", duration: s.duration || 0, type: s.type || "local",
+              plugin_entry_path: s.plugin_entry_path || "", dedup_key: s.dedup_key || ""
           }));
 
           if (pl.name !== 'music') {
@@ -304,7 +306,7 @@ router.get('/scrape', async (req) => {
 
 // 🌟 专供 debug 页面调用的后门接口
 // http://10.0.91.11:10333/api/v1/jsplugin/iwebplayer/static/debug.html
-/*
+
 router.get('/debug', async (req) => {
     try {
         // 准备一个空托盘，用来装你想要输出的数据
@@ -313,8 +315,8 @@ router.get('/debug', async (req) => {
         // ==========================================
         // 🟢 模块 1：查看所有歌曲（不需要时直接注释掉整块）
         // ==========================================
-        //const rawSongs = (await songloft.songs.list({ limit: 10000 })) ?? {};
-        //debugResult.songs = rawSongs;
+        const rawSongs = (await songloft.songs.list({ limit: 10000 })) ?? {};
+        debugResult.songs = rawSongs;
 
 
         // ==========================================
@@ -359,7 +361,7 @@ router.get('/debug', async (req) => {
         // ==========================================
         // 🌟 新增：把最新一次的【歌词刮削打分全过程】放进托盘！
         // ==========================================
-        debugResult.lastScrapeLog = getLastScrapeLog() || "暂无刮削记录，请先在前端播放一首没有本地歌词的歌";
+        //debugResult.lastScrapeLog = getLastScrapeLog() || "暂无刮削记录，请先在前端播放一首没有本地歌词的歌";
 
         // ==========================================
         // 📤 最终输出：把托盘里收集到的所有数据一把推给浏览器
@@ -372,7 +374,7 @@ router.get('/debug', async (req) => {
     }
 });
 
- */
+
 
 // ==== 核心生命周期函数 ====
 function onInit(): void { songloft.log.info('iWebPlayer 原生架构已就绪！'); }
