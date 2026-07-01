@@ -474,6 +474,17 @@
                 window.consecutiveFailures = 0;
                 window.currentPlaylist = key;
 
+                const systemBasics = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
+                if (!systemBasics.includes(key)) {
+                    let recents = JSON.parse(localStorage.getItem('iwebplayer.recent_playlists') || '[]');
+                    recents = recents.filter(k => k !== key);
+                    recents.unshift(key);
+                    if (recents.length > 3) recents = recents.slice(0, 3);
+                    localStorage.setItem('iwebplayer.recent_playlists', JSON.stringify(recents));
+
+                    setTimeout(() => { if (typeof window.initPlaylistDropdown === 'function') window.initPlaylistDropdown(); }, 300);
+                }
+
                 window.localState.playlist = window.currentPlaylist;
                 localStorage.setItem('iwebplayer.local_state', JSON.stringify(window.localState));
 
@@ -572,22 +583,59 @@
         customKeys.sort((a, b) => a.localeCompare(b, 'zh-CN'));
         localFolderKeys.sort((a, b) => a.localeCompare(b, 'zh-CN'));
 
+        // 🌟 --- 全新的顶部固定区（绝对置顶胶囊 + 3个固定项） ---
         const stickyGroup = document.createElement('li');
-        stickyGroup.style.cssText = 'position: sticky; top: 0; z-index: 10; padding: 0; margin: 0; border-bottom: 1px solid var(--border); list-style: none; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 8px 8px 0 0; overflow: hidden;';
-        const stickyUl = document.createElement('ul');
-        stickyUl.style.cssText = 'padding: 0; margin: 0; list-style: none; background: var(--card-bg);';
-        stickyGroup.appendChild(stickyUl);
-        playlistOpts.appendChild(stickyGroup);
+        // 修复问题1：给 stickyGroup 加上 background: var(--card-bg)，防止下方列表上滑时穿透重叠
+        stickyGroup.style.cssText = 'position: sticky; top: 0; z-index: 10; padding: 0; margin: 0; border-bottom: 1px solid var(--border); list-style: none; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 8px 8px 0 0; background: var(--card-bg); overflow: hidden;';
 
-        systemKeys.forEach(key => {
-            if (key === '在线资源' || key === '曲库搜索') {
+        // 1. 率先插入最近播放的 3 个歌单 (置顶第一行)
+        let recents = JSON.parse(localStorage.getItem('iwebplayer.recent_playlists') || '[]');
+        recents = recents.filter(k => allCleanKeys.includes(k)); // 过滤掉被删掉的歌单
+
+        if (recents.length > 0) {
+            const recentDiv = document.createElement('div');
+            // 调整了 padding，让视觉更紧凑
+            recentDiv.style.cssText = 'display: flex; padding: 10px 12px 6px 12px; gap: 8px; border-bottom: 1px solid var(--border); background: var(--bg-color);';
+            recents.forEach(rKey => {
+                const btn = document.createElement('div');
+                btn.style.cssText = 'flex: 1; min-width: 0; background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 4px; font-size: 12px; color: var(--text-main); text-align: center; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; transition: background 0.2s;';
+                btn.textContent = rKey;
+                btn.title = rKey;
+                btn.onmousedown = () => btn.style.background = 'var(--border)';
+                btn.onmouseup = () => btn.style.background = 'var(--card-bg)';
+                btn.onmouseleave = () => btn.style.background = 'var(--card-bg)';
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const targetOpt = Array.from(playlistOpts.querySelectorAll('.select-option')).find(li => li.dataset.key === rKey);
+                    if (targetOpt) targetOpt.click();
+                };
+                recentDiv.appendChild(btn);
+            });
+            stickyGroup.appendChild(recentDiv);
+        }
+
+        // 2. 再插入固定的三个：在线资源、曲库搜索、我的歌单
+        const stickyUl = document.createElement('ul');
+        stickyUl.style.cssText = 'padding: 0; margin: 0; list-style: none; background: transparent;';
+        stickyGroup.appendChild(stickyUl);
+        playlistOpts.appendChild(stickyGroup); // 把整个置顶块放进下拉框
+
+        const stickyKeys = ['在线资源', '曲库搜索', '我的歌单'];
+        stickyKeys.forEach(key => {
+            if (allCleanKeys.includes(key)) {
                 createOpt(key, stickyUl);
-            } else {
-                createOpt(key);
             }
         });
 
-        if (stickyUl.children.length === 0) stickyGroup.style.display = 'none';
+        // 极端兜底情况隐藏
+        if (stickyUl.children.length === 0 && recents.length === 0) stickyGroup.style.display = 'none';
+
+        // 3. 渲染其余的系统基础歌单
+        systemKeys.forEach(key => {
+            if (!stickyKeys.includes(key)) {
+                createOpt(key);
+            }
+        });
 
         if (customKeys.length > 0) {
             if (systemKeys.length > 0) {
@@ -680,7 +728,7 @@
                                     img.src = firstSong._scrapedCover;
                                     window.playlistObserver.unobserve(card);
                                 } else if (firstSong.cover_url) {
-                                    img.src = `${firstSong.cover_url}?access_token=${globalToken}`;
+                                    img.src = `${firstSong.cover_url}&access_token=${globalToken}`;
                                     window.playlistObserver.unobserve(card);
                                 } else {
                                     if (card._scrapeTimer) clearTimeout(card._scrapeTimer);
@@ -814,187 +862,215 @@
         if (window._renderTimer) clearTimeout(window._renderTimer);
 
         const renderChunk = () => {
-            const fragment = document.createDocumentFragment(); // 使用内存碎片，减少页面重绘
-            const end = Math.min(renderIndex + CHUNK_SIZE, totalSongs);
+        const fragment = document.createDocumentFragment(); // 使用内存碎片，减少页面重绘
+        const end = Math.min(renderIndex + CHUNK_SIZE, totalSongs);
 
-            for (; renderIndex < end; renderIndex++) {
-                const index = renderIndex;
-                const rawItem = window.songList[index];
-                const songName = window.getSongNameObj(rawItem);
-                let coverUrl = null;
-                let needsScrape = false;
+        for (; renderIndex < end; renderIndex++) {
+            const index = renderIndex;
+            const rawItem = window.songList[index];
+            const songName = window.getSongNameObj(rawItem);
+            let coverUrl = null;
+            let needsScrape = false;
 
-                if (rawItem._scrapedCover) {
-                    coverUrl = rawItem._scrapedCover;
-                } else if (rawItem.cover_url) {
-                    coverUrl = `${rawItem.cover_url}?access_token=${globalToken}`;
-                } else {
-                    needsScrape = true;
-                }
+            if (rawItem._scrapedCover) {
+                coverUrl = rawItem._scrapedCover;
+            } else if (rawItem.cover_url) {
+                coverUrl = `${rawItem.cover_url}&access_token=${globalToken}`;
+            } else {
+                needsScrape = true;
+            }
 
-                const imgId = `list-cover-${index}`;
-                const coverHtml = `<img id="${imgId}" class="song-cover-img" src="${window.defaultCover}" ${coverUrl ? `data-src="${coverUrl}"` : ''} ${needsScrape ? `data-scrape="true"` : ''} onerror="this.src='${window.defaultCover}'" alt="cover">`;
+            const imgId = `list-cover-${index}`;
+            const coverHtml = `<img id="${imgId}" class="song-cover-img" src="${window.defaultCover}" ${coverUrl ? `data-src="${coverUrl}"` : ''} ${needsScrape ? `data-scrape="true"` : ''} onerror="this.src='${window.defaultCover}'" alt="cover">`;
 
-                const li = document.createElement('li');
-                li.className = 'song-item';
-                li.id = 'song-' + index;
-                li.style.position = 'relative';
-                li.dataset.index = index;
+            const li = document.createElement('li');
+            li.className = 'song-item';
+            li.id = 'song-' + index;
+            li.style.position = 'relative';
+            li.dataset.index = index;
 
-                // 使用预计算的 index 匹配
-                if (index === window.currentIndex) {
-                    li.classList.add('playing');
-                }
+            // 使用预计算的 index 匹配
+            if (index === window.currentIndex) {
+                li.classList.add('playing');
+            }
 
-                let menuItems = ['加入', '移出'];
-                let menuHtml = `<ul class="song-more-menu" id="song-menu-${index}">`;
-                menuItems.forEach(item => {
-                    menuHtml += `<li class="song-more-menu-item" data-action="${item}" onclick="void(0)">${MENU_ICONS[item] || ''}${item}</li>`;
-                });
-                menuHtml += `</ul>`;
+            let menuItems = ['加入', '移出'];
+            let menuHtml = `<ul class="song-more-menu" id="song-menu-${index}">`;
+            menuItems.forEach(item => {
+                menuHtml += `<li class="song-more-menu-item" data-action="${item}" onclick="void(0)">${MENU_ICONS[item] || ''}${item}</li>`;
+            });
+            menuHtml += `</ul>`;
 
-                const moreBtnHtml = `
-                  <div class="song-more-btn" id="more-btn-${index}" title="更多操作">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
-                  </div>
-                `;
+            const moreBtnHtml = `
+              <div class="song-more-btn" id="more-btn-${index}" title="更多操作">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
+              </div>
+            `;
 
-                let sourceTagHtml = '';
-                if (window.currentPlaylist === '曲库搜索') {
-                    let foundPl = '';
-                    const skipPls = ['全部', '所有歌曲', '最近新增', '曲库搜索', '收藏', '下载', '所有电台'];
-                    for (const [plName, plSongs] of Object.entries(window.allPlaylists)) {
-                        if (skipPls.includes(plName)) continue;
-                        if (plSongs.some(item => item.id === rawItem.id)) {
-                            foundPl = plName === 'cache_songs' ? '缓存歌曲' : plName;
-                            break;
-                        }
-                    }
-                    if (foundPl) {
-                        sourceTagHtml = `<div class="song-playlist-tag">${foundPl}</div>`;
+            let sourceTagHtml = '';
+            let pluginTagHtml = '';
+
+            if (window.currentPlaylist === '曲库搜索') {
+                let foundPl = '';
+                const skipPls = ['全部', '所有歌曲', '最近新增', '曲库搜索', '收藏', '下载', '所有电台'];
+                for (const [plName, plSongs] of Object.entries(window.allPlaylists)) {
+                    if (skipPls.includes(plName)) continue;
+                    if (plSongs.some(item => item.id === rawItem.id)) {
+                        foundPl = plName === 'cache_songs' ? '缓存歌曲' : plName;
+                        break;
                     }
                 }
+                // ✅ 2. 补上之前漏掉的赋值，让曲库搜索里的来源歌单名字正常显示
+                if (foundPl) {
+                    sourceTagHtml = `<div class="song-playlist-tag">${foundPl}</div>`;
+                }
+            }
 
-                let timeTagHtml = '';
-                const plConf = window.getPlaylistConfig(window.currentPlaylist);
-                const currentDeadList = window.deadSongIndexes[window.currentPlaylist] || [];
+            let pCode = '';
+            if (rawItem.plugin_entry_path === 'lxmusic' && rawItem.dedup_key) {
+                pCode = rawItem.dedup_key.split(':')[0]; // 通道 1：从自定义歌单的数据里拆出 wy/tx
+            } else if (rawItem._isOnlineObj && rawItem.source_data && rawItem.source_data.source) {
+                pCode = rawItem.source_data.source;      // 通道 2：从在线搜索的实时数据里提出来的 wy/tx
+            }
 
-                if (currentDeadList.includes(index)) {
-                    timeTagHtml = `<div class="song-dead-tag">失效</div>`;
+            if (pCode) {
+                let pName = (window.PLATFORM_MAP && window.PLATFORM_MAP[pCode]) ? window.PLATFORM_MAP[pCode] : pCode;
+
+                if (pName === '网易云') pName = '网易';
+                if (pName === 'QQ音乐') pName = 'QQ';
+
+                // 干净利落，直接将原生 SVG 扔进去，排版对齐与空隙全权交由你在 index.html 调好的新 CSS 托管
+                const lxSvg = window.SVG_ICONS && window.SVG_ICONS.lx_plugin_line ? window.SVG_ICONS.lx_plugin_line : '';
+
+                pluginTagHtml = `<div class="song-plugin-tag">${lxSvg}${pName}</div>`;
+            }
+
+            let timeTagHtml = '';
+            const plConf = window.getPlaylistConfig(window.currentPlaylist);
+            const currentDeadList = window.deadSongIndexes[window.currentPlaylist] || [];
+
+            if (currentDeadList.includes(index)) {
+                timeTagHtml = `<div class="song-dead-tag">失效</div>`;
+            } else {
+                if (plConf.resumeLocal !== 'off') {
+                    const targetSvg = plConf.resumeLocal === 'global' ? window.SVG_ICONS.cloud_clock : window.SVG_ICONS.stopwatch;
+                    const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
+                    const list = history[window.currentPlaylist] || [];
+                    const found = list.find(item => item.name === songName);
+                    if (found && found.time > 0) {
+                        timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${targetSvg}${window.formatTime(found.time)}</div>`;
+                    }
                 } else {
-                    if (plConf.resumeLocal !== 'off') {
-                        const targetSvg = plConf.resumeLocal === 'global' ? window.SVG_ICONS.cloud_clock : window.SVG_ICONS.stopwatch;
-                        const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
-                        const list = history[window.currentPlaylist] || [];
-                        const found = list.find(item => item.name === songName);
-                        if (found && found.time > 0) {
-                            timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${targetSvg}${window.formatTime(found.time)}</div>`;
-                        }
+                    const plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
+                    if (plTracks[window.currentPlaylist] && plTracks[window.currentPlaylist].name === songName && plTracks[window.currentPlaylist].time > 0) {
+                        timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(plTracks[window.currentPlaylist].time)}</div>`;
+                    }
+                }
+            }
+
+            li.innerHTML = `
+              ${coverHtml}
+              <div class="song-info"><div class="song-name">${songName}</div></div>
+              ${sourceTagHtml}
+              ${pluginTagHtml}
+              <div id="time-wrap-${index}" style="display: flex; align-items: center;">${timeTagHtml}</div>
+              <div class="song-fav-icon" id="fav-${index}" style="display: ${window.favoriteList.includes(songName) ? 'block' : 'none'};">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--primary)" color="var(--primary)"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              </div>
+              ${moreBtnHtml}
+              ${menuHtml}
+            `;
+
+            li.addEventListener('click', (e) => {
+                if (e.target.closest('.song-more-btn') || e.target.closest('.song-more-menu')) return;
+                if (window.activeSongMenuIndex !== -1) { e.preventDefault(); e.stopPropagation(); window.closeAllSongMenus(); return; }
+                window.consecutiveFailures = 0;
+
+                if (window.deadSongIndexes[window.currentPlaylist]) {
+                    window.deadSongIndexes[window.currentPlaylist] = window.deadSongIndexes[window.currentPlaylist].filter(i => i !== index);
+                }
+                if(window.playSong) window.playSong(index);
+            });
+
+            const moreBtn = li.querySelector(`#more-btn-${index}`);
+            const currentMenu = li.querySelector(`#song-menu-${index}`);
+            moreBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (window.activeSongMenuIndex === index) {
+                    window.closeAllSongMenus();
+                } else {
+                    window.closeAllSongMenus();
+                    window.activeSongMenuIndex = index;
+                    li.classList.add('menu-open');
+                    const rect = moreBtn.getBoundingClientRect();
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    if (spaceBelow < 200) {
+                        currentMenu.style.top = 'auto'; currentMenu.style.bottom = '40px'; currentMenu.style.boxShadow = '0 -6px 20px rgba(0,0,0,0.12)';
                     } else {
-                        const plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
-                        if (plTracks[window.currentPlaylist] && plTracks[window.currentPlaylist].name === songName && plTracks[window.currentPlaylist].time > 0) {
-                            timeTagHtml = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${window.SVG_ICONS.stopwatch}${window.formatTime(plTracks[window.currentPlaylist].time)}</div>`;
-                        }
+                        currentMenu.style.top = '36px'; currentMenu.style.bottom = 'auto'; currentMenu.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)';
                     }
+                    currentMenu.classList.add('show');
                 }
+            });
 
-                li.innerHTML = `
-                  ${coverHtml}
-                  <div class="song-info"><div class="song-name">${songName}</div></div>
-                  ${sourceTagHtml}
-                  <div id="time-wrap-${index}" style="display: flex; align-items: center;">${timeTagHtml}</div>
-                  <div class="song-fav-icon" id="fav-${index}" style="display: ${window.favoriteList.includes(songName) ? 'block' : 'none'};">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--primary)" color="var(--primary)"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                  </div>
-                  ${moreBtnHtml}
-                  ${menuHtml}
-                `;
-
-                li.addEventListener('click', (e) => {
-                    if (e.target.closest('.song-more-btn') || e.target.closest('.song-more-menu')) return;
-                    if (window.activeSongMenuIndex !== -1) { e.preventDefault(); e.stopPropagation(); window.closeAllSongMenus(); return; }
-                    window.consecutiveFailures = 0;
-
-                    if (window.deadSongIndexes[window.currentPlaylist]) {
-                        window.deadSongIndexes[window.currentPlaylist] = window.deadSongIndexes[window.currentPlaylist].filter(i => i !== index);
-                    }
-                    if(window.playSong) window.playSong(index);
-                });
-
-                const moreBtn = li.querySelector(`#more-btn-${index}`);
-                const currentMenu = li.querySelector(`#song-menu-${index}`);
-                moreBtn.addEventListener('click', (e) => {
+            const menuEls = li.querySelectorAll(`#song-menu-${index} .song-more-menu-item`);
+            menuEls.forEach(menuEl => {
+                menuEl.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    if (window.activeSongMenuIndex === index) {
-                        window.closeAllSongMenus();
-                    } else {
-                        window.closeAllSongMenus();
-                        window.activeSongMenuIndex = index;
-                        li.classList.add('menu-open');
-                        const rect = moreBtn.getBoundingClientRect();
-                        const spaceBelow = window.innerHeight - rect.bottom;
-                        if (spaceBelow < 200) {
-                            currentMenu.style.top = 'auto'; currentMenu.style.bottom = '40px'; currentMenu.style.boxShadow = '0 -6px 20px rgba(0,0,0,0.12)';
+                    const action = menuEl.dataset.action;
+                    window.closeAllSongMenus();
+
+                    if (action === '移出') {
+                        if (window.skipRemoveConfirm) {
+                            window.executeRemoveSong(index, songName);
                         } else {
-                            currentMenu.style.top = '36px'; currentMenu.style.bottom = 'auto'; currentMenu.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)';
+                            window.pendingRemoveIndex = index;
+                            window.pendingRemoveSongName = songName;
+                            document.getElementById('remove-song-name').textContent = songName;
+                            const removeSongModal = document.getElementById('remove-song-modal-backdrop');
+                            if(removeSongModal) {
+                                removeSongModal.classList.add('show');
+                                removeSongModal.setAttribute('aria-hidden', 'false');
+                                document.body.style.overflow = 'hidden';
+                            }
                         }
-                        currentMenu.classList.add('show');
+                    } else if (action === '加入') {
+                        window.pendingAddIndex = index;
+                        window.pendingAddSongName = songName;
+                        window.pendingBulkAdd = false;
+
+                        if (window.skipAddConfirm && window.lastAddedPlaylist) {
+                            window.executeAddSong(index, songName, window.lastAddedPlaylist);
+                        } else {
+                            document.getElementById('add-song-name').textContent = songName;
+                            if (window.renderPlaylistRadioList) window.renderPlaylistRadioList(document.getElementById('add-song-playlist-list'));
+                            const addSongModal = document.getElementById('add-song-modal-backdrop');
+                            if(addSongModal) {
+                                addSongModal.classList.add('show');
+                                addSongModal.setAttribute('aria-hidden', 'false');
+                                document.body.style.overflow = 'hidden';
+                            }
+                        }
                     }
                 });
+            });
 
-                const menuEls = li.querySelectorAll(`#song-menu-${index} .song-more-menu-item`);
-                menuEls.forEach(menuEl => {
-                    menuEl.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const action = menuEl.dataset.action;
-                        window.closeAllSongMenus();
+            fragment.appendChild(li);
+            window.playlistObserver.observe(li);
+        }
 
-                        if (action === '移出') {
-                            if (window.skipRemoveConfirm) {
-                                window.executeRemoveSong(index, songName);
-                            } else {
-                                window.pendingRemoveIndex = index;
-                                window.pendingRemoveSongName = songName;
-                                document.getElementById('remove-song-name').textContent = songName;
-                                const removeSongModal = document.getElementById('remove-song-modal-backdrop');
-                                if(removeSongModal) {
-                                    removeSongModal.classList.add('show');
-                                    removeSongModal.setAttribute('aria-hidden', 'false');
-                                    document.body.style.overflow = 'hidden';
-                                }
-                            }
-                        } else if (action === '加入') {
-                            window.pendingAddIndex = index;
-                            window.pendingAddSongName = songName;
-                            window.pendingBulkAdd = false;
+        playlistEl.appendChild(fragment);
 
-                            if (window.skipAddConfirm && window.lastAddedPlaylist) {
-                                window.executeAddSong(index, songName, window.lastAddedPlaylist);
-                            } else {
-                                document.getElementById('add-song-name').textContent = songName;
-                                if (window.renderPlaylistRadioList) window.renderPlaylistRadioList(document.getElementById('add-song-playlist-list'));
-                                const addSongModal = document.getElementById('add-song-modal-backdrop');
-                                if(addSongModal) {
-                                    addSongModal.classList.add('show');
-                                    addSongModal.setAttribute('aria-hidden', 'false');
-                                    document.body.style.overflow = 'hidden';
-                                }
-                            }
-                        }
-                    });
-                });
+        if (renderIndex < totalSongs) {
+            // 核心：让出主线程给浏览器，5毫秒后继续渲染下一批
+            window._renderTimer = setTimeout(renderChunk, 5);
+        }
+    };
 
-                fragment.appendChild(li);
-                window.playlistObserver.observe(li);
-            }
 
-            playlistEl.appendChild(fragment);
 
-            if (renderIndex < totalSongs) {
-                // 核心：让出主线程给浏览器，5毫秒后继续渲染下一批
-                window._renderTimer = setTimeout(renderChunk, 5);
-            }
-        };
+
+
 
         // 启动第一批渲染
         renderChunk();

@@ -84,7 +84,12 @@
                 popup.style.display = 'none';
                 const searchInput = document.getElementById('mf-search-input');
                 if (record.type === 'keyword') {
-                    if (searchInput) searchInput.value = record.text;
+                    if (searchInput) {
+                        searchInput.value = record.text;
+                        searchInput.dispatchEvent(new Event('input'));
+                        const mfSearchClear = document.getElementById('mf-search-clear');
+                        if (mfSearchClear) mfSearchClear.classList.remove('show');
+                    }
                     const valEngine = document.getElementById('engine-val');
                     const valPlatform = document.getElementById('mf-plugin-val');
                     if (valEngine) { valEngine.dataset.value = record.engine; valEngine.innerText = record.engine; }

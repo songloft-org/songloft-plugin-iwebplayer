@@ -198,7 +198,7 @@
 
             const savedSearch = localStorage.getItem('iwebplayer.local_search_keyword') || '';
             if (searchInput) searchInput.value = savedSearch;
-            if (savedSearch && searchClear) searchClear.classList.add('show');
+
         } else if (playlistName === '在线资源') {
             if (searchWrap) searchWrap.classList.remove('show');
             if (mfPluginRow) mfPluginRow.classList.add('show');
@@ -295,7 +295,7 @@
         } else if (rawItem._scrapedCover) {
             finalCover = rawItem._scrapedCover;
         } else if (rawItem.cover_url) {
-            finalCover = `${rawItem.cover_url}?access_token=${globalToken}`;
+            finalCover = `${rawItem.cover_url}&access_token=${globalToken}`;
         }
 
         let currentRenderedCover = null;

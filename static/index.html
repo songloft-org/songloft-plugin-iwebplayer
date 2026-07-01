@@ -163,6 +163,22 @@
   .song-info { flex: 1; overflow: hidden; }
   .song-name { font-size: 16px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
   .song-playlist-tag { font-size: 11px; color: var(--text-sub); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; }
+
+  .song-plugin-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    padding: 2px 4px;
+    border-radius: 6px;
+    margin-left: 8px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    line-height: 1.2;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .song-plugin-tag svg {margin-right: 2px !important; width: 12px; height: 12px; }
   .song-dead-tag { font-size: 11px; color: var(--text-sub); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; background-color: var(--border); font-weight: normal; display: inline-flex; align-items: center; justify-content: center; }
 
   .song-item.menu-open { background-color: rgba(236, 72, 153, 0.08); border-color: rgba(236, 72, 153, 0.3); z-index: 50; }
@@ -420,6 +436,7 @@
     body.split-view-active .split-toggle-btn svg { transform: rotate(180deg); }
     body.split-view-active .header { width: 960px !important; left: 50% !important; margin-left: -480px !important; right: auto !important; border-bottom: 1px solid var(--border); z-index: 260 !important; }
     body.split-view-active .playlist-row { position: sticky !important; width: 479px !important; left: auto !important; right: auto !important; margin-left: 479px !important; margin-right: 0 !important; z-index: 200 !important; padding-top: 8px !important; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05) !important; background: rgba(243, 244, 246, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important; }
+    body.split-view-active #playlist-opts { top: 48px !important; }
     @media (prefers-color-scheme: dark) { body.split-view-active .playlist-row { background: rgba(17, 24, 39, 0.65) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3) !important; } }
     body.split-view-active .playlist, body.split-view-active .playlist-grid, body.split-view-active #loading { width: 479px !important; margin-left: 479px !important; margin-top: 0 !important; }
     body.split-view-active .full-player { display: flex !important; transform: none !important; width: 480px !important; left: 50% !important; margin-left: -480px !important; top: 56px !important; height: calc(100vh - var(--player-height) - 56px - env(safe-area-inset-bottom)) !important; border-radius: 0 !important; border-top: none !important; box-shadow: none !important; border-right: 1px solid var(--border) !important; padding-top: 24px !important; z-index: 190 !important; }
@@ -517,10 +534,10 @@
   <script src="./static/icons.js?v0.6.3" defer></script>
   <script src="./static/utils.js?v0.7.5" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v0.7.5" defer></script>
-  <script src="./static/online.js?v0.7.2" defer></script>
+  <script src="./static/playlist.js?v0.7.6" defer></script>
+  <script src="./static/online.js?v0.7.6" defer></script>
   <script src="./static/plugins.js?v0.7.5" defer></script>
-  <script src="./static/player.js?v0.7.5" defer></script>
+  <script src="./static/player.js?v0.7.6" defer></script>
 
 
 </head>
@@ -593,7 +610,7 @@
 
         <div class="search-inline-wrap" id="search-inline-wrap" style="background: transparent; border: none; padding: 0; height: 100%; flex: 1.4;">
           <div class="divider-v mx-4"></div>
-          <input type="text" id="search-input" placeholder="搜本地曲库..." autocomplete="off" style="padding: 0 8px; flex: 1; height: 100%;">
+          <input type="text" id="search-input" placeholder="请输入关键字..." autocomplete="off" style="padding: 0 8px; flex: 1; height: 100%;">
           <div class="search-actions" style="margin-right: 8px;">
             <button class="search-icon-btn" id="search-clear" title="清除">
               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1268,7 +1285,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v0.7.5';
+    window.APP_VERSION = 'v0.7.6';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -1927,13 +1944,30 @@
         });
 
         if (searchInput && searchClear) {
-            searchInput.addEventListener('input', (e) => {
-                const keyword = e.target.value; searchClear.classList.toggle('show', keyword.length > 0);
-                localStorage.setItem('iwebplayer.local_search_keyword', keyword); window.performLocalSearch(keyword);
+            // 聚焦时：如果输入框里有字，就显示 X
+            searchInput.addEventListener('focus', () => {
+                if (searchInput.value.trim().length > 0) searchClear.classList.add('show');
             });
-            searchClear.addEventListener('click', () => {
-              searchInput.value = ''; searchClear.classList.remove('show'); localStorage.setItem('iwebplayer.local_search_keyword', '');
-              searchInput.focus(); window.performLocalSearch('');
+
+            // 失去焦点时：无条件隐藏 X
+            searchInput.addEventListener('blur', () => {
+                searchClear.classList.remove('show');
+            });
+
+            // 打字输入时：根据有没有字，动态决定 X 的生死
+            searchInput.addEventListener('input', (e) => {
+                const keyword = e.target.value;
+                searchClear.classList.toggle('show', keyword.trim().length > 0);
+                localStorage.setItem('iwebplayer.local_search_keyword', keyword);
+                window.performLocalSearch(keyword);
+            });
+
+            // 点击 X 时：清空字串，触发 input 重置列表，并用 preventDefault 强行保住焦点
+            searchClear.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // 极其关键：阻止输入框在点击 X 的瞬间失去焦点
+                searchInput.value = '';
+                searchInput.dispatchEvent(new Event('input'));
+                searchClear.classList.remove('show');
             });
         }
 
@@ -2015,8 +2049,19 @@
         if (mfSearchPlaylistBtn) mfSearchPlaylistBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); window.doLxPlaylistSearch(); });
 
         const mfSearchInput = document.getElementById('mf-search-input');
+        const mfSearchClear = document.getElementById('mf-search-clear');
         if (mfSearchInput) {
+            if (mfSearchClear) {
+                  // 用 mousedown 而不是 click，可以完美阻止输入框失去焦点！
+                  mfSearchClear.addEventListener('mousedown', (e) => {
+                      e.preventDefault();
+                      mfSearchInput.value = '';
+                      mfSearchInput.dispatchEvent(new Event('input')); // 假装敲键盘，触发UI重置
+                      mfSearchClear.classList.remove('show');
+                  });
+              }
             mfSearchInput.addEventListener('focus', (e) => {
+                if (mfSearchClear && mfSearchInput.value.trim().length > 0) mfSearchClear.classList.add('show');
                 e.stopPropagation(); closeAllDropdownsExcept('search-history-popup');
                 if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
                 const popup = document.getElementById('search-history-popup');
@@ -2033,7 +2078,19 @@
                 }
             });
 
+            mfSearchInput.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllDropdownsExcept('search-history-popup');
+                if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
+                const popup = document.getElementById('search-history-popup');
+                // 确保只有在普通的搜索状态（不是带着 LX 图标的标题模式）才弹菜单
+                if (popup && mfSearchInput.dataset.isTitleMode !== "true") {
+                    popup.style.display = 'block';
+                }
+            });
+
             mfSearchInput.addEventListener('input', () => {
+                if (mfSearchClear) mfSearchClear.classList.toggle('show', mfSearchInput.value.trim().length > 0);
                 const popup = document.getElementById('search-history-popup');
                 if (popup) popup.style.display = 'none';
                 if (mfSearchInput.dataset.isTitleMode === "true") {
@@ -2046,6 +2103,7 @@
             });
 
             mfSearchInput.addEventListener('blur', () => {
+                if (mfSearchClear) mfSearchClear.classList.remove('show');
                 if (mfSearchInput.dataset.isTitleMode === "true") {
                     const oldIcon = document.getElementById('mf-search-pl-icon');
                     if (oldIcon) oldIcon.style.display = '';
