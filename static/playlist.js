@@ -9,9 +9,12 @@
     };
 
     window.getMergedSongList = function(baseName) {
+        // 🌟 修复：严格隔离！只有当引擎是WebDAV，且用户身处"在线资源"时，才去沙盒里捞歌
+        if (window.isWebDAVMode && window.currentPlaylist === '在线资源' && window.webdavData && window.webdavData.library && window.webdavData.library[baseName]) {
+            return window.webdavData.library[baseName];
+        }
         return window.allPlaylists ? (window.allPlaylists[baseName] || []) : [];
     };
-
     function getPlaylistIdByName(name) {
         if (!window.playlistMeta) return null;
         const pl = window.playlistMeta.find(p => p.name === name);
@@ -66,20 +69,18 @@
         }
     };
 
-    // 🌟 单曲加入：双通道分流（本地歌曲 / 在线资源）
+    // 🌟 单曲加入：双通道分流（本地歌曲 / 在线资源 / WebDAV）
     window.executeAddSong = async function(index, songName, targetPlaylist) {
         let plId = getPlaylistIdByName(targetPlaylist);
         const rawSong = window.songList[index];
         const songId = rawSong ? rawSong.id : null;
 
         if (!rawSong) { window.showToast("❌ 无法获取歌曲信息"); return; }
-        // 如果是本地歌没拿到 ID 就拦截（在线歌不需要验证本地ID）
         if (!songId && !rawSong._isOnlineObj) { window.showToast("❌ 缺少歌曲ID，无法添加"); return; }
 
         window.showToast(`⏳ 正在加入...`);
 
         try {
-            // 1. 歌单不存在则自动创建
             if (!plId) {
                 const createRes = await fetch('/api/v1/playlists', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: targetPlaylist, type: 'normal' })
@@ -93,22 +94,30 @@
 
             let res;
             if (rawSong._isOnlineObj) {
-                // 🌐 【通道 1：在线歌曲】走 LXMusic 专属导入接口
-                const songPayload = { ...rawSong.source_data };
-                // 🌟 核心：存入用户当前能享受的最高降级音质
-                songPayload.quality = window.getBestLxQuality(songPayload, window.getLxQuality());
-
-                res = await fetch('/api/v1/jsplugin/lxmusic/api/songs/import', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        songs: [songPayload], // 直接将组装好的歌曲数据扔进数组
-                        playlist_id: String(plId),
-                        new_playlist_name: ""
-                    })
-                });
+                // 🌟 新增通道：WebDAV 资源，走官方 Remote 注册逻辑
+                if (rawSong.plugin_entry_path === 'dav') {
+                    const regRes = await fetch('/api/v1/songs/remote', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify([rawSong])
+                    });
+                    const regData = await regRes.json();
+                    if (regData && regData.songs && regData.songs.length > 0) {
+                        res = await fetch(`/api/v1/playlists/${plId}/songs`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: [regData.songs[0].id] })
+                        });
+                    } else throw new Error("向主程序注册WebDAV歌曲失败");
+                }
+                // 🌐 原有通道：LXMusic 在线歌曲
+                else {
+                    const songPayload = { ...rawSong.source_data };
+                    songPayload.quality = window.getBestLxQuality(songPayload, window.getLxQuality());
+                    res = await fetch('/api/v1/jsplugin/lxmusic/api/songs/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ songs: [songPayload], playlist_id: String(plId), new_playlist_name: "" })
+                    });
+                }
             } else {
-                // 📁 【通道 2：本地歌曲】走原生加入接口
+                // 📁 通道：本地歌曲
                 res = await fetch(`/api/v1/playlists/${plId}/songs`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: [songId] })
                 });
@@ -116,15 +125,12 @@
 
             if (res.ok) {
                 const data = await res.json();
-                // 针对在线接口的特殊错误捕获
-                if (rawSong._isOnlineObj && data.code !== 0) {
+                // 仅针对 LXMusic 接口判断 code
+                if (rawSong._isOnlineObj && rawSong.plugin_entry_path !== 'dav' && data.code !== 0) {
                     window.showToast("❌ 添加失败: " + (data.msg || "未知错误"));
                     return;
                 }
-
                 window.showToast(`🎉 已成功加入`);
-
-                // 只更新后台数据和下拉框数字，绝不碰当前的视图列表
                 if (window.reloadGlobalData) await window.reloadGlobalData();
                 if (typeof window.initPlaylistDropdown === 'function') window.initPlaylistDropdown();
             } else {
@@ -133,26 +139,26 @@
         } catch(e) { console.error(e); window.showToast("❌ 网络异常"); }
     };
 
-    // 🌟 批量加入：双通道混合处理
+    // 🌟 批量加入：多通道混合处理
     window.executeBulkAdd = async function(targetPlaylist) {
         if (!window.songList || window.songList.length === 0) return;
 
-        // 区分开本地歌曲 ID 和在线歌曲对象
         const localSongIds = window.songList.filter(s => !s._isOnlineObj).map(s => s.id).filter(Boolean);
-        const onlineSongs = window.songList.filter(s => s._isOnlineObj).map(s => {
+        const davSongs = window.songList.filter(s => s._isOnlineObj && s.plugin_entry_path === 'dav');
+        const lxSongs = window.songList.filter(s => s._isOnlineObj && s.plugin_entry_path !== 'dav').map(s => {
             const payload = { ...s.source_data };
-            // 🌟 核心：存入用户当前能享受的最高降级音质
             payload.quality = window.getBestLxQuality(payload, window.getLxQuality());
             return payload;
         });
 
-        if (localSongIds.length === 0 && onlineSongs.length === 0) { window.showToast("❌ 列表中无有效歌曲"); return; }
+        if (localSongIds.length === 0 && lxSongs.length === 0 && davSongs.length === 0) {
+            window.showToast("❌ 列表中无有效歌曲"); return;
+        }
 
-        window.showToast(`⏳ 批量加入 ${localSongIds.length + onlineSongs.length} 首歌...`, true);
+        window.showToast(`⏳ 批量加入 ${localSongIds.length + lxSongs.length + davSongs.length} 首歌...`, true);
         let plId = getPlaylistIdByName(targetPlaylist);
 
         try {
-            // 1. 歌单不存在则自动创建
             if (!plId) {
                 const createRes = await fetch('/api/v1/playlists', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: targetPlaylist, type: 'normal' })
@@ -174,16 +180,27 @@
                 if (resLocal.ok) successCount += localSongIds.length;
             }
 
-            // 🌐 批量加入在线歌曲
-            if (onlineSongs.length > 0) {
+            // 🌟 批量加入 WebDAV 歌曲 (先领 ID，再加单)
+            if (davSongs.length > 0) {
+                const regRes = await fetch('/api/v1/songs/remote', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(davSongs)
+                });
+                const regData = await regRes.json();
+                if (regData && regData.songs && regData.songs.length > 0) {
+                    const newIds = regData.songs.map(s => s.id);
+                    const davAddRes = await fetch(`/api/v1/playlists/${plId}/songs`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: newIds })
+                    });
+                    if (davAddRes.ok) successCount += newIds.length;
+                }
+            }
+
+            // 🌐 批量加入 LXMusic 歌曲
+            if (lxSongs.length > 0) {
                 const resOnline = await fetch('/api/v1/jsplugin/lxmusic/api/songs/import', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        songs: onlineSongs,
-                        playlist_id: String(plId),
-                        new_playlist_name: ""
-                    })
+                    body: JSON.stringify({ songs: lxSongs, playlist_id: String(plId), new_playlist_name: "" })
                 });
                 if (resOnline.ok) {
                     const data = await resOnline.json();
@@ -698,13 +715,21 @@
         const globalToken = authData.accessToken || "";
 
         // 1. 渲染我的网格 (海报墙)
-        if (window.currentPlaylist === '我的歌单') {
+        // 🌟 修复：精准沙盒！只有处于 WebDAV 模式，并且当前正点击了“在线资源”时，才允许网盘接管海报墙！
+        const isWebDavGrid = window.isWebDAVMode && window.currentPlaylist === '在线资源' && window.currentOnlineView !== 'detail';
+
+        if (window.currentPlaylist === '我的歌单' || isWebDavGrid) {
             if (list) list.style.display = 'none';
             if (grid) grid.style.display = 'grid';
 
-            const metas = [...(window.playlistMeta || [])]
-                .filter(pl => pl.name !== '所有电台' && pl.name !== '电台收藏')
-                .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+            // 🌟 修复：不管是本地歌单还是网盘，渲染海报前必须彻底清空残留的“正在拉取...”文字
+            if (grid) grid.innerHTML = '';
+
+            const metas = isWebDavGrid ?
+                (window.webdavPlaylistMeta || []) :
+                [...(window.playlistMeta || [])]
+                    .filter(pl => pl.name !== '所有电台' && pl.name !== '电台收藏')
+                    .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
 
             window.playlistObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -735,6 +760,7 @@
                                     card._scrapeTimer = setTimeout(async () => {
                                         if (!card._inView) return;
                                         window.playlistObserver.unobserve(card);
+                                        // 🚀 这里会完美触发原生的刮削器，拿网盘文件夹的第一首歌去查全网封面！
                                         const hdCover = await window.fetchScrape(firstSong, 'cover');
                                         if (!card._inView) return;
                                         if (hdCover) {
@@ -766,32 +792,37 @@
                 card.dataset.plName = pl.name;
                 card.dataset.coverUrl = pl.cover_url || '';
 
-                const isCustom = window.customPlaylistNames && window.customPlaylistNames.includes(pl.name);
-                const rawSvg = isCustom ? window.SVG_ICONS.disc : window.SVG_ICONS.folder;
-                const nameIconHtml = rawSvg.replace('width="15" height="15"', 'width="12" height="12" style="margin-right: 4px; vertical-align: -2px; opacity: 0.9;"');
+                // 🌟 严格视图隔离：只有身处网盘页面时，卡片才用云朵 SVG！
+                const isCustom = isWebDavGrid ? false : (window.customPlaylistNames && window.customPlaylistNames.includes(pl.name));
+                let nameIconHtml = '';
+                if (isWebDavGrid) {
+                    // ⚡ 注入 flex-shrink: 0 确保大小绝不变小，修改 margin-top 让云朵图标完美居中对齐第一行文本
+                    nameIconHtml = window.SVG_ICONS.webdav.replace('width="15"', 'width="12"').replace('height="15"', 'height="12"').replace('margin-right: 6px', 'margin-right: 4px; flex-shrink: 0; margin-top: 2px;').replace('transform: translateY(-1px)', '');
+                } else {
+                    const rawSvg = isCustom ? window.SVG_ICONS.disc : window.SVG_ICONS.folder;
+                    // ⚡ 强行注入 flex-shrink: 0 彻底防止图标因字数过长被挤压变小，并加入 margin-top: 2px 对齐首行
+                    nameIconHtml = rawSvg.replace('<svg ', '<svg style="margin-right: 4px; flex-shrink: 0; margin-top: 2px; opacity: 0.9;" ').replace('width="15"', 'width="12"').replace('height="15"', 'height="12"');
+                }
 
-                const conf = window.getPlaylistConfig(pl.name);
+                const conf = isWebDavGrid ? {} : window.getPlaylistConfig(pl.name);
                 let subText = `共 ${pl.song_count || 0} 首`;
-                if (conf.speedLocal !== 1.0) subText += ` · ${window.formatSpeed(conf.speedLocal)}`;
-                if (conf.resumeLocal !== 'off') subText += ` · 续播`;
+                if (conf.speedLocal && conf.speedLocal !== 1.0) subText += ` · ${window.formatSpeed(conf.speedLocal)}`;
+                if (conf.resumeLocal && conf.resumeLocal !== 'off') subText += ` · 续播`;
 
+                // 🌟 核心布局调整：改为 flex-start 顶部对齐，文字用 flex:1 独立容器包裹，实现图标永远在第一行最前方顶格、字数再多也绝不变小的苹果级精致排版！
                 card.innerHTML = `
                   <img class="pl-cover-img" src="${window.defaultCover}" alt="cover">
                   <div class="pl-overlay">
-                    <div class="pl-name" style="display: flex; align-items: center;">${nameIconHtml}${pl.name}</div>
+                    <div class="pl-name" style="display: flex; align-items: flex-start;">${nameIconHtml}<span style="flex: 1; min-width: 0; word-break: break-all;">${pl.name}</span></div>
                     <div class="pl-time">${subText}</div> </div>
                   <div class="pl-playcount">
                     <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
                   </div>
                 `;
 
-                card.onclick = () => {
-                    window._gridScrollY = window.scrollY || document.documentElement.scrollTop;
-                    window._isGridClick = true;
-                    const targetOpt = Array.from(document.querySelectorAll('#playlist-opts .select-option')).find(el => el.dataset.key === pl.name);
-                    if (targetOpt) targetOpt.click();
-                    window._isGridClick = false;
-                };
+                // 🌟 新架构：统一使用事件委托的数据标签，彻底抛弃 onclick 绑定！
+                card.dataset.action = 'open_playlist';
+                card.dataset.plEngine = isWebDavGrid ? 'WebDAV' : 'Local';
 
                 grid.appendChild(card);
                 window.playlistObserver.observe(card);
@@ -927,22 +958,43 @@
             }
 
             let pCode = '';
-            if (rawItem.plugin_entry_path === 'lxmusic' && rawItem.dedup_key) {
-                pCode = rawItem.dedup_key.split(':')[0]; // 通道 1：从自定义歌单的数据里拆出 wy/tx
+            let isDavSource = false;
+
+            // 🌟 修复 1&2：动态提取网盘真实的文件夹名(歌单名)，并设立独立判定通道
+            if (rawItem.plugin_entry_path === 'dav') {
+                let sd = rawItem.source_data;
+                if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
+                try {
+                    // 从路径 /dav/Koofr/My Audios/文件夹/xxx.mp3 中精准切出“文件夹”三个字
+                    let pathStr = sd.path || '';
+                    let parts = pathStr.split('/').filter(Boolean);
+                    if (parts.length > 1) {
+                        pCode = parts[parts.length - 2];
+                    } else {
+                        pCode = sd.configName || "网盘资源";
+                    }
+                } catch(e) { pCode = "网盘资源"; }
+                isDavSource = true;
+
+            } else if (rawItem.plugin_entry_path === 'lxmusic' && rawItem.dedup_key) {
+                pCode = rawItem.dedup_key.split(':')[0];
             } else if (rawItem._isOnlineObj && rawItem.source_data && rawItem.source_data.source) {
-                pCode = rawItem.source_data.source;      // 通道 2：从在线搜索的实时数据里提出来的 wy/tx
+                pCode = rawItem.source_data.source;
             }
 
             if (pCode) {
                 let pName = (window.PLATFORM_MAP && window.PLATFORM_MAP[pCode]) ? window.PLATFORM_MAP[pCode] : pCode;
-
                 if (pName === '网易云') pName = '网易';
                 if (pName === 'QQ音乐') pName = 'QQ';
 
-                // 干净利落，直接将原生 SVG 扔进去，排版对齐与空隙全权交由你在 index.html 调好的新 CSS 托管
-                const lxSvg = window.SVG_ICONS && window.SVG_ICONS.lx_plugin_line ? window.SVG_ICONS.lx_plugin_line : '';
+                const targetSvg = isDavSource ? window.SVG_ICONS.webdav : (window.SVG_ICONS && window.SVG_ICONS.lx_plugin_line ? window.SVG_ICONS.lx_plugin_line : '');
 
-                pluginTagHtml = `<div class="song-plugin-tag">${lxSvg}${pName}</div>`;
+                // 🌟 修复：如果它是 WebDAV 资源，脱离 LXMusic 的绿色，赋予专属的 #3B6FE0 科技蓝色！
+                if (isDavSource) {
+                    pluginTagHtml = `<div class="song-plugin-tag" style="color: #3B6FE0; border-color: rgba(59, 111, 224, 0.3); background: rgba(59, 111, 224, 0.08);">${targetSvg}${pName}</div>`;
+                } else {
+                    pluginTagHtml = `<div class="song-plugin-tag">${targetSvg}${pName}</div>`;
+                }
             }
 
             let timeTagHtml = '';
@@ -1257,7 +1309,7 @@
                         localStorage.setItem('iwebplayer.global_cache', finalStorageStr);
 
                         // 可选：在控制台打印一下压缩成果，你会非常有成就感
-                        console.log(`🗜️ 压缩率: ${((finalStorageStr.length / jsonStr.length) * 100).toFixed(1)}% | 压缩后大小: ${(finalStorageStr.length / 1024).toFixed(1)} KB`);
+                        //console.log(`🗜️ 压缩率: ${((finalStorageStr.length / jsonStr.length) * 100).toFixed(1)}% | 压缩后大小: ${(finalStorageStr.length / 1024).toFixed(1)} KB`);
 
                     } catch (quotaError) {
                         console.error("存盘失败，手机容量已满:", quotaError);

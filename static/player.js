@@ -260,6 +260,23 @@
         }
     };
 
+    // 🚀 核心优化：提取 WebDAV 音频直链的公共方法
+    window.getWebDavStreamUrl = function(rawItem) {
+        if (rawItem && rawItem.plugin_entry_path === 'dav' && rawItem.streamUrl) {
+            const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
+            const davMode = localStorage.getItem('iwebplayer.webdav_mode') || 'proxy';
+
+            if (davMode === 'proxy') {
+                // 调用官方高性能代理接口
+                return `/api/v1/proxy?url=${encodeURIComponent(rawItem.streamUrl)}&access_token=${globalToken}`;
+            } else {
+                // 直连模式
+                return rawItem.streamUrl;
+            }
+        }
+        return null;
+    };
+
     window.playSong = async function(index, autoPlay = true, resumeTime = 0) {
         if (index < 0 || index >= window.songList.length) return;
         if (window.consecutiveFailures >= 5) {
@@ -285,8 +302,7 @@
         if (miniCoverImg) miniCoverImg.onerror = function() { if (this.src !== window.defaultCover) this.src = window.defaultCover; };
 
         const rawItem = window.songList[index];
-        const authData = JSON.parse(localStorage.getItem('songloft-auth') || "{}");
-        const globalToken = authData.accessToken || "";
+        const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
 
         let finalCover = window.defaultCover;
         const listImg = $(`list-cover-${index}`);
@@ -348,11 +364,12 @@
             let info = null;
 
             if (window.preloadCache && (window.preloadCache.index === index || (window.preloadCache.isCross && window.preloadCache.playlist === window.currentPlaylist && index === 0))) {
-                console.log("⚡ [极速切歌] 命中 20 秒预读缓存，跳过网络请求直达播放！");
+                console.log("⚡ [极速切歌] 命中预读缓存！");
                 info = window.preloadCache.data;
 
-                if (rawItem._isOnlineObj) {
-                    const sd = rawItem.source_data;
+                if (rawItem._isOnlineObj && rawItem.plugin_entry_path !== 'dav') {
+                    let sd = rawItem.source_data;
+                    if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
                     const engineValEl = $('engine-val');
                     const currentEngine = engineValEl ? engineValEl.dataset.value : 'LXMusic';
                     if (currentEngine === 'LXMusic') {
@@ -366,14 +383,21 @@
                     }
                 }
             } else {
-                if (rawItem._isOnlineObj) {
-                    const sd = rawItem.source_data;
+                // 🌟 1. WebDAV 模式分流：公共函数一行搞定！
+                const davUrl = window.getWebDavStreamUrl(rawItem);
+
+                if (davUrl) {
+                    info = { url: davUrl };
+                }
+                // 🌐 2. 原有的 LXMusic 解析流程
+                else if (rawItem._isOnlineObj && rawItem.plugin_entry_path !== 'dav') {
+                    let sd = rawItem.source_data;
+                    if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
                     const engineValEl = $('engine-val');
                     const currentEngine = engineValEl ? engineValEl.dataset.value : 'LXMusic';
 
                     if (currentEngine === 'LXMusic') {
                         const bestQuality = window.getBestLxQuality(sd, window.getLxQuality());
-                        // 🌟 瘦身：直接调用封装好的请求中心
                         const urlData = await window.fetchLxMusicUrl(sd, bestQuality);
 
                         if (urlData && urlData.url) info = { url: urlData.url };
@@ -386,7 +410,9 @@
                             finalLrc = lrcData.data.lyric;
                         }
                     }
-                } else {
+                }
+                // 📁 3. 本地歌曲流程 (包括已经被加入到"我的歌单"的网盘歌曲)
+                else {
                     const res = await fetch((window.API ? window.API.info : './musicinfo?id=') + rawItem.id);
                     info = await res.json();
                 }
@@ -462,9 +488,6 @@
                 }
             }
 
-            // 🌟 终极修复：解除在线歌曲的封印！只要前面没拿到有效歌词，统统交给全网刮削器兜底！
-            //if ((!finalLrc || finalLrc.trim() === '') && window.Scraper) {
-            // 如果连本地歌词都没拿到，呼叫后端刮削！
             if (!finalLrc || finalLrc.trim() === '') {
                 finalLrc = await window.fetchScrape(rawItem, 'lyric', window.currentSongName);
             }
@@ -506,10 +529,17 @@
             let targetAudioUrl = null;
             let fetchedData = null;
 
-            if (rawItem._isOnlineObj) {
-                const sd = rawItem.source_data;
+            // 🌟 预读：WebDAV 模式分流（在线资源）公共函数处理
+            const davUrl = window.getWebDavStreamUrl(rawItem);
+
+            if (davUrl) {
+                targetAudioUrl = davUrl;
+                fetchedData = { url: targetAudioUrl };
+            }
+            else if (rawItem._isOnlineObj && rawItem.plugin_entry_path !== 'dav') {
+                let sd = rawItem.source_data;
+                if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
                 const bestQuality = window.getBestLxQuality(sd, window.getLxQuality());
-                // 🌟 瘦身
                 const urlData = await window.fetchLxMusicUrl(sd, bestQuality);
 
                 if (urlData && urlData.url) {
@@ -551,8 +581,16 @@
             let targetAudioUrl = null;
             let fetchedData = null;
 
-            if (rawItem._isOnlineObj) {
-                const sd = rawItem.source_data;
+            // 🌟 跨单预读：WebDAV 模式分流（在线资源）公共函数处理
+            const davUrl = window.getWebDavStreamUrl(rawItem);
+
+            if (davUrl) {
+                targetAudioUrl = davUrl;
+                fetchedData = { url: targetAudioUrl };
+            }
+            else if (rawItem._isOnlineObj && rawItem.plugin_entry_path !== 'dav') {
+                let sd = rawItem.source_data;
+                if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
                 const bestQuality = window.getBestLxQuality(sd, window.getLxQuality());
                 const urlData = await window.fetchLxMusicUrl(sd, bestQuality);
 

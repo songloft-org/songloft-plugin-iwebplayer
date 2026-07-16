@@ -531,14 +531,13 @@
   .ios-switch input:checked + .slider:before { transform: translateX(20px); }
 </style>
   <script src="./static/lz-string.min.js"></script>
-  <script src="./static/icons.js?v0.6.3" defer></script>
+  <script src="./static/icons.js?v0.8.0" defer></script>
   <script src="./static/utils.js?v0.7.5" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v0.7.6" defer></script>
-  <script src="./static/online.js?v0.7.6" defer></script>
+  <script src="./static/playlist.js?v0.8.0" defer></script>
+  <script src="./static/online.js?v0.8.0" defer></script>
   <script src="./static/plugins.js?v0.7.5" defer></script>
-  <script src="./static/player.js?v0.7.6" defer></script>
-
+  <script src="./static/player.js?v0.8.0" defer></script>
 
 </head>
 <body>
@@ -560,7 +559,7 @@
              <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> 编辑歌单
           </li>
           <li class="select-option" id="setting-plugin">
-             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> 插件管理
+             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> 在线资源
           </li>
           <li class="select-option" id="setting-preferences-btn">
              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> 偏好设置
@@ -625,6 +624,7 @@
             <ul class="select-options" id="engine-opts" style="min-width: 100px; right: 0;">
               <li class="select-option active" data-value="LXMusic">LXMusic</li>
               <li class="select-option" data-value="MusicFree">MusicFree</li>
+              <li class="select-option" data-value="WebDAV">WebDAV</li>
             </ul>
           </div>
           <div class="divider-v mx-4"></div>
@@ -1173,111 +1173,209 @@
     </div>
   </div>
 
-  <div class="about-modal-backdrop" id="plugin-modal-backdrop" aria-hidden="true">
+  <div class="about-modal-backdrop" id="plugin-modal-backdrop" aria-hidden="true" style="align-items: flex-start; padding-top: 10vh;">
     <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;">
       <button class="about-close" id="plugin-close" aria-label="关闭">×</button>
 
       <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--card-bg);">
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 12px;">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">插件管理</h2>
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">在线资源配置</h2>
         </div>
-
         <div style="display: flex; align-items: center; width: 100%; gap: 20px;">
-          <div class="plugin-tab active" style="padding-bottom: 10px; cursor: pointer; font-weight: bold; color: var(--primary); border-bottom: 2px solid var(--primary);">LXMusic</div>
-          <div class="plugin-tab disabled" style="padding-bottom: 10px; cursor: not-allowed; font-weight: 500; color: var(--text-sub); opacity: 0.6; border-bottom: 2px solid transparent;">其它插件...</div>
+          <div class="plugin-tab active" data-target="plugin-lx-pane" style="padding-bottom: 10px; cursor: pointer; font-weight: bold; color: var(--primary); border-bottom: 2px solid var(--primary);">LXMusic</div>
+          <div class="plugin-tab" data-target="plugin-webdav-pane" style="padding-bottom: 10px; cursor: pointer; font-weight: 500; color: var(--text-sub); border-bottom: 2px solid transparent;">WebDAV</div>
         </div>
       </div>
 
       <div class="about-body" style="flex: 1; padding: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--bg-color);">
 
-        <div style="display: flex; flex-direction: column;">
-
-          <div style="padding: 18px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">
-            LX音源
-          </div>
-
-          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
-
-            <div style="padding: 12px 18px; border-bottom: 1px solid var(--border);">
-              <button id="btn-import-plugin" class="about-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold;">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                导入脚本文件(.js)
-              </button>
-              <input type="file" id="plugin-upload-input" accept=".js" style="display: none;">
+        <div id="plugin-lx-pane" class="plugin-pane active" style="display: block;">
+          <div style="display: flex; flex-direction: column;">
+            <div style="padding: 18px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">LX音源</div>
+            <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+              <div style="padding: 12px 18px; border-bottom: 1px solid var(--border);">
+                <button id="btn-import-plugin" class="about-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                  导入脚本文件(.js)
+                </button>
+                <input type="file" id="plugin-upload-input" accept=".js" style="display: none;">
+              </div>
+              <ul id="plugin-list-ul" style="margin: 0; padding: 0; list-style: none;">
+                <div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">正在加载源脚本...</div>
+              </ul>
             </div>
 
-            <ul id="plugin-list-ul" style="margin: 0; padding: 0; list-style: none;">
-              <div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">正在加载源脚本...</div>
-            </ul>
+            <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">LX音质</div>
+            <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 16px 10px; display: flex; justify-content: space-around; align-items: center;">
+              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                <input type="radio" name="lx-quality-radio" value="128k" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">标准</span>
+              </label>
+              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                <input type="radio" name="lx-quality-radio" value="320k" checked style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">高品质</span>
+              </label>
+              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                <input type="radio" name="lx-quality-radio" value="flac" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">无损</span>
+              </label>
+              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                <input type="radio" name="lx-quality-radio" value="flac24bit" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">Hi-Res</span>
+              </label>
+              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                <input type="radio" name="lx-quality-radio" value="master" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
+                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">母带</span>
+              </label>
+            </div>
+
+            <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">平台排序</div>
+            <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+              <ul id="platform-sort-ul" style="margin: 0; padding: 0; list-style: none;"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div id="plugin-webdav-pane" class="plugin-pane" style="display: none;">
+
+          <div style="padding: 16px 18px 8px 18px; display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 14px; font-weight: bold; color: var(--text-main);">网盘节点管理</div>
+            <button id="wd-btn-add" class="edit-pl-icon-btn" style="width: 22px; height: 22px; background: var(--primary); color: #fff; flex-shrink: 0;" title="新增">
+              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
           </div>
 
-          <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">
-            LX音质
+          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 18px; position: relative;">
+
+            <div id="wd-server-anim-wrap" style="position: relative; overflow: visible; border-radius: 8px;">
+                <div id="wd-server-view" style="display: flex; gap: 8px; align-items: center; transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);">
+                  <div class="custom-select" id="wd-server-container" style="flex: 1; height: 36px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px;">
+                    <div class="select-value" id="wd-server-val" data-value="" style="width: 100%; height: 100%; outline: none; padding: 0 24px 0 10px; font-size: 14px; color: var(--text-main); display: flex; align-items: center; border: none; background: transparent url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%236b7280\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpolyline points=\\'6 9 12 15 18 9\\'%3E%3C/polyline%3E%3C/svg%3E') no-repeat right 8px center / 12px; cursor: pointer; border-radius: 8px;">加载中...</div>
+                    <ul class="select-options" id="wd-server-opts" style="min-width: 100%; left: 0; right: 0; top: 100%; margin-top: 4px; max-height: 200px; overflow-y: auto;"></ul>
+                  </div>
+
+                  <button id="wd-btn-default" class="edit-pl-icon-btn" style="background: #6b7280; color: #fff; flex-shrink: 0; transition: all 0.2s;" title="设为默认节点">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  </button>
+
+                  <button id="wd-btn-del" class="edit-pl-icon-btn" style="background: #6b7280; color: #fff; flex-shrink: 0;" title="删除">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </div>
+
+                <div id="wd-server-delete-view" style="position: absolute; inset: 0; padding: 0 10px; display: none; align-items: center; justify-content: space-between; transform: translateX(100%); transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);">
+                  <div class="edit-pl-delete-warn">确定移出该节点？</div>
+                  <div style="display: flex; gap: 8px;">
+                    <button id="wd-btn-del-cancel" class="edit-pl-text-btn edit-pl-cancel">取消</button>
+                    <button id="wd-btn-del-confirm" class="edit-pl-text-btn edit-pl-confirm-delete">确认移出</button>
+                  </div>
+                </div>
+
+            </div>
+
+            <div id="wd-server-edit" style="display: none; flex-direction: column; gap: 8px; margin-top: 12px;">
+              <input type="text" id="wd-edit-name" placeholder="节点名称 (如: 我的阿里云盘)" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); padding: 0 10px; font-size: 14px; outline: none;">
+              <input type="text" id="wd-edit-url" placeholder="WebDAV 地址 (如: https://dav.xxx.com)" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); padding: 0 10px; font-size: 14px; outline: none;">
+              <input type="text" id="wd-edit-user" placeholder="用户名" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); padding: 0 10px; font-size: 14px; outline: none;">
+              <input type="text" id="wd-edit-pass" placeholder="密码 / 授权码" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); padding: 0 10px; font-size: 14px; outline: none;">
+
+              <div style="display: flex; gap: 8px; margin-top: 6px;">
+                <button id="wd-btn-test" class="edit-pl-text-btn" style="flex: 1; background: var(--bg-color); color: var(--primary); border: 1px solid var(--primary); height: 32px;">测试连接</button>
+                <button id="wd-btn-cancel" class="edit-pl-text-btn" style="flex: 1; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); height: 32px;">取消</button>
+                <button id="wd-btn-save" class="edit-pl-text-btn" style="flex: 1; background: var(--primary); color: #fff; border: none; height: 32px; font-weight: bold;">保存</button>
+              </div>
+            </div>
           </div>
 
-          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 16px 10px; display: flex; justify-content: space-around; align-items: center;">
+          <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">设置根目录</div>
+          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 18px;">
+            <div id="wd-dir-view" style="display: flex; align-items: center; gap: 8px;">
+              <div id="wd-dir-path" style="flex: 1; height: 36px; line-height: 34px; padding: 0 10px; border: 1px dashed var(--border); border-radius: 8px; background: var(--bg-color); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left;">/</div>
+              <button id="wd-btn-browse" class="about-secondary" style="height: 36px; padding: 0 12px; font-size: 13px;">📂 选择</button>
+            </div>
 
-            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-              <input type="radio" name="lx-quality-radio" value="128k" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">标准</span>
-            </label>
-
-            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-              <input type="radio" name="lx-quality-radio" value="320k" checked style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">高品质</span>
-            </label>
-
-            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-              <input type="radio" name="lx-quality-radio" value="flac" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">无损</span>
-            </label>
-
-            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-              <input type="radio" name="lx-quality-radio" value="flac24bit" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">Hi-Res</span>
-            </label>
-
-            <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-              <input type="radio" name="lx-quality-radio" value="master" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-              <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">母带</span>
-            </label>
-
-          </div>
-
-          <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">
-            平台排序
-          </div>
-
-          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
-            <ul id="platform-sort-ul" style="margin: 0; padding: 0; list-style: none;">
+            <div id="wd-dir-browser" style="display: none; flex-direction: column; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 4px;">
+              <div id="wd-dir-breadcrumbs" style="padding: 8px 10px; background: var(--card-bg); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--primary); font-weight: bold; overflow-x: auto; white-space: nowrap;"></div>
+              <ul id="wd-dir-list" style="list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto;">
+                <li style="padding: 10px; text-align: center; color: var(--text-sub); font-size: 13px;">正在加载目录...</li>
               </ul>
+              <div style="display: flex; border-top: 1px solid var(--border);">
+                <button id="wd-btn-dir-cancel" class="about-secondary" style="flex: 1; border: none; border-radius: 0; border-right: 1px solid var(--border); height: 36px;">取消</button>
+                <button id="wd-btn-dir-confirm" class="about-primary" style="flex: 1; border-radius: 0; height: 36px;">✅ 设为此目录</button>
+              </div>
+            </div>
+
+            <button id="btn-webdav-scan" class="about-primary" style="width: 100%; font-weight: bold; margin-top: 16px; display: flex; justify-content: center; align-items: center; gap: 6px; height: 40px;">
+               建立索引 (扫库)
+            </button>
           </div>
+
+          <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">在线播放模式</div>
+          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 16px 18px;">
+            <div style="display: flex; gap: 20px;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; color: var(--text-main); user-select: none;">
+                <input type="radio" name="webdav-mode-radio" value="proxy" style="accent-color: var(--primary); width: 16px; height: 16px; margin: 0;">
+                服务端代理 (推荐)
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; color: var(--text-main); user-select: none;">
+                <input type="radio" name="webdav-mode-radio" value="direct" style="accent-color: var(--primary); width: 16px; height: 16px; margin: 0;">
+                直连 (受限)
+              </label>
+            </div>
+            <div style="font-size: 11px; color: var(--text-sub); margin-top: 8px; line-height: 1.4;">
+            <b>代理：</b>通过Songloft中转。<br>
+            <b>直连：</b>本机直接访问
+          </div>
+
+          <div id="wd-direct-test-wrap" style="display: none; margin-top: 12px; font-size: 12px; background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px dashed var(--border);">
+            <div style="font-weight: bold; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="var(--primary)" stroke-width="2.5" fill="none"><path d="M15 3h6v6"></path><path d="M10 14L21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+                直连环境初始化
+            </div>
+            <div style="color: var(--text-sub); margin-bottom: 12px; line-height: 1.4;">
+                为突破浏览器对账号密码的拦截，首次直连前需让浏览器建立授权凭证。点击下方按钮，系统将自动弹开验证窗口并于 2 秒后自动关闭。
+            </div>
+            <button id="wd-btn-direct-auth" class="about-primary" style="width: 100%; height: 34px; font-size: 13px; font-weight: bold; background: var(--primary); display: flex; justify-content: center; align-items: center; gap: 6px; border-radius: 8px;">
+                ⚡ 一键激活授权通道
+            </button>
+            <div id="wd-direct-url-hidden" style="display:none;"></div>
+        </div>
 
         </div>
+
+        </div>
+
       </div>
     </div>
   </div>
 
   <script>
     /* ==========================================
-     * 1. 全局 Fetch 拦截器 (身份令牌管理)
+     * 1. 全局 Fetch 拦截器与 Token 内存缓存池
      * ========================================== */
+    // 🌟 新增：带内存缓存的 Token 提取器（只读一次磁盘，后续 0 开销）
+    window._cachedAccessToken = null;
+    window.getAccessToken = function() {
+        if (window._cachedAccessToken !== null) return window._cachedAccessToken;
+        try {
+            const authData = JSON.parse(localStorage.getItem('songloft-auth') || "{}");
+            window._cachedAccessToken = authData.accessToken || "";
+        } catch(e) { window._cachedAccessToken = ""; }
+        return window._cachedAccessToken;
+    };
+
     const originalFetch = window.fetch;
     window.fetch = async function(resource, config) {
       config = config || {};
       config.headers = config.headers || {};
       const isExternal = typeof resource === 'string' && /^https?:\/\//i.test(resource);
       if (!isExternal) {
-          try {
-            const authData = localStorage.getItem('songloft-auth');
-            if (authData) {
-              const auth = JSON.parse(authData);
-              if (auth.accessToken) {
-                config.headers['Authorization'] = `Bearer ${auth.accessToken}`;
-              }
-            }
-          } catch (e) {}
+          // 🚀 优化：调用内存缓存，省去昂贵的 JSON.parse 和磁盘 I/O
+          const token = window.getAccessToken();
+          if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`;
+          }
       }
       return originalFetch(resource, config);
     };
@@ -1285,7 +1383,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v0.7.6';
+    window.APP_VERSION = 'v0.8.0';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2044,9 +2142,20 @@
         }
 
         const mfSearchBtn = document.getElementById('mf-search-btn');
-        if (mfSearchBtn) mfSearchBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); window.doOnlineSearch(false); });
+        if (mfSearchBtn) mfSearchBtn.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            // 🌟 分流：WebDAV 走本地搜，LX 走在线搜
+            if (window.isWebDAVMode && window.doWebDavSearch) window.doWebDavSearch();
+            else window.doOnlineSearch(false);
+        });
+
         const mfSearchPlaylistBtn = document.getElementById('mf-search-playlist-btn');
-        if (mfSearchPlaylistBtn) mfSearchPlaylistBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); window.doLxPlaylistSearch(); });
+        if (mfSearchPlaylistBtn) mfSearchPlaylistBtn.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            // 🌟 分流：WebDAV 走扫库指令，LX 走搜歌单
+            if (window.isWebDAVMode && window.triggerWebDavScan) window.triggerWebDavScan();
+            else window.doLxPlaylistSearch();
+        });
 
         const mfSearchInput = document.getElementById('mf-search-input');
         const mfSearchClear = document.getElementById('mf-search-clear');
@@ -2061,8 +2170,21 @@
                   });
               }
             mfSearchInput.addEventListener('focus', (e) => {
-                if (mfSearchClear && mfSearchInput.value.trim().length > 0) mfSearchClear.classList.add('show');
+                const hasText = mfSearchInput.value.trim().length > 0;
+
+                // 🌟 改造 1：WebDAV 模式永不显示 X，有字且非标题模式时，直接显示“返回”
+                if (window.isWebDAVMode) {
+                    if (mfSearchClear) mfSearchClear.classList.remove('show');
+                    if (hasText && mfSearchInput.dataset.isTitleMode !== "true") {
+                        document.getElementById('mf-search-back-btn').style.display = 'block';
+                    }
+                } else {
+                    if (mfSearchClear && hasText) mfSearchClear.classList.add('show');
+                }
+
                 e.stopPropagation(); closeAllDropdownsExcept('search-history-popup');
+
+                // 🌟 恢复：无条件渲染并显示历史面板
                 if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
                 const popup = document.getElementById('search-history-popup');
                 if (popup) popup.style.display = 'block';
@@ -2072,7 +2194,7 @@
                     const oldIcon = document.getElementById('mf-search-pl-icon');
                     if (oldIcon) oldIcon.style.display = 'none';
                     document.getElementById('mf-search-back-btn').style.display = 'none';
-                    document.getElementById('mf-search-main-btns').style.display = 'flex';
+                    document.getElementById('mf-search-main-btns').style.display = window.isWebDAVMode ? 'none' : 'flex';
                     const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');
                     if (shortDivider) shortDivider.style.display = '';
                 }
@@ -2081,24 +2203,59 @@
             mfSearchInput.addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeAllDropdownsExcept('search-history-popup');
+
                 if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
                 const popup = document.getElementById('search-history-popup');
-                // 确保只有在普通的搜索状态（不是带着 LX 图标的标题模式）才弹菜单
                 if (popup && mfSearchInput.dataset.isTitleMode !== "true") {
                     popup.style.display = 'block';
                 }
             });
 
             mfSearchInput.addEventListener('input', () => {
-                if (mfSearchClear) mfSearchClear.classList.toggle('show', mfSearchInput.value.trim().length > 0);
+                const hasText = mfSearchInput.value.trim().length > 0;
+
+                // 🌟 改造 2：打字时动态显隐“返回”按钮，并彻底封杀 X
+                if (window.isWebDAVMode) {
+                    if (mfSearchClear) mfSearchClear.classList.remove('show');
+                    if (mfSearchInput.dataset.isTitleMode !== "true") {
+                        document.getElementById('mf-search-back-btn').style.display = hasText ? 'block' : 'none';
+                    }
+                } else {
+                    if (mfSearchClear) mfSearchClear.classList.toggle('show', hasText);
+                }
+
                 const popup = document.getElementById('search-history-popup');
                 if (popup) popup.style.display = 'none';
+
                 if (mfSearchInput.dataset.isTitleMode === "true") {
                     mfSearchInput.dataset.isTitleMode = "false";
                     const oldIcon = document.getElementById('mf-search-pl-icon');
                     if (oldIcon) oldIcon.remove();
-                    document.getElementById('mf-search-back-btn').style.display = 'none';
-                    document.getElementById('mf-search-main-btns').style.display = 'flex';
+                    // 破坏标题模式进入搜索时，如果有字，WebDAV 必须保留返回按钮
+                    document.getElementById('mf-search-back-btn').style.display = window.isWebDAVMode ? (hasText ? 'block' : 'none') : 'none';
+                    document.getElementById('mf-search-main-btns').style.display = window.isWebDAVMode ? 'none' : 'flex';
+                }
+
+                // 🌟 改造 3：WebDAV 实时内存秒搜核心闭环
+                if (window.isWebDAVMode) {
+                    const kw = mfSearchInput.value.trim();
+                    if (kw) {
+                        if (window.doOnlineSearch) window.doOnlineSearch(false);
+                    } else {
+                        // 🚨 终极防弹修复：清空输入框时，不仅重绘海报，还要把底层状态强行拨回 playlist！
+                        if (window.setOnlineState) window.setOnlineState({ view: 'playlist', keyword: '' });
+                        window.currentOnlineView = 'playlist';
+
+                        const list = document.getElementById('playlist');
+                        const grid = document.getElementById('playlist-grid');
+                        if (list) list.style.display = 'none';
+                        if (grid) grid.style.display = 'grid';
+
+                        window.songList = [];
+                        window.allPlaylists['在线资源'] = [];
+
+                        if (window.fetchWebDavLibrary) window.fetchWebDavLibrary();
+                    }
                 }
             });
 
@@ -2120,29 +2277,6 @@
             });
         }
 
-
-
-        const mfSearchBackBtn = document.getElementById('mf-search-back-btn');
-        if (mfSearchBackBtn) {
-            mfSearchBackBtn.addEventListener('click', (e) => {
-                e.preventDefault(); e.stopPropagation();
-                const oState = window.getOnlineState();
-                window.setOnlineState({ view: 'playlist' });
-                document.getElementById('mf-search-main-btns').style.display = 'flex';
-                mfSearchBackBtn.style.display = 'none';
-                const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');
-                if (shortDivider) shortDivider.style.display = '';
-                mfSearchInput.value = window._lastOnlineKeyword || oState.keyword || '';
-                mfSearchInput.placeholder = '搜全网资源...';
-                mfSearchInput.dataset.isTitleMode = "false";
-                const oldIcon = document.getElementById('mf-search-pl-icon');
-                if (oldIcon) oldIcon.remove();
-                document.getElementById('playlist').style.display = 'none';
-                document.getElementById('playlist-grid').style.display = 'grid';
-                songList = []; allPlaylists['在线资源'] = [];
-                setTimeout(() => { window.scrollTo({ top: window._gridScrollY || 0, behavior: 'auto' }); }, 10);
-            });
-        }
 
         // 🌟 参数设置弹窗逻辑
         const prefBtn = document.getElementById('setting-preferences-btn');
@@ -2412,7 +2546,13 @@
             if (sortData && sortData.data) window.currentPlatformSort = JSON.parse(sortData.data);
         } catch (e) {}
 
-        window.renderMainPlatformDropdown();
+        // 🌟 修复：如果当前记忆的是网盘模式，启动时就坚决不拉取 LXMusic 的下拉框
+        if (window.isWebDAVMode && typeof window.loadWebDavServers === 'function') {
+            window.loadWebDavServers();
+        } else if (typeof window.renderMainPlatformDropdown === 'function') {
+            window.renderMainPlatformDropdown();
+        }
+
         window.initPlaylistDropdown();
 
         const savedVol = localStorage.getItem('iwebplayer.player_volume') || 50;
