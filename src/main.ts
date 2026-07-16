@@ -1,9 +1,11 @@
 /// <reference types="@songloft/plugin-sdk" />
 import { jsonResponse, createRouter } from '@songloft/plugin-sdk';
 import { scrapeCover, scrapeLyric } from './scraper';
+import { setupWebDAVRoutes } from './webdav';
 import { scrapeCover, scrapeLyric, getLastScrapeLog } from './scraper';
 
 const router = createRouter();
+setupWebDAVRoutes(router);
 
 // 🌟 全局临时沙盒：只在前端拉歌的短短几秒内存在，超时必死，绝不长驻内存！
 let flashSongsCache: any[] | null = null;
