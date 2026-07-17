@@ -798,7 +798,8 @@
 
                 window.currentOnlineView = prevState;
 
-                document.getElementById('mf-search-main-btns').style.display = 'none';
+                // 🌟 核心修复：LX 和 WebDAV 区别对待！LX 返回后必须恢复“搜歌/搜单”按钮
+                document.getElementById('mf-search-main-btns').style.display = window.PluginManager.currentEngineName === 'WebDAV' ? 'none' : 'flex';
                 backBtn.style.display = 'none';
 
                 const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');

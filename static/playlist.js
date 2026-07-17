@@ -962,13 +962,14 @@
 
             // 🌟 修复 1&2：动态提取网盘真实的文件夹名(歌单名)，并设立独立判定通道
             if (rawItem.plugin_entry_path === 'dav') {
-                let sd = rawItem.source_data;
+                let sd = rawItem.source_data || {};
                 if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
                 try {
-                    // 从路径 /dav/Koofr/My Audios/文件夹/xxx.mp3 中精准切出“文件夹”三个字
-                    let pathStr = sd.path || '';
+                    // 🌟 终极优化：优先从 sd.path 提取，如果收藏后丢失，则降级去切 dedup_key！
+                    let pathStr = sd.path || rawItem.dedup_key || '';
                     let parts = pathStr.split('/').filter(Boolean);
                     if (parts.length > 1) {
+                        // 完美切出倒数第二段作为文件夹名（即歌单名）
                         pCode = parts[parts.length - 2];
                     } else {
                         pCode = sd.configName || "网盘资源";
