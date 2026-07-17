@@ -314,18 +314,33 @@
         mfSearchInput.dataset.isTitleMode = "false";
         if (oldIcon) oldIcon.remove();
 
+        const isDav = window.PluginManager.currentEngineName === 'WebDAV';
+
+        // 🌟 核心改造：根据当前选择的引擎，精准探测对应的插件是否在主程序中安装
         let isPluginActive = true;
-        try { const res = await fetch('/api/v1/jsplugin/lxmusic/api/sources'); if (!res.ok) isPluginActive = false; }
-        catch (err) { isPluginActive = false; }
+        try {
+            if (isDav) {
+                const res = await fetch('/api/v1/jsplugin/dav/lists');
+                if (!res.ok) isPluginActive = false;
+            } else {
+                const res = await fetch('/api/v1/jsplugin/lxmusic/api/sources');
+                if (!res.ok) isPluginActive = false;
+            }
+        } catch (err) {
+            isPluginActive = false;
+        }
 
         if (!isPluginActive) {
             if (list) list.style.display = 'block';
             if (grid) grid.style.display = 'none';
-            if (list) list.innerHTML = window.NO_PLUGIN_HTML;
+            if (list) {
+                // 🌟 核心：直接提取 LXMusic 的专属提示模板
+                const noPluginStr = window.NO_PLUGIN_HTML || '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">⚠️ 未检测到 LXMusic 插件，请先在主程序中安装并启用。</div>';
+                // 🌟 动态克隆：如果是 WebDAV，直接将模板里的 LXMusic 替换为 WebDAV，保证样式 100% 完全一致！
+                list.innerHTML = isDav ? noPluginStr.replace(/LXMusic/gi, 'WebDAV') : noPluginStr;
+            }
             return;
         }
-
-        const isDav = window.PluginManager.currentEngineName === 'WebDAV';
         window.currentOnlineView = oState.view;
 
         if (oState.view === 'song') {
@@ -1065,6 +1080,28 @@
             webdavDefaultServerName = defJson.data || "";
 
             const res = await fetch('/api/v1/jsplugin/dav/lists');
+
+            // 🌟 修正：真正的看门狗，必须拦截对 dav/lists 接口的 403/404 响应！
+            if (!res.ok) {
+                const list = document.getElementById('playlist');
+                const grid = document.getElementById('playlist-grid');
+                if (list) {
+                    list.style.display = 'block';
+                    // 🌟 同理，完美克隆 LXMusic 样式
+                    const noPluginStr = window.NO_PLUGIN_HTML || '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">⚠️ 未检测到 LXMusic 插件，请先在主程序中安装并启用。</div>';
+                    list.innerHTML = noPluginStr.replace(/LXMusic/gi, 'WebDAV');
+                }
+                if (grid) grid.style.display = 'none';
+
+                optsEl.innerHTML = '<li class="select-option disabled-text">未启用插件</li>';
+                valEl.innerText = "未启用插件";
+                if (mainOptsEl && window.isWebDAVMode) {
+                    mainOptsEl.innerHTML = '<li class="select-option disabled-text">未启用插件</li>';
+                    if (mainValEl) mainValEl.innerText = "未启用插件";
+                }
+                return;
+            }
+
             currentDavServers = await res.json() || [];
 
             optsEl.innerHTML = '';

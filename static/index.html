@@ -534,9 +534,9 @@
   <script src="./static/icons.js?v0.8.0" defer></script>
   <script src="./static/utils.js?v0.7.5" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v0.8.1" defer></script>
-  <script src="./static/online.js?v0.8.1" defer></script>
-  <script src="./static/plugins.js?v0.7.5" defer></script>
+  <script src="./static/playlist.js?v0.8.2" defer></script>
+  <script src="./static/online.js?v0.8.2" defer></script>
+  <script src="./static/plugins.js?v0.8.2" defer></script>
   <script src="./static/player.js?v0.8.0" defer></script>
 
 </head>
@@ -899,8 +899,8 @@
     </div>
   </div>
 
-  <div class="about-modal-backdrop" id="ios-desktop-backdrop" aria-hidden="true">
-    <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 85vh; display: flex; flex-direction: column;">
+  <div class="about-modal-backdrop" id="ios-desktop-backdrop" aria-hidden="true" style="align-items: flex-start; padding-top: 8vh;">
+    <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 80vh; display: flex; flex-direction: column;">
       <button class="about-close" id="ios-desktop-close" aria-label="关闭">×</button>
       <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 12px;">
@@ -1174,8 +1174,8 @@
     </div>
   </div>
 
-  <div class="about-modal-backdrop" id="plugin-modal-backdrop" aria-hidden="true" style="align-items: flex-start; padding-top: 10vh;">
-    <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;">
+  <div class="about-modal-backdrop" id="plugin-modal-backdrop" aria-hidden="true" style="align-items: flex-start; padding-top: 8vh; padding-bottom: calc(10vh + env(safe-area-inset-bottom)); box-sizing: border-box;">
+    <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 100%; display: flex; flex-direction: column; overflow: hidden;">
       <button class="about-close" id="plugin-close" aria-label="关闭">×</button>
 
       <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--card-bg);">
@@ -1326,7 +1326,7 @@
             </div>
             <div style="font-size: 11px; color: var(--text-sub); margin-top: 8px; line-height: 1.4;">
             <b>代理：</b>通过Songloft中转。<br>
-            <b>直连：</b>本机直接访问
+            <b>直连：</b>本机直接访问，对WebDAV要求高
           </div>
 
           <div id="wd-direct-test-wrap" style="display: none; margin-top: 12px; font-size: 12px; background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px dashed var(--border);">
@@ -1384,7 +1384,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v0.8.1';
+    window.APP_VERSION = 'v0.8.2';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };

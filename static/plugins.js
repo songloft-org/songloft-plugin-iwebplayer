@@ -7,23 +7,16 @@
      * ========================================== */
     window.PLATFORM_MAP = {
         wy: "网易云", tx: "QQ音乐", kw: "酷我",
-        kg: "酷狗", mg: "咪咕", qsvip: "汽水"
+        kg: "酷狗", mg: "咪咕"
     };
 
     // 默认平台排序 (后续会在 index.html 的 init() 中被云端配置覆盖)
-    window.currentPlatformSort = ['wy', 'tx', 'kw', 'kg', 'mg', 'qsvip'];
+    window.currentPlatformSort = ['wy', 'tx', 'kw', 'kg', 'mg'];
 
     window.NO_PLUGIN_HTML = `
-      <div style="padding: 50px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; grid-column: 1 / -1;">
-        <svg viewBox="0 0 24 24" width="46" height="46" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--border); margin-bottom: 16px;">
-          <path d="M19 11v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v1"></path>
-          <path d="M15 15v1a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-1"></path>
-          <line x1="12" y1="2" x2="12" y2="6"></line>
-          <line x1="12" y1="18" x2="12" y2="22"></line>
-          <line x1="5" y1="11" x2="19" y2="11"></line>
-        </svg>
-        <div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 8px;">未检测到 LXMusic 插件</div>
-        <div style="font-size: 13px; color: var(--text-sub); line-height: 1.5; max-width: 260px;">需要在主程序安装相应插件，才能搜索和播放在线音乐。</div>
+      <div style="padding: 20px; text-align: center; grid-column: 1 / -1;">
+        <div style="font-size: 14px; font-weight: bold; color: var(--text-main); margin-bottom: 6px;">未检测到 LXMusic 插件</div>
+        <div style="font-size: 12px; color: var(--text-sub); line-height: 1.5;">需要在主程序安装相应插件，才能搜索和播放在线音乐。</div>
       </div>
     `;
 
@@ -37,6 +30,10 @@
         if (!container || !valEl) return;
 
         container.innerHTML = '';
+
+        // 🌟 核心防御：剔除掉老用户云端配置里可能残留的失效平台（如汽水）
+        window.currentPlatformSort = window.currentPlatformSort.filter(key => window.PLATFORM_MAP[key]);
+
         window.currentPlatformSort.forEach((key, index) => {
             const li = document.createElement('li');
             li.className = `select-option ${index === 0 ? 'active' : ''}`;
@@ -68,6 +65,9 @@
         const ul = document.getElementById('platform-sort-ul');
         if (!ul) return;
         ul.innerHTML = '';
+
+        // 🌟 同样加一道保险
+        window.currentPlatformSort = window.currentPlatformSort.filter(key => window.PLATFORM_MAP[key]);
 
         window.currentPlatformSort.forEach((key, index) => {
             const name = window.PLATFORM_MAP[key] || key;
