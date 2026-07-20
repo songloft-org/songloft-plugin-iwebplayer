@@ -8,7 +8,7 @@
 
   <style>
   /* ==========================================
-     1. 全局变量与基础样式
+     1. 全局变量、基础重置与明暗主题
      ========================================== */
   :root {
     --bg-color: #f3f4f6;
@@ -41,6 +41,19 @@
     overflow-x: hidden;
   }
 
+  /* 通用原子类与初始显隐状态 */
+  .flex-y-center { display: flex; align-items: center; }
+  .h-full { height: 100%; }
+  .w-full { width: 100%; }
+  .divider-v { width: 1px; height: 14px; background: var(--border); flex-shrink: 0; }
+  .divider-v.mx-2 { margin: 0 2px; }
+  .divider-v.mx-4 { margin: 0 4px; }
+
+  .hidden { display: none; }
+  #playlist-grid, #mini-cover, #icon-pause, #icon-vol-mute, #icon-mode-0, #icon-mode-2, #icon-mode-3 { display: none; }
+  #icon-mode-1 { display: block; }
+  .mode-wrapper { position: relative; }
+
   /* ==========================================
      2. 顶部导航栏、Logo 与 下拉组件
      ========================================== */
@@ -49,11 +62,14 @@
     height: 56px; z-index: 150; display: flex; justify-content: space-between;
     align-items: center; transform: translate3d(0, 0, 0); -webkit-transform: translate3d(0, 0, 0);
   }
+  .header-left-group { display: flex; align-items: center; gap: 12px; }
   .header-logo-group { display: flex; align-items: center; gap: 8px; flex: 0 1 auto; overflow: hidden; margin-right: 15px; }
+  .header-logo-group.no-margin { margin-right: 0; }
   .header-icon { width: 28px; height: 28px; flex-shrink: 0; }
   .header-title-stack { display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
   .title-main { font-size: 15px; font-weight: bold; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
   .title-sub { font-size: 11px; color: var(--text-sub); line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+
   .header-controls { display: flex; gap: 8px; flex: 1; align-items: center; justify-content: flex-end; min-width: 0; }
   .settings-btn {
     display: flex; justify-content: center; align-items: center; width: 28px; height: 28px;
@@ -61,6 +77,9 @@
   }
   .settings-btn:active { background: var(--border); color: var(--text-main); }
 
+  /* ==========================================
+     3. 统一多级下拉菜单控件 (Custom Select)
+     ========================================== */
   .custom-select { position: relative; display: flex; align-items: center; height: 36px; min-width: 0; }
   .select-value {
     height: 36px; box-sizing: border-box; line-height: 20px; padding: 7px 24px 7px 12px;
@@ -68,7 +87,6 @@
     background: var(--card-bg) url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 6px center / 12px;
     color: var(--text-main); font-size: 15px; cursor: pointer; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none;
   }
-
   .select-options {
     display: none; position: absolute; top: 100%; right: 0; margin-top: 6px;
     background: var(--card-bg); border: 1px solid var(--border);
@@ -81,130 +99,118 @@
   }
   .select-option:last-child { border-bottom: none; }
   .select-option.active { color: var(--primary); font-weight: bold; background: var(--bg-color); }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-  .select-options.show { display: block; }
-  .song-more-menu.show { display: block; }
+  .select-option.disabled-text { color: var(--text-sub) !important; opacity: 0.8; }
+
+  .select-option svg, .song-more-menu-item svg, .mode-item svg { flex-shrink: 0; stroke: currentColor; width: 16px; height: 16px; margin-right: 6px; opacity: 0.85; transform: translateY(-1px); }
+  .select-option .svg-mr-8 { margin-right: 8px; vertical-align: -3px; }
+
+  /* 核心展示/隐藏状态中枢 */
+  .select-options.show, .song-more-menu.show { display: block !important; }
+  .volume-popup.show, .mode-popup.show, .search-inline-wrap.show, .search-icon-btn.show, .direct-test-wrap.show, .speed-popup-vertical.show { display: flex !important; }
+  .speed-popup-vertical.show { animation: fadeIn 0.15s ease-out; }
+
+  #settings-opts { left: 0; right: auto; min-width: 100px; }
+  #global-menu-1-opts { right: 0; min-width: 140px; top: 100%; }
 
   /* ==========================================
-     附加搜索组件与胶囊标签样式
-     ========================================== */
-  .search-text-group { display: flex; height: 100%; border-left: 1px solid var(--border); }
-  .search-text-btn {
-    background: transparent !important; border: none; height: 100%; padding: 0 12px;
-    font-size: 14px; font-weight: 600; color: var(--text-sub) !important;
-    cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
-  }
-  .search-text-divider { width: 1px; height: 14px; background: var(--border); margin: 0 4px; }
-  #mf-search-playlist-btn { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
-  .search-text-btn:active { background: var(--bg-color) !important; color: var(--text-main) !important; }
-
-  .text-mf { color: var(--primary) !important; }
-  .text-lx { color: #10b981 !important; }
-  .lx-opts .select-option.active { color: #10b981 !important; background: var(--bg-color) !important; }
-
-  .search-tag-capsule {
-    display: inline-flex; align-items: center; font-size: 13px; padding: 2px 8px;
-    border-radius: 10px; margin-left: 0; flex-shrink: 0; user-select: none; animation: fadeIn 0.15s ease-out;
-  }
-  .search-tag-capsule.lx-theme { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
-  .search-tag-capsule.mf-theme { background: rgba(236, 72, 153, 0.1); color: var(--primary); border: 1px solid rgba(236, 72, 153, 0.3); }
-
-  /* ==========================================
-     3. 歌单筛选行与曲库搜索栏
+     4. 歌单筛选与多引擎调度工具栏 (Toolbar Row)
      ========================================== */
   .playlist-row {
     position: sticky; top: 56px; z-index: 85; background: rgba(243, 244, 246, 0.7);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05); display: flex; align-items: center;
-    padding: 1px 16px 10px 16px; gap: 10px; transform: translate3d(0, 0, 0); -webkit-transform: translate3d(0, 0, 0);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05); display: flex; align-items: stretch; flex-direction: column;
+    padding: 1px 16px 10px 16px; gap: 8px; transform: translate3d(0, 0, 0); -webkit-transform: translate3d(0, 0, 0);
   }
-  @media (prefers-color-scheme: dark) {
-    .playlist-row { background: rgba(17, 24, 39, 0.65); border-bottom: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3); }
-  }
-  #playlist-container { position: static !important; }
-  #playlist-opts { top: 40px !important; left: 16px !important; right: 16px !important; width: auto !important; max-width: none !important; }
+  @media (prefers-color-scheme: dark) { .playlist-row { background: rgba(17, 24, 39, 0.65); border-bottom: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3); } }
 
-  .search-inline-wrap {
-    display: none; flex: 1; align-items: center; background: var(--card-bg);
-    border: 1px solid var(--border); border-radius: 8px; padding: 0 8px; gap: 6px;
-    height: 36px; box-sizing: border-box; min-width: 0; animation: fadeIn 0.2s;
-  }
-  .search-inline-wrap.show { display: flex; }
-  .search-inline-wrap input { flex: 1; border: none; background: transparent; padding: 0; font-size: 14px; color: var(--text-main); outline: none; min-width: 0; height: 100%; }
-  .search-actions { display: flex; gap: 14px; align-items: center; margin-right: 2px; }
-  .search-icon-btn {
-    background: transparent; border: none; color: var(--text-sub); border-radius: 6px; width: 26px; height: 26px;
-    display: none; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.2s, opacity 0.2s;
-  }
-  .search-icon-btn.show { display: flex; }
-  .search-icon-btn:active { background: var(--border); opacity: 0.8; transform: scale(0.95); }
+  .toolbar-wrapper { gap: 10px; }
+  .toolbar-main-box { display: flex; flex: 1; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; height: 40px; box-sizing: border-box; min-width: 0; transition: all 0.2s; }
+
+  #playlist-container { position: static !important; flex: 1; min-width: 0; transition: all 0.2s; }
+  #playlist-val { display: flex; align-items: center; width: 100%; border: none; background-color: transparent; height: 100%; box-shadow: none; padding: 0 28px 0 12px; margin: 0; line-height: normal; background-position: right 10px center; }
+  #playlist-opts { top: 40px !important; left: 16px !important; right: 16px !important; width: 100% !important; max-width: none !important; }
+
+  #engine-container { flex: 0 0 auto; }
+  #engine-val { background-color: transparent; border: none; font-size: 13px; padding: 0 20px 0 4px; box-shadow: none; height: 100%; display: flex; align-items: center; background-position: right 4px center; background-size: 12px; color: var(--text-main); }
+  #engine-opts { min-width: 100px; right: 0; }
+
+  #mf-plugin-container { flex: 1; transition: opacity 0.2s; }
+  #mf-plugin-val { background-color: transparent; border: none; color: var(--text-main); font-size: 13px; padding: 0 24px 0 8px; box-shadow: none; max-width: none; width: 100%; height: 100%; display: flex; align-items: center; justify-content: flex-start; background-position: right 8px center; background-size: 12px; }
+  #mf-plugin-opts { min-width: 120px; right: 0; }
+
+  #global-menu-1-container { flex: 0 0 auto; padding: 0 8px 0 4px; }
+  #global-menu-1-btn { width: 28px; height: 28px; margin: 0; padding: 0; }
 
   /* ==========================================
-     4. 歌曲列表与操作菜单
+     5. 极速筛选与全网资源搜索输入框
+     ========================================== */
+  .search-inline-wrap { display: none; flex: 1.4; align-items: center; background: transparent; border: none; padding: 0; gap: 6px; height: 100%; box-sizing: border-box; min-width: 0; animation: fadeIn 0.2s; }
+  #search-input { padding: 0 8px; flex: 1; border: none; background: transparent; font-size: 14px; color: var(--text-main); outline: none; min-width: 0; height: 100%; }
+  .search-actions { display: flex; gap: 14px; align-items: center; margin-right: 8px; }
+  .search-icon-btn { background: transparent; border: none; color: var(--text-sub); border-radius: 6px; width: 26px; height: 26px; display: none; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.2s, opacity 0.2s; }
+  .search-icon-btn:active { background: var(--border); opacity: 0.8; transform: scale(0.95); }
+
+  #mf-search-wrap { flex: 0 0 38px; min-height: 38px; align-items: center; background: transparent; border: none; height: 38px; padding: 0; box-sizing: border-box; width: 100%; gap: 10px; }
+  #mf-search-input-wrap { flex: 1; display: flex; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; height: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative; padding-left: 10px; }
+  #mf-search-input { flex: 1; border: none; outline: none; background: transparent; padding: 0 4px 0 0; font-size: 14px; color: var(--text-main); height: 100%; margin: 0; line-height: normal; min-width: 0; -webkit-appearance: none; }
+  #mf-search-input-wrap .search-actions { display: flex; height: 100%; align-items: center; margin-right: 0; gap: 0; }
+  #mf-search-clear { margin-right: 0; width: 24px; }
+
+  .search-text-group { display: flex; height: 100%; border-left: 1px solid var(--border); }
+  .search-text-btn { background: transparent !important; border: none; height: 100%; padding: 0 12px; font-size: 14px; font-weight: 600; color: var(--text-sub) !important; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
+  .search-text-btn:active { background: var(--bg-color) !important; color: var(--text-main) !important; }
+  .search-text-divider { width: 1px; height: 14px; background: var(--border); margin: 0 4px; }
+
+  #mf-search-main-btns, #menu-dropzone-row2 { display: flex; align-items: center; height: 100%; }
+  #mf-search-playlist-btn { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+  #mf-search-back-btn { display: none; padding: 0 20px; color: var(--primary) !important; font-weight: bold !important; }
+  .btn-return { width: auto; height: 30px; margin: 0 4px; padding: 0 10px; border-radius: 6px; font-size: 14px; font-weight: bold; color: var(--primary); }
+  #back-to-grid-wrap { display: none; height: 100%; flex: 0 0 auto; padding-right: 4px; }
+
+  /* ==========================================
+     6. 歌曲列表与海报墙 (Playlist & Grid View)
      ========================================== */
   .playlist { list-style: none; padding: 10px; max-width: 800px; margin: 0 auto; background-color: transparent; }
   #loading { text-align: center; padding: 20px; color: var(--text-sub); background-color: transparent; }
   @media (prefers-color-scheme: dark) { #loading, .playlist { background-color: transparent; } }
 
-  .song-item {
-    background: var(--card-bg); margin-bottom: 10px; padding: 15px; border-radius: 12px;
-    display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    cursor: pointer; transition: transform 0.1s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  }
+  .song-item { background: var(--card-bg); margin-bottom: 10px; padding: 15px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.1s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   .song-item:active { transform: scale(0.98); }
   .song-item.playing { border: 2px solid var(--primary); }
-
-  .song-cover-img {
-    width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin: -10px 10px -10px -2px;
-    flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: opacity 0.3s ease;
-  }
-
-  .song-info { flex: 1; overflow: hidden; }
-  .song-name { font-size: 16px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-  .song-playlist-tag { font-size: 11px; color: var(--text-sub); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; }
-
-  .song-plugin-tag {
-    display: inline-flex;
-    align-items: center;
-    font-size: 11px;
-    padding: 2px 4px;
-    border-radius: 6px;
-    margin-left: 8px;
-    flex-shrink: 0;
-    white-space: nowrap;
-    line-height: 1.2;
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-  }
-  .song-plugin-tag svg {margin-right: 2px !important; width: 12px; height: 12px; }
-  .song-dead-tag { font-size: 11px; color: var(--text-sub); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; background-color: var(--border); font-weight: normal; display: inline-flex; align-items: center; justify-content: center; }
-
   .song-item.menu-open { background-color: rgba(236, 72, 153, 0.08); border-color: rgba(236, 72, 153, 0.3); z-index: 50; }
   @media (prefers-color-scheme: dark) { .song-item.menu-open { background-color: rgba(236, 72, 153, 0.15); border-color: rgba(236, 72, 153, 0.4); } }
+
+  .song-cover-img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin: -10px 10px -10px -2px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: opacity 0.3s ease; }
+  .song-info { flex: 1; overflow: hidden; }
+  .song-name { font-size: 16px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+
+  .song-playlist-tag { font-size: 11px; color: var(--text-sub); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; }
+  .song-plugin-tag { display: inline-flex; align-items: center; font-size: 11px; padding: 2px 4px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; line-height: 1.2; color: #10b981; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); }
+  .song-plugin-tag svg { margin-right: 2px !important; width: 12px; height: 12px; }
+  .song-dead-tag { font-size: 11px; color: var(--text-sub); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; margin-left: 8px; flex-shrink: 0; white-space: nowrap; background-color: var(--border); font-weight: normal; display: inline-flex; align-items: center; justify-content: center; }
+  .pl-status-tag { display: inline-flex; align-items: center; justify-content: center; height: 16px; box-sizing: border-box; font-size: 10px; line-height: 1; padding: 0 4px; border-radius: 4px; border: 1px solid currentColor; margin-left: 6px; vertical-align: middle; transform: translateY(2px); font-weight: normal; background: rgba(236, 72, 153, 0.08); }
+
   .song-more-btn { position: relative; color: var(--text-sub); padding: 2px; margin-left: 8px; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
   .song-more-btn::after { content: ''; position: absolute; top: -15px; bottom: -15px; left: -10px; right: -10px; }
   .song-more-btn:active { background: var(--border); color: var(--text-main); }
-
-  .song-more-menu {
-    display: none; position: absolute; right: 46px; top: 36px; background: var(--card-bg);
-    border: 1px solid var(--border); z-index: 20; list-style: none;
-    width: max-content;
-    padding: 0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden;
-  }
-  .song-more-menu-item {
-    color: var(--text-main); cursor: pointer; display: flex; align-items: center;
-    padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color);
-    white-space: nowrap;
-  }
+  .song-more-menu { display: none; position: absolute; right: 46px; top: 36px; background: var(--card-bg); border: 1px solid var(--border); z-index: 20; list-style: none; width: max-content; padding: 0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden; }
+  .song-more-menu-item { color: var(--text-main); cursor: pointer; display: flex; align-items: center; padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color); white-space: nowrap; }
   .song-more-menu-item:last-child { border-bottom: none; }
   .song-more-menu-item:active { background-color: var(--bg-color); }
-  .song-more-menu-item svg { pointer-events: none; }
   .song-fav-icon { margin-left: 10px; display: flex; align-items: center; }
 
+  .playlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 14px 10px; padding: 10px 16px 20px 16px; width: 100%; box-sizing: border-box; }
+  .pl-card-b { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.15); user-select: none; border: 1px solid rgba(0,0,0,0.05); }
+  .pl-card-b:active { transform: scale(0.96); }
+  .pl-card-b img { width: 100%; height: 100%; object-fit: cover; }
+  .pl-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 25px 8px 8px 8px; background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85)); display: flex; flex-direction: column; justify-content: flex-end; pointer-events: none; }
+  .pl-card-b .pl-name { color: #fff; font-size: 11px; font-weight: bold; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 2px rgba(0,0,0,0.6); margin-bottom: 4px; }
+  .pl-card-b .pl-time { color: rgba(255,255,255,0.75); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl-card-b .pl-playcount { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.4); color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 8px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); font-weight: 500; display: flex; align-items: center; gap: 2px; }
+
   /* ==========================================
-     5. 底部播放控制条与进度条
+     7. 底部播放控制条与进度条
      ========================================== */
   .player-bar {
     position: fixed; bottom: 0; left: 0; width: 100%; height: calc(var(--player-height) + env(safe-area-inset-bottom));
@@ -226,6 +232,7 @@
   body.player-open .up-arrow { animation: none; }
   body.player-open .up-arrow svg { transform: rotate(180deg); }
   @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-5px);} 60% {transform: translateY(-3px);} }
+
   .np-text-group { flex: 0 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
   .now-playing-title { font-size: 19px; font-weight: bold; white-space: nowrap; overflow: hidden; width: 100%; position: relative; display: flex; justify-content: center; }
   .np-title-text { display: inline-block; white-space: nowrap; }
@@ -238,46 +245,8 @@
   .iwp-btn.mode-btn, .btn.vol-btn { opacity: 0.8; }
   .iwp-btn:active { opacity: 0.5; }
 
-  .volume-wrapper { position: relative; }
-  .volume-popup {
-    position: absolute; bottom: 55px; left: 50%; transform: translateX(-50%); background: var(--card-bg);
-    border: 1px solid var(--border); border-radius: 16px; padding: 12px 0 16px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 110; width: 54px; height: 230px; touch-action: none;
-  }
-  .volume-popup.show { display: flex; }
-  .vol-adj-btn { background: transparent; border: none; color: var(--text-main); font-size: 20px; font-weight: 500; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; margin: 4px 0; user-select: none; }
-  .vol-adj-btn:active { background: var(--bg-color); }
-  .volume-text { font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
-  .volume-popup input[type=range] { writing-mode: vertical-lr; direction: rtl; width: 28px; height: 100px; background: transparent; outline: none; margin: 0; cursor: pointer; }
-
-  .mode-popup {
-      width: max-content; height: auto; bottom: 48px; left: -5px; transform: none;
-      padding: 0; overflow: hidden;
-  }
-  .mode-item {
-      width: 100%; display: flex; align-items: center;
-      color: var(--text-main); cursor: pointer; transition: background 0.2s; font-weight: normal;
-      padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color);
-      white-space: nowrap;
-  }
-  .mode-item:last-child { border-bottom: none; }
-  .mode-item:active { background: var(--bg-color); }
-  .mode-item.active { color: var(--primary); font-weight: bold; }
-
-  .select-option svg,
-  .song-more-menu-item svg,
-  .mode-item svg {
-      flex-shrink: 0;
-      stroke: currentColor;
-      width: 16px;
-      height: 16px;
-      margin-right: 6px;
-      opacity: 0.85;
-      transform: translateY(-1px);
-  }
-
   /* ==========================================
-     6. 全屏沉浸播放页
+     8. 全屏沉浸播放页与滚动歌词
      ========================================== */
   .full-player {
     position: fixed; left: 0; width: 100%; height: 65vh; bottom: calc(var(--player-height) + env(safe-area-inset-bottom));
@@ -296,6 +265,7 @@
   }
   @media (max-height: 700px) { .full-player { height: 62vh; } }
   @keyframes cover-breath { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+
   .mini-cover { width: 35px; height: 35px; border-radius: 50%; overflow: hidden; flex: 0 0 35px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-right: 10px; }
   .mini-cover img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; animation: rotate-cover 10s linear infinite; animation-play-state: paused; will-change: transform; }
   .mini-cover.spinning img { animation-play-state: running; }
@@ -311,16 +281,54 @@
   .lyric-line.active { color: var(--primary); font-size: 17px; font-weight: bold; }
   .no-lyrics { color: var(--text-sub); text-align: center; margin-top: 40px; font-size: 14px; }
 
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* 沉浸页左下角收藏与右下角调速控制枢纽 (破除 iOS 挤压塌陷) */
+  .fp-corner-tools { position: absolute; bottom: 20px; left: 0; right: 0; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; pointer-events: none; }
+  .fp-corner-btn { pointer-events: auto; width: 40px; height: 40px; border-radius: 50%; background: var(--bg-color); border: 1px solid var(--border); display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.2s; color: var(--text-main); font-weight: bold; font-size: 13px; }
+  .fp-corner-btn:active { transform: scale(0.9); }
+  .fp-fav-btn.is-fav { color: var(--primary); }
+
+  /* 音量与速度控制的垂直滑块弹窗 */
+  .volume-wrapper { position: relative; }
+  .volume-popup {
+    position: absolute; bottom: 55px; left: 50%; transform: translateX(-50%); background: var(--card-bg);
+    border: 1px solid var(--border); border-radius: 16px; padding: 12px 0 16px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 110; width: 54px; height: 230px; touch-action: none;
+  }
+  .vol-adj-btn { background: transparent; border: none; color: var(--text-main); font-size: 20px; font-weight: 500; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; margin: 4px 0; user-select: none; }
+  .vol-adj-btn:active { background: var(--bg-color); }
+  .volume-text { font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+  .volume-popup input[type=range] { writing-mode: vertical-lr; direction: rtl; width: 28px; height: 100px; background: transparent; outline: none; margin: 0; cursor: pointer; }
+
+  .speed-popup-vertical { position: absolute; bottom: 60px; right: 18px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 12px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: none; flex-direction: column; align-items: center; z-index: 110; width: 54px; height: 200px; pointer-events: auto; touch-action: none; }
+  .speed-popup-vertical input[type=range] { writing-mode: vertical-lr; direction: rtl; width: 28px; height: 100px; background: transparent; outline: none; cursor: pointer; margin: 8px 0; }
+
+  .speed-slider-horizontal { display: flex; align-items: center; gap: 12px; margin: 10px 0 20px 0; }
+  .speed-slider-horizontal input[type=range] { flex: 1; height: 32px; background: transparent; outline: none; appearance: none; -webkit-appearance: none; touch-action: none; margin: 0; }
+  .speed-slider-horizontal input[type=range]::-webkit-slider-runnable-track { height: 6px; background: var(--border); border-radius: 3px; }
+  .speed-slider-horizontal input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer; margin-top: -6px; }
+
+  /* 播放模式气泡弹窗 */
+  .mode-popup { width: max-content; height: auto; bottom: 48px; left: -5px; transform: none; padding: 0; overflow: hidden; }
+  .mode-item { width: 100%; display: flex; align-items: center; color: var(--text-main); cursor: pointer; transition: background 0.2s; font-weight: normal; padding: 12px 15px; font-size: 15px; border-bottom: 1px solid var(--bg-color); white-space: nowrap; }
+  .mode-item:last-child { border-bottom: none; }
+  .mode-item:active { background: var(--bg-color); }
+  .mode-item.active { color: var(--primary); font-weight: bold; }
+
   /* ==========================================
-     7. 通用模态框与轻提示 (Modals & Toast)
+     9. 通用模态弹窗与 Toast (Modals & Toast)
      ========================================== */
   .about-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
   .about-modal-backdrop.show { display: flex; animation: about-fade-in 0.15s ease-out; }
   @keyframes about-fade-in { from { opacity: 0 } to { opacity: 1 } }
+
   .about-modal { width: min(440px, 92vw); background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; transform: translateY(6px); animation: about-slide-up 0.18s ease-out; }
   @keyframes about-slide-up { from { transform: translateY(16px); opacity: 0.8; } to { transform: translateY(0); opacity: 1; } }
+
   .about-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent; color: var(--text-sub); font-size: 20px; cursor: pointer; }
   .about-close:active { background: var(--border); color: var(--text-main); }
+
   .about-header { display: flex; gap: 12px; align-items: center; padding: 18px 18px 0 18px; }
   .about-logo { width: 42px; height: 42px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--bg-color); display: grid; place-items: center; flex: 0 0 auto; }
   .about-logo img { width: 100%; height: 100%; object-fit: cover; }
@@ -328,22 +336,44 @@
   .about-title-wrap h2 { font-size: 18px; line-height: 1.2; margin: 0; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .about-version { display: inline-block; margin-left: 6px; font-size: 14px; font-weight: 700; color: var(--primary); }
   .about-subtitle { margin-top: 4px; font-size: 12px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
   .about-body { padding: 14px 18px 6px 18px; font-size: 14px; line-height: 1.7; color: var(--text-main); }
   .about-body p { margin: 0 0 8px 0; }
   .about-features { margin: 6px 0 10px 18px; padding-left: 6px; }
   .about-features li { margin: 4px 0; color: var(--text-sub); }
   .about-link { padding: 8px 10px; background: var(--bg-color); border: 1px dashed var(--border); border-radius: 10px; overflow-wrap: anywhere; font-size: 13px; }
   .about-link a { color: var(--primary); text-decoration: none; font-weight: 500; transition: opacity 0.2s; }
+
   .about-footer { padding: 12px 18px 18px 18px; display: flex; justify-content: flex-end; gap: 8px; }
   .about-primary { background: var(--primary); color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; cursor: pointer; }
   .about-primary:active { opacity: 0.8; }
-  .modal-input-group { display: flex; align-items: center; background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; margin-top: 12px; transition: border-color 0.2s; overflow: hidden; }
-  .modal-input-group:focus-within { border-color: var(--primary); }
-  .modal-input-group input { flex: 1; border: none; background: transparent; padding: 12px 14px 12px 8px; font-size: 15px; color: var(--text-main); outline: none; }
   .about-secondary { background: transparent; color: var(--text-main); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
   .about-secondary:active { background: var(--bg-color); }
   .about-danger { background: #ef4444; color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; cursor: pointer; transition: opacity 0.2s; }
   .about-danger:active { opacity: 0.8; }
+
+  /* 多态业务弹窗扩展布局 */
+  .modal-tall { height: auto; max-height: 85vh; display: flex; flex-direction: column; }
+  .modal-header-col { flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0; }
+  .modal-title-group { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .modal-title-group.mb-15 { margin-bottom: 15px; }
+  .modal-title-group.mb-12 { margin-bottom: 12px; }
+  .modal-title-group.mb-6 { margin-bottom: 6px; }
+  .modal-title-h2 { font-size: 18px; font-weight: 800; margin: 0; }
+  .modal-scroll-body { flex: 1; padding: 0 18px 25px 18px; overflow-y: auto; }
+  .text-title-bold { font-size: 18px; font-weight: 800; margin: 0; }
+  .modal-sec-title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: var(--text-main); display: flex; align-items: center; }
+  .modal-sec-title svg { margin-right: 6px; }
+  .modal-grey-box { background: var(--bg-color); padding: 12px; border-radius: 10px; }
+  .modal-grey-box.p-14 { padding: 14px; }
+  .modal-grey-box.mb-15 { margin-bottom: 15px; }
+  .modal-grey-box.mb-20 { margin-bottom: 20px; }
+  .modal-grey-box.line-h { line-height: 1.8; }
+  .modal-input-group { display: flex; align-items: center; background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; margin-top: 12px; transition: border-color 0.2s; overflow: hidden; }
+  .modal-input-group:focus-within { border-color: var(--primary); }
+  .modal-input-group input { flex: 1; border: none; background: transparent; padding: 12px 14px 12px 8px; font-size: 15px; color: var(--text-main); outline: none; }
+
+  /* Toast 轻提示 */
   .toast-message {
     position: fixed; bottom: calc(var(--player-height) + env(safe-area-inset-bottom) + 80px); left: 50%; transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.7); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 999999;
@@ -351,9 +381,147 @@
   }
   .toast-message.show { opacity: 1; }
 
+  /* iOS 风格极简开关 */
+  .ios-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; vertical-align: middle; }
+  .ios-switch input { opacity: 0; width: 0; height: 0; margin: 0; }
+  .ios-switch .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e5e7eb; transition: 0.3s; border-radius: 24px; border: 1px solid var(--border); box-sizing: border-box; }
+  .ios-switch input:checked + .slider { background-color: var(--primary); border-color: var(--primary); }
+  .ios-switch .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 1px; bottom: 1px; background-color: white; transition: 0.3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .ios-switch input:checked + .slider:before { transform: translateX(20px); }
+
   /* ==========================================
-     8. 歌单编辑面板
+     10. 各种业务弹窗专属样式组
      ========================================== */
+
+  /* --- 偏好设置面板 --- */
+  .pref-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; }
+  .pref-item.mb-12 { margin-bottom: 12px; }
+  .pref-item.mt-12 { margin-top: 12px; }
+  .pref-text-wrap { min-width: 0; padding-right: 15px; }
+  .pref-title { font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 4px; }
+  .pref-desc { font-size: 12px; color: var(--text-sub); line-height: 1.4; }
+  .pref-danger-zone { margin-top: 30px; padding-top: 20px; border-top: 1px dashed var(--border); text-align: center; }
+  .btn-danger-outline { background: transparent; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 10px; padding: 12px 20px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.2s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-danger-outline:active { background: rgba(239, 68, 68, 0.05); }
+  .reset-confirm-panel { position: absolute; inset: 0; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; transform: translateX(100%); transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); }
+  .reset-warn-text { font-size: 13px; font-weight: bold; color: #ef4444; text-align: left; line-height: 1.2; }
+  .reset-warn-sub { font-size: 11px; font-weight: normal; opacity: 0.8; }
+  .reset-hint { font-size: 11px; color: var(--text-sub); margin-top: 10px; line-height: 1.4; }
+
+  /* --- iOS 桌面指引 --- */
+  #ios-desktop-backdrop { align-items: flex-start; padding-top: 8vh; }
+  .ios-install-pane { display: none; animation: fadeIn 0.2s; }
+  .ios-install-pane.active { display: block; }
+  .ios-logo-wrap { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; }
+  .ios-logo-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .ios-tabs-row { display: flex; gap: 20px; border-bottom: 1px solid var(--border); width: 100%; }
+  .ios-plugin-tab { padding-bottom: 10px; cursor: pointer; transition: color 0.2s; font-weight: 500; color: var(--text-sub); border-bottom: 2px solid transparent; }
+  .ios-plugin-tab.active { font-weight: bold; color: var(--primary); border-bottom: 2px solid var(--primary); }
+  .guide-title { font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main); }
+  .guide-desc { font-size: 13px; color: var(--text-sub); margin-bottom: 10px; padding-left: 6px; }
+  .guide-desc.mb-4 { margin-bottom: 4px; }
+  .guide-desc.mb-12 { margin-bottom: 12px; }
+  .guide-step-box { font-size: 13px; color: var(--text-main); background: var(--bg-color); padding: 12px; border-radius: 10px; line-height: 1.8; margin-bottom: 15px; }
+  .w-full-mt15 { width: 100%; margin-top: 15px; }
+  .btn-bold { font-weight: bold; }
+  .guide-svg-icon { vertical-align: text-bottom; margin: 0 2px; }
+  .icon-input-group { display: flex; align-items: center; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; height: 36px; }
+  .icon-prefix { padding: 0 10px; font-size: 14px; color: var(--text-sub); background: var(--border); height: 100%; display: flex; align-items: center; border-right: 1px solid var(--border); font-weight: bold; flex-shrink: 0; user-select: none; }
+  .icon-input { flex: 1; border: none; background: transparent; padding: 0 10px; font-size: 14px; color: var(--text-main); outline: none; height: 100%; }
+
+  .ios-guide-bubble {
+    position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); right: 15px; left: auto;
+    transform: translateY(20px); width: 260px; background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    z-index: 1000; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex; flex-direction: column; align-items: flex-end; color: var(--text-main); text-align: right;
+  }
+  @media (prefers-color-scheme: dark) { .ios-guide-bubble { background: rgba(31, 41, 55, 0.95); border-color: rgba(255,255,255,0.1); color: #fff; } }
+  .ios-guide-bubble.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .ios-guide-arrow { margin-top: 12px; margin-right: 12px; width: 28px; height: 28px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(236, 72, 153, 0.3); animation: ios-bounce 1.2s infinite; }
+
+  /* --- 插件与 WebDAV 资源配置 --- */
+  #plugin-modal-backdrop { align-items: flex-start; padding-top: 8vh; padding-bottom: calc(10vh + env(safe-area-inset-bottom)); box-sizing: border-box; }
+  #plugin-modal-backdrop .about-modal { max-height: 100%; overflow: hidden; }
+  .plugin-header-row { display: flex; align-items: center; width: 100%; gap: 20px; }
+  .plugin-tab { padding-bottom: 10px; cursor: pointer; transition: color 0.2s; font-weight: 500; color: var(--text-sub); border-bottom: 2px solid transparent; }
+  .plugin-tab.active { font-weight: bold; color: var(--primary); border-bottom: 2px solid var(--primary); }
+  .plugin-body-col { flex: 1; padding: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--bg-color); }
+  .plugin-section-title { padding: 18px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main); }
+  .plugin-section-title.p-24 { padding: 24px 18px 8px 18px; }
+  .plugin-section-title.p-16-flex { padding: 16px 18px 8px 18px; display: flex; align-items: center; gap: 10px; }
+  .plugin-section-box { background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .plugin-section-box.p-12 { padding: 12px 18px; }
+  .plugin-section-box.p-16 { padding: 16px 18px; }
+  .plugin-section-box.p-flex { padding: 16px 10px; display: flex; justify-content: space-around; align-items: center; }
+  .btn-import-js { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; }
+  .quality-radio-label { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+  .quality-radio { width: 18px; height: 18px; accent-color: var(--primary); margin: 0; }
+  .quality-text { font-size: 12px; color: var(--text-main); font-weight: 500; }
+  .plugin-list-box { margin: 0; padding: 0; list-style: none; }
+
+  .wd-server-row { display: flex; gap: 8px; align-items: center; transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); }
+  .wd-server-select { flex: 1; height: 36px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; }
+  .wd-server-val { width: 100%; height: 100%; outline: none; padding: 0 24px 0 10px; font-size: 14px; color: var(--text-main); display: flex; align-items: center; border: none; background: transparent url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%236b7280\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpolyline points=\\'6 9 12 15 18 9\\'%3E%3C/polyline%3E%3C/svg%3E') no-repeat right 8px center / 12px; cursor: pointer; border-radius: 8px; }
+  .wd-server-opts { min-width: 100%; left: 0; right: 0; top: 100%; margin-top: 4px; max-height: 200px; overflow-y: auto; }
+  .btn-wd-icon { flex-shrink: 0; transition: all 0.2s; background: #6b7280; color: #fff; }
+  .wd-delete-view { position: absolute; inset: 0; padding: 0 10px; display: none; align-items: center; justify-content: space-between; transform: translateX(100%); transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); }
+  .wd-edit-panel { display: none; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .wd-input-field { width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); padding: 0 10px; font-size: 14px; outline: none; }
+  .wd-edit-btns { display: flex; gap: 8px; margin-top: 6px; }
+  .wd-btn-test { flex: 1; background: var(--bg-color); color: var(--primary); border: 1px solid var(--primary); height: 32px; }
+  .wd-btn-cancel { flex: 1; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); height: 32px; }
+  .wd-btn-save { flex: 1; background: var(--primary); color: #fff; border: none; height: 32px; font-weight: bold; }
+
+  .wd-dir-row { display: flex; align-items: center; gap: 8px; }
+  .wd-dir-path-box { flex: 1; height: 36px; line-height: 34px; padding: 0 10px; border: 1px dashed var(--border); border-radius: 8px; background: var(--bg-color); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }
+  .btn-browse { height: 36px; padding: 0 12px; font-size: 13px; }
+  .wd-dir-browser { display: none; flex-direction: column; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .wd-dir-breadcrumbs { padding: 8px 10px; background: var(--card-bg); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--primary); font-weight: bold; overflow-x: auto; white-space: nowrap; }
+  .wd-dir-list { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; }
+  .wd-dir-actions { display: flex; border-top: 1px solid var(--border); }
+  .btn-dir-cancel { flex: 1; border: none; border-radius: 0; border-right: 1px solid var(--border); height: 36px; }
+  .btn-dir-confirm { flex: 1; border-radius: 0; height: 36px; }
+  .btn-wd-scan { width: 100%; font-weight: bold; margin-top: 16px; display: flex; justify-content: center; align-items: center; gap: 6px; height: 40px; }
+
+  .radio-mode-row { display: flex; gap: 20px; }
+  .radio-mode-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; color: var(--text-main); user-select: none; }
+  .radio-mode-input { accent-color: var(--primary); width: 16px; height: 16px; margin: 0; }
+  .mode-desc-text { font-size: 11px; color: var(--text-sub); margin-top: 8px; line-height: 1.4; }
+
+  .direct-test-wrap { display: none; margin-top: 12px; font-size: 12px; background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px dashed var(--border); }
+  .direct-test-title { font-weight: bold; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .direct-test-desc { color: var(--text-sub); margin-bottom: 12px; line-height: 1.4; }
+  .btn-direct-auth { width: 100%; height: 34px; font-size: 13px; font-weight: bold; background: var(--primary); display: flex; justify-content: center; align-items: center; gap: 6px; border-radius: 8px; }
+
+  /* --- 调速与续播专属 --- */
+  .config-pl-info { display: flex; align-items: center; font-size: 13px; color: var(--text-sub); gap: 6px; margin-bottom: 10px; }
+  .config-pl-name { color: var(--primary); font-weight: bold; }
+  .speed-val-row { display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-size: 13px; color: var(--text-main); margin-bottom: 6px; }
+  .speed-val-text { color: var(--primary); font-weight: bold; font-variant-numeric: tabular-nums; }
+  .btn-square-26 { width: 26px; height: 26px; margin: 0; background: var(--card-bg); border: 1px solid var(--border); flex-shrink: 0; }
+  .speed-hint-text { font-size: 12px; color: var(--text-sub); font-weight: 500; flex-shrink: 0; }
+  .cloud-hint-row { font-size: 13px; color: var(--text-sub); margin-left: 4px; display: none; align-items: center; gap: 6px; }
+  .settings-section-title { font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; }
+  .settings-radio-group { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+  .settings-radio-label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; color: var(--text-main); }
+  .settings-radio-label input[type="radio"] { accent-color: var(--primary); width: 16px; height: 16px; }
+
+  /* --- 单曲操作与创建歌单 --- */
+  .song-modal-title { font-size: 18px; font-weight: 800; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+  .song-modal-text { font-size: 15px; font-weight: 500; }
+  .song-modal-highlight { color: var(--primary); font-weight: bold; }
+  .song-modal-sub { font-size: 13px; color: var(--text-sub); margin-top: 10px; }
+  .checkbox-label { display: flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 13px; color: var(--text-sub); cursor: pointer; user-select: none; }
+  .checkbox-input { width: 16px; height: 16px; accent-color: var(--primary); }
+  .add-song-input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .add-song-input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; outline: none; background: var(--bg-color); color: var(--text-main); font-size: 14px; }
+  .btn-create-add { padding: 8px 14px; border-radius: 8px; flex-shrink: 0; }
+  .add-song-list-title { font-size: 14px; font-weight: 500; color: var(--text-main); margin-bottom: 8px; }
+  .add-song-playlist-ul { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); }
+
+  /* --- 自定义歌单二次洗牌 --- */
   .edit-pl-item { display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid var(--border); transition: background 0.2s; min-height: 52px; }
   .edit-pl-name-wrap { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 16px; color: var(--text-main); font-weight: 500; }
   .edit-pl-name-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -372,26 +540,27 @@
   #edit-pl-create-btn { padding: 0 14px; height: 34px; font-size: 13px; border-radius: 8px; }
   .edit-pl-delete-warn { font-size: 14px; color: #ef4444; font-weight: bold; margin-right: auto; }
 
-  /* ==========================================
-     9. iOS 桌面安装指引
-     ========================================== */
-  .ios-install-pane { display: none; animation: fadeIn 0.2s; }
-  .ios-install-pane.active { display: block; }
-  .ios-guide-bubble {
-    position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); right: 15px; left: auto;
-    transform: translateY(20px); width: 260px; background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 16px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    z-index: 1000; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex; flex-direction: column; align-items: flex-end; color: var(--text-main); text-align: right;
-  }
-  @media (prefers-color-scheme: dark) { .ios-guide-bubble { background: rgba(31, 41, 55, 0.95); border-color: rgba(255,255,255,0.1); color: #fff; } }
-  .ios-guide-bubble.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
-  .ios-guide-arrow { margin-top: 12px; margin-right: 12px; width: 28px; height: 28px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(236, 72, 153, 0.3); animation: ios-bounce 1.2s infinite; }
-  @keyframes ios-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+  .edit-pl-modal { height: 60vh; display: flex; flex-direction: column; }
+  .edit-pl-header { flex-direction: column; align-items: flex-start; padding-bottom: 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--card-bg); }
+  .edit-pl-body { flex: 1; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .edit-pl-input-row { flex-shrink: 0; padding: 15px 18px; border-bottom: 1px solid var(--border); background: var(--bg-color); display: flex; align-items: center; gap: 10px; }
+  .edit-pl-input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; outline: none; background: var(--card-bg); color: var(--text-main); font-size: 16px; }
+  .btn-create-pl { border-radius: 8px; white-space: nowrap; font-weight: bold; }
+  .edit-pl-list-container { flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 0; padding-bottom: 20px; overscroll-behavior: contain; }
 
   /* ==========================================
-     10. 宽屏适配 / 桌面端居中
+     11. 桌面分栏控制小白条 (Desktop Split Toggle)
+     ========================================== */
+  .split-toggle-btn {
+    display: none; position: fixed; top: 50%; transform: translateY(-50%); width: 14px; height: 50px;
+    background: var(--card-bg); border: 1px solid var(--border); z-index: 250; cursor: pointer;
+    align-items: center; justify-content: center; color: var(--text-sub); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .split-toggle-btn:active { background: var(--bg-color); }
+  .split-toggle-btn svg { width: 10px !important; height: 10px !important; transition: transform 0.3s; }
+
+  /* ==========================================
+     12. 桌面端宽屏适配与双栏无缝切分 (Media Queries)
      ========================================== */
   @media (min-width: 600px) {
     html { background-color: #e5e7eb; overflow-y: scroll; scrollbar-gutter: stable; }
@@ -405,131 +574,31 @@
     #fp-cover { -webkit-user-drag: none; user-drag: none; -webkit-user-select: none; user-select: none; pointer-events: auto; }
   }
 
-  /* ==========================================
-     沉浸海报风歌单网格
-     ========================================== */
-  .playlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 14px 10px; padding: 10px 16px 20px 16px; width: 100%; box-sizing: border-box; }
-  .pl-card-b { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.15); user-select: none; border: 1px solid rgba(0,0,0,0.05); }
-  .pl-card-b:active { transform: scale(0.96); }
-  .pl-card-b img { width: 100%; height: 100%; object-fit: cover; }
-  .pl-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 25px 8px 8px 8px; background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85)); display: flex; flex-direction: column; justify-content: flex-end; pointer-events: none; }
-  .pl-card-b .pl-name { color: #fff; font-size: 11px; font-weight: bold; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 2px rgba(0,0,0,0.6); margin-bottom: 4px; }
-  .pl-card-b .pl-time { color: rgba(255,255,255,0.75); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pl-card-b .pl-playcount { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.4); color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 8px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); font-weight: 500; display: flex; align-items: center; gap: 2px; }
-
-  .select-option.disabled-text, .song-more-menu-item.disabled-text { color: var(--text-sub) !important; opacity: 0.8; }
-
-  /* ==========================================
-     11. 终极完美收官版：双栏适配 + 垂直高度联动自适应
-     ========================================== */
-  .split-toggle-btn { display: none; position: fixed; top: 50%; transform: translateY(-50%); width: 14px; height: 50px; background: var(--card-bg); border: 1px solid var(--border); z-index: 250; cursor: pointer; align-items: center; justify-content: center; color: var(--text-sub); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
-  .split-toggle-btn:active { background: var(--bg-color); }
-  .split-toggle-btn svg { width: 10px !important; height: 10px !important; transition: transform 0.3s; }
-
   @media (min-width: 960px) {
     .split-toggle-btn { display: flex; }
     body:not(.split-view-active) { width: 480px !important; margin: 0 auto !important; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
     body:not(.split-view-active) .split-toggle-btn { left: 50%; margin-left: -254px; border-radius: 8px 0 0 8px; border-right: none; box-shadow: -2px 0 10px rgba(0,0,0,0.05); }
     body:not(.split-view-active) .split-toggle-btn svg { transform: rotate(0deg); }
+
     body.split-view-active { width: 960px !important; margin: 0 auto !important; border-left: 1px solid var(--border); border-right: 1px solid var(--border); box-shadow: 0 0 60px rgba(0,0,0,0.15); padding-bottom: 0 !important; }
     body.split-view-active .split-toggle-btn { left: 50%; margin-left: -7px; border-radius: 4px; border: 1px solid var(--border); box-shadow: 0 0 8px rgba(0,0,0,0.1); }
     body.split-view-active .split-toggle-btn svg { transform: rotate(180deg); }
+
     body.split-view-active .header { width: 960px !important; left: 50% !important; margin-left: -480px !important; right: auto !important; border-bottom: 1px solid var(--border); z-index: 260 !important; }
     body.split-view-active .playlist-row { position: sticky !important; width: 479px !important; left: auto !important; right: auto !important; margin-left: 479px !important; margin-right: 0 !important; z-index: 200 !important; padding-top: 8px !important; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05) !important; background: rgba(243, 244, 246, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important; }
     body.split-view-active #playlist-opts { top: 48px !important; }
     @media (prefers-color-scheme: dark) { body.split-view-active .playlist-row { background: rgba(17, 24, 39, 0.65) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3) !important; } }
+
     body.split-view-active .playlist, body.split-view-active .playlist-grid, body.split-view-active #loading { width: 479px !important; margin-left: 479px !important; margin-top: 0 !important; }
     body.split-view-active .full-player { display: flex !important; transform: none !important; width: 480px !important; left: 50% !important; margin-left: -480px !important; top: 56px !important; height: calc(100vh - var(--player-height) - 56px - env(safe-area-inset-bottom)) !important; border-radius: 0 !important; border-top: none !important; box-shadow: none !important; border-right: 1px solid var(--border) !important; padding-top: 24px !important; z-index: 190 !important; }
     body.split-view-active .player-bar { width: 480px !important; left: 50% !important; margin-left: -480px !important; box-shadow: none !important; border-top: 1px solid var(--border) !important; border-right: 1px solid var(--border) !important; z-index: 200 !important; }
     body.split-view-active .drawer-handle { display: none !important; }
     body.split-view-active .up-arrow { visibility: hidden !important; pointer-events: none !important; }
+
     .about-modal-backdrop { width: 100% !important; left: 0 !important; margin-left: 0 !important; }
     body.split-view-active .toast-message { left: 50% !important; transform: translateX(calc(-50% + 240px)) !important; }
   }
-
-  /* ==========================================
-     12. 调速与续播专属 UI 组件
-     ========================================== */
-  .fp-corner-tools { position: absolute; bottom: 20px; left: 0; width: 100%; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; pointer-events: none; }
-  .fp-corner-btn { pointer-events: auto; width: 40px; height: 40px; border-radius: 50%; background: var(--bg-color); border: 1px solid var(--border); display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.2s; color: var(--text-main); font-weight: bold; font-size: 13px; }
-  .fp-corner-btn:active { transform: scale(0.9); }
-  .fp-fav-btn.is-fav { color: var(--primary); }
-
-  .speed-popup-vertical { position: absolute; bottom: 60px; right: 18px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 12px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: none; flex-direction: column; align-items: center; z-index: 110; width: 54px; height: 200px; pointer-events: auto; touch-action: none; }
-  .speed-popup-vertical.show { display: flex; animation: fadeIn 0.15s ease-out; }
-  .speed-popup-vertical input[type=range] { writing-mode: vertical-lr; direction: rtl; width: 28px; height: 100px; background: transparent; outline: none; cursor: pointer; margin: 8px 0; }
-
-  .speed-slider-horizontal { display: flex; align-items: center; gap: 12px; margin: 10px 0 20px 0; }
-
-  .speed-slider-horizontal input[type=range] {
-      flex: 1;
-      height: 32px;
-      background: transparent;
-      outline: none;
-      appearance: none;
-      -webkit-appearance: none;
-      touch-action: none;
-      margin: 0;
-  }
-
-  .speed-slider-horizontal input[type=range]::-webkit-slider-runnable-track {
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-  }
-
-  .speed-slider-horizontal input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #fff;
-      border: 2px solid var(--primary);
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      cursor: pointer;
-      margin-top: -6px;
-  }
-  .settings-section-title { font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; }
-  .settings-radio-group { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-  .settings-radio-label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; color: var(--text-main); }
-  .settings-radio-label input[type="radio"] { accent-color: var(--primary); width: 16px; height: 16px; }
-
-  .pl-status-tag { display: inline-flex; align-items: center; justify-content: center; height: 16px; box-sizing: border-box; font-size: 10px; line-height: 1; padding: 0 4px; border-radius: 4px; border: 1px solid currentColor; margin-left: 6px; opacity: 0.85; vertical-align: middle; transform: translateY(2px); font-weight: normal; }
-
-  /* ==========================================
-     13. 通用原子类 (Utility Classes) - 抽离内联样式
-     ========================================== */
-  .flex-y-center { display: flex; align-items: center; }
-  .h-full { height: 100%; }
-  .w-full { width: 100%; }
-
-  .toolbar-main-box { display: flex; flex: 1; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; height: 40px; box-sizing: border-box; min-width: 0; transition: all 0.2s; }
-
-  .divider-v { width: 1px; height: 14px; background: var(--border); flex-shrink: 0; }
-  .divider-v.mx-2 { margin: 0 2px; }
-  .divider-v.mx-4 { margin: 0 4px; }
-
-  .btn-return { width: auto; height: 30px; margin: 0 4px; padding: 0 10px; border-radius: 6px; font-size: 14px; font-weight: bold; color: var(--primary); }
-  #mf-search-back-btn { color: var(--primary) !important; font-weight: bold !important; font-size: 14px !important; }
-
-  .text-title-bold { font-size: 18px; font-weight: 800; margin: 0; }
-  .modal-sec-title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: var(--text-main); display: flex; align-items: center; }
-  .modal-sec-title svg { margin-right: 6px; }
-
-  .modal-grey-box { background: var(--bg-color); padding: 12px; border-radius: 10px; }
-  .modal-grey-box.p-14 { padding: 14px; }
-  .modal-grey-box.mb-15 { margin-bottom: 15px; }
-  .modal-grey-box.mb-20 { margin-bottom: 20px; }
-  .modal-grey-box.line-h { line-height: 1.8; }
-  /* iOS 风格极简开关 */
-  .ios-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; vertical-align: middle; }
-  .ios-switch input { opacity: 0; width: 0; height: 0; margin: 0; }
-  .ios-switch .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e5e7eb; transition: 0.3s; border-radius: 24px; border: 1px solid var(--border); box-sizing: border-box; }
-  .ios-switch input:checked + .slider { background-color: var(--primary); border-color: var(--primary); }
-  .ios-switch .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 1px; bottom: 1px; background-color: white; transition: 0.3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-  .ios-switch input:checked + .slider:before { transform: translateX(20px); }
-</style>
+  </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
   <script src="./static/utils.js?v0.7.5" defer></script>
@@ -543,22 +612,22 @@
 <body>
 
   <div class="header">
-    <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="header-left-group">
       <div class="custom-select" id="settings-container">
         <div class="settings-btn" id="settings-btn" title="菜单">
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </div>
-        <ul class="select-options" id="settings-opts" style="left: 0; right: auto; min-width: 100px;">
+        <ul class="select-options" id="settings-opts">
           <li class="select-option" id="setting-create-playlist">
              <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> 编辑歌单
           </li>
           <li class="select-option" id="setting-plugin">
-             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> 在线资源
+             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> 在线资源
           </li>
           <li class="select-option" id="setting-preferences-btn">
-             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; vertical-align:-3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> 偏好设置
+             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> 偏好设置
           </li>
           <li class="select-option" id="setting-config">
              <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -578,7 +647,7 @@
         </ul>
       </div>
 
-      <div class="header-logo-group" style="margin-right: 0;">
+      <div class="header-logo-group no-margin">
         <img class="header-icon" id="headerLogo" alt="logo"/>
         <div class="header-title-stack">
           <div class="title-main">iWebPlayer</div>
@@ -595,38 +664,37 @@
     </div>
   </div>
 
-  <div class="playlist-row" id="playlist-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
-    <div class="flex-y-center w-full" style="gap: 10px;">
+  <div class="playlist-row" id="playlist-row">
+    <div class="flex-y-center w-full toolbar-wrapper">
       <div class="toolbar-main-box">
-        <div class="custom-select h-full" id="playlist-container" style="flex: 1; min-width: 0; transition: all 0.2s;">
-          <div class="select-value" id="playlist-val" style="display: flex; align-items: center; width: 100%; border: none; background-color: transparent; height: 100%; box-shadow: none; padding: 0 28px 0 12px; margin: 0; line-height: normal; background-position: right 10px center;">加载中</div>
-          <ul class="select-options" id="playlist-opts" style="width: 100%;"></ul>
+        <div class="custom-select h-full" id="playlist-container">
+          <div class="select-value" id="playlist-val">加载中</div>
+          <ul class="select-options" id="playlist-opts"></ul>
         </div>
 
-        <div class="search-inline-wrap" id="search-inline-wrap" style="background: transparent; border: none; padding: 0; height: 100%; flex: 1.4;">
+        <div class="search-inline-wrap" id="search-inline-wrap">
           <div class="divider-v mx-4"></div>
-          <input type="text" id="search-input" placeholder="请输入关键字..." autocomplete="off" style="padding: 0 8px; flex: 1; height: 100%;">
-          <div class="search-actions" style="margin-right: 8px;">
+          <input type="text" id="search-input" placeholder="请输入关键字..." autocomplete="off">
+          <div class="search-actions">
             <button class="search-icon-btn" id="search-clear" title="清除">
               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
         </div>
 
-        <div class="search-inline-wrap" id="mf-plugin-row" style="background: transparent; border: none; padding: 0; height: 100%; flex: 1.4;">
+        <div class="search-inline-wrap" id="mf-plugin-row">
           <div class="divider-v mx-4"></div>
-          <div class="custom-select h-full" id="engine-container" style="flex: 0 0 auto;">
-            <div class="select-value" id="engine-val" data-value="LXMusic" style="background-color: transparent; border: none; font-size: 13px; padding: 0 20px 0 4px; box-shadow: none; height: 100%; display: flex; align-items: center; background-position: right 4px center; background-size: 12px; color: var(--text-main);">LXMusic</div>
-            <ul class="select-options" id="engine-opts" style="min-width: 100px; right: 0;">
+          <div class="custom-select h-full" id="engine-container">
+            <div class="select-value" id="engine-val" data-value="LXMusic">LXMusic</div>
+            <ul class="select-options" id="engine-opts">
               <li class="select-option active" data-value="LXMusic">LXMusic</li>
-              <li class="select-option" data-value="MusicFree">MusicFree</li>
               <li class="select-option" data-value="WebDAV">WebDAV</li>
             </ul>
           </div>
           <div class="divider-v mx-4"></div>
-          <div class="custom-select h-full" id="mf-plugin-container" style="flex: 1; transition: opacity 0.2s;">
-            <div class="select-value" id="mf-plugin-val" data-value="wy" style="background-color: transparent; border: none; color: var(--text-main); font-size: 13px; padding: 0 24px 0 8px; box-shadow: none; max-width: none; width: 100%; height: 100%; display: flex; align-items: center; justify-content: flex-start; background-position: right 8px center; background-size: 12px;">网易云</div>
-            <ul class="select-options" id="mf-plugin-opts" style="min-width: 120px; right: 0;">
+          <div class="custom-select h-full" id="mf-plugin-container">
+            <div class="select-value" id="mf-plugin-val" data-value="wy">网易云</div>
+            <ul class="select-options" id="mf-plugin-opts">
                 <li class="select-option active" data-value="wy">网易云</li>
                 <li class="select-option" data-value="tx">QQ</li>
                 <li class="select-option" data-value="kg">酷狗</li>
@@ -636,7 +704,7 @@
           </div>
         </div>
 
-        <div id="back-to-grid-wrap" class="flex-y-center" style="display: none; height: 100%; flex: 0 0 auto; padding-right: 4px;">
+        <div id="back-to-grid-wrap" class="flex-y-center">
           <div class="divider-v mx-2"></div>
           <div class="song-more-btn btn-return" id="back-to-grid-btn" title="返回我的歌单">返回</div>
         </div>
@@ -644,17 +712,17 @@
         <div id="menu-dropzone-row1" class="flex-y-center h-full">
           <div id="global-menu-1-wrapper" class="flex-y-center h-full">
             <div class="divider-v mx-2"></div>
-            <div class="custom-select flex-y-center h-full" id="global-menu-1-container" style="flex: 0 0 auto; padding: 0 8px 0 4px;">
-              <div class="song-more-btn" id="global-menu-1-btn" title="列表操作" style="width: 28px; height: 28px; margin: 0; padding: 0;">
+            <div class="custom-select flex-y-center h-full" id="global-menu-1-container">
+              <div class="song-more-btn" id="global-menu-1-btn" title="列表操作">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
               </div>
-              <ul class="select-options" id="global-menu-1-opts" style="right: 0; min-width: 140px; top: 100%;">
-                <li class="select-option" id="setting-refresh"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:-3px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>刷新曲库</li>
-                <li class="select-option global-cover-btn" style="color: var(--text-sub);"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:-3px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>设置封面</li>
-                <li class="select-option global-add-btn"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right:8px; vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>新建/加入歌单</li>
-                <li class="select-option disabled global-dev-btn"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:-3px;"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>调速&续播</li>
-                <li class="select-option" id="menu-config-engine" style="display: none;">
-                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              <ul class="select-options" id="global-menu-1-opts">
+                <li class="select-option" id="setting-refresh"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>刷新曲库</li>
+                <li class="select-option global-cover-btn disabled-text"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>设置封面</li>
+                <li class="select-option global-add-btn"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" class="svg-mr-8"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg>新建/加入歌单</li>
+                <li class="select-option disabled global-dev-btn"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>调速&续播</li>
+                <li class="select-option hidden" id="menu-config-engine">
+                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
                   <span id="menu-config-engine-text">配置引擎</span>
                 </li>
               </ul>
@@ -665,691 +733,674 @@
       </div>
     </div>
 
-    <div class="search-inline-wrap" id="mf-search-wrap" style="flex: 0 0 38px; min-height: 38px; align-items: center; background: transparent; border: none; height: 38px; padding: 0; box-sizing: border-box; width: 100%; gap: 10px;">
-      <div id="mf-search-input-wrap" style="flex: 1; display: flex; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; height: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative; padding-left: 10px;">
-        <input type="text" id="mf-search-input" placeholder="搜全网资源..." autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent; padding: 0 4px 0 0; font-size: 14px; color: var(--text-main); height: 100%; margin: 0; line-height: normal; min-width: 0; -webkit-appearance: none;">
-        <div class="search-actions" style="display: flex; height: 100%; align-items: center; margin-right: 0; gap: 0;">
-          <button class="search-icon-btn" id="mf-search-clear" title="清除" style="margin-right: 0; width: 24px;">
+    <div class="search-inline-wrap" id="mf-search-wrap">
+      <div id="mf-search-input-wrap">
+        <input type="text" id="mf-search-input" placeholder="搜全网资源..." autocomplete="off">
+        <div class="search-actions">
+          <button class="search-icon-btn" id="mf-search-clear" title="清除">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
 
           <div class="search-text-group">
-            <div id="mf-search-main-btns" style="display: flex; align-items: center; height: 100%;">
+            <div id="mf-search-main-btns">
               <button class="search-text-btn" id="mf-search-btn">搜歌</button>
               <div class="search-text-divider" id="mf-search-divider"></div>
               <button class="search-text-btn" id="mf-search-playlist-btn">搜单</button>
             </div>
-            <button class="search-text-btn" id="mf-search-back-btn" style="display: none; padding: 0 20px;">返回</button>
+            <button class="search-text-btn" id="mf-search-back-btn">返回</button>
 
-            <div id="menu-dropzone-row2" style="display: flex; align-items: center; height: 100%;"></div>
+            <div id="menu-dropzone-row2"></div>
 
           </div>
         </div>
       </div>
     </div>
   </div>
-
-
 
   <div id="loading">正在加载音乐...</div>
-  <ul class="playlist" id="playlist"></ul>
-  <div class="playlist-grid" id="playlist-grid" style="display: none;"></div>
+<ul class="playlist" id="playlist"></ul>
+<div class="playlist-grid" id="playlist-grid"></div>
 
-  <div class="full-player" id="full-player">
-    <div class="drawer-handle" id="drawer-handle">
-      <div class="handle-bar"></div>
+<div class="full-player" id="full-player">
+  <div class="drawer-handle" id="drawer-handle">
+    <div class="handle-bar"></div>
+  </div>
+  <div class="fp-cover-wrapper">
+    <img id="fp-cover" class="fp-cover" src="" alt="...">
+  </div>
+  <div class="fp-lyrics-wrapper" id="fp-lyrics-wrapper">
+    <div class="fp-lyrics-container" id="fp-lyrics-container">
+      <div class="no-lyrics">暂无歌词，请欣赏音乐吧</div>
     </div>
-    <div class="fp-cover-wrapper">
-      <img id="fp-cover" class="fp-cover" src="" alt="...">
+  </div>
+  <div class="fp-corner-tools">
+    <div class="fp-corner-btn fp-fav-btn" id="fp-corner-fav" title="收藏">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
     </div>
-    <div class="fp-lyrics-wrapper" id="fp-lyrics-wrapper">
-      <div class="fp-lyrics-container" id="fp-lyrics-container">
-        <div class="no-lyrics">暂无歌词，请欣赏音乐吧</div>
-      </div>
-    </div>
-    <div class="fp-corner-tools">
-      <div class="fp-corner-btn fp-fav-btn" id="fp-corner-fav" title="收藏">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-      </div>
-      <div class="fp-corner-btn" id="fp-corner-speed" title="临时调速">1.0x</div>
+    <div class="fp-corner-btn" id="fp-corner-speed" title="临时调速">1.0x</div>
 
-      <div class="speed-popup-vertical" id="fp-speed-popup">
-        <button class="vol-adj-btn" id="fp-speed-plus">+</button>
-        <input type="range" id="fp-speed-slider" min="0.5" max="3.0" step="0.1" value="1.0" orient="vertical">
-        <button class="vol-adj-btn" id="fp-speed-minus">-</button>
+    <div class="speed-popup-vertical" id="fp-speed-popup">
+      <button class="vol-adj-btn" id="fp-speed-plus">+</button>
+      <input type="range" id="fp-speed-slider" min="0.5" max="3.0" step="0.1" value="1.0" orient="vertical">
+      <button class="vol-adj-btn" id="fp-speed-minus">-</button>
+    </div>
+  </div>
+</div>
+
+<div class="player-bar" id="player-bar">
+  <div class="progress-container" id="progress-container">
+    <div class="progress-bg" id="progress-bg">
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress-thumb" id="progress-thumb"></div>
       </div>
     </div>
   </div>
 
-  <div class="player-bar" id="player-bar">
-    <div class="progress-container" id="progress-container">
-      <div class="progress-bg" id="progress-bg">
-        <div class="progress-bar" id="progress-bar">
-          <div class="progress-thumb" id="progress-thumb"></div>
-        </div>
+  <div class="player-container">
+    <div class="time-row">
+      <span class="time-current" id="time-current">00:00</span>
+      <span class="time-duration" id="time-duration">00:00</span>
+    </div>
+
+    <div class="now-playing-info" id="np-info">
+      <div class="mini-cover" id="mini-cover">
+        <img id="mini-cover-img" src="" alt="cover">
+      </div>
+      <div class="np-text-group">
+        <div class="now-playing-title" id="np-title"><span class="np-title-text">暂无播放</span></div>
+      </div>
+      <div class="up-arrow">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
       </div>
     </div>
 
-    <div class="player-container">
-      <div class="time-row">
-        <span class="time-current" id="time-current">00:00</span>
-        <span class="time-duration" id="time-duration">00:00</span>
-      </div>
-
-      <div class="now-playing-info" id="np-info">
-        <div class="mini-cover" id="mini-cover" style="display: none;">
-          <img id="mini-cover-img" src="" alt="cover">
-        </div>
-        <div class="np-text-group">
-          <div class="now-playing-title" id="np-title"><span class="np-title-text">暂无播放</span></div>
-        </div>
-        <div class="up-arrow">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+    <div class="controls">
+      <div class="mode-wrapper" id="mode-container">
+        <button class="iwp-btn mode-btn" id="btn-mode" title="本单循环">
+          <svg id="icon-mode-0" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h10"></path><polyline points="17 16 20 20 23 16"></polyline><line x1="20" y1="4" x2="20" y2="20"></line></svg>
+          <svg id="icon-mode-1" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+          <svg id="icon-mode-2" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
+          <svg id="icon-mode-3" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path><text x="10" y="15" stroke="none" fill="currentColor" font-size="10" font-weight="bold" font-family="sans-serif">1</text></svg>
+        </button>
+        <div class="volume-popup mode-popup" id="mode-popup">
+          <div class="mode-item" data-mode="0"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h10"></path><polyline points="17 16 20 20 23 16"></polyline><line x1="20" y1="4" x2="20" y2="20"></line></svg>跨单顺播</div>
+          <div class="mode-item" data-mode="1"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>本单循环</div>
+          <div class="mode-item" data-mode="2"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>本单随机</div>
+          <div class="mode-item" data-mode="3"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path><text x="10" y="15" stroke="none" fill="currentColor" font-size="10" font-weight="bold" font-family="sans-serif">1</text></svg>单曲循环</div>
         </div>
       </div>
-
-      <div class="controls">
-        <div class="mode-wrapper" style="position: relative;" id="mode-container">
-          <button class="iwp-btn mode-btn" id="btn-mode" title="本单循环">
-            <svg id="icon-mode-0" style="display:none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h10"></path><polyline points="17 16 20 20 23 16"></polyline><line x1="20" y1="4" x2="20" y2="20"></line></svg>
-            <svg id="icon-mode-1" style="display:block;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
-            <svg id="icon-mode-2" style="display:none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
-            <svg id="icon-mode-3" style="display:none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path><text x="10" y="15" stroke="none" fill="currentColor" font-size="10" font-weight="bold" font-family="sans-serif">1</text></svg>
-          </button>
-          <div class="volume-popup mode-popup" id="mode-popup">
-            <div class="mode-item" data-mode="0"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h10"></path><polyline points="17 16 20 20 23 16"></polyline><line x1="20" y1="4" x2="20" y2="20"></line></svg>跨单顺播</div>
-            <div class="mode-item" data-mode="1"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>本单循环</div>
-            <div class="mode-item" data-mode="2"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>本单随机</div>
-            <div class="mode-item" data-mode="3"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path><text x="10" y="15" stroke="none" fill="currentColor" font-size="10" font-weight="bold" font-family="sans-serif">1</text></svg>单曲循环</div>
-          </div>
-        </div>
-        <button class="iwp-btn" id="btn-prev">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+      <button class="iwp-btn" id="btn-prev">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+      </button>
+      <button class="iwp-btn play-btn" id="btn-play">
+        <svg id="icon-play" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <svg id="icon-pause" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+      </button>
+      <button class="iwp-btn" id="btn-next">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+      </button>
+      <div class="volume-wrapper">
+        <button class="iwp-btn vol-btn" id="btn-volume">
+          <svg id="icon-vol-normal" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          <svg id="icon-vol-mute" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
         </button>
-        <button class="iwp-btn play-btn" id="btn-play">
-          <svg id="icon-play" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          <svg id="icon-pause" style="display: none;" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-        </button>
-        <button class="iwp-btn" id="btn-next">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
-        </button>
-        <div class="volume-wrapper">
-          <button class="iwp-btn vol-btn" id="btn-volume">
-            <svg id="icon-vol-normal" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-            <svg id="icon-vol-mute" style="display: none;" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
-          </button>
-          <div class="volume-popup" id="volume-popup">
-            <div class="volume-text" id="volume-text">50%</div>
-            <button class="vol-adj-btn" id="vol-plus" style="margin-bottom: 12px;">+</button>
-            <input type="range" id="volume-slider" min="0" max="100" value="50" orient="vertical">
-            <button class="vol-adj-btn" id="vol-minus" style="margin-top: 12px;">-</button>
-          </div>
+        <div class="volume-popup" id="volume-popup">
+          <div class="volume-text" id="volume-text">50%</div>
+          <button class="vol-adj-btn" id="vol-plus" style="margin-bottom: 12px;">+</button>
+          <input type="range" id="volume-slider" min="0" max="100" value="50" orient="vertical">
+          <button class="vol-adj-btn" id="vol-minus" style="margin-top: 12px;">-</button>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <audio id="audio" preload="auto"></audio>
+<audio id="audio" preload="auto"></audio>
 
-  <div class="about-modal-backdrop" id="about-backdrop" aria-hidden="true">
-    <div class="about-modal" role="dialog" aria-modal="true">
-      <button class="about-close" id="about-close" aria-label="关闭">×</button>
-      <div class="about-header">
-        <div class="about-logo"><img id="about-logo-img" alt="iWebPlayer Logo" /></div>
-        <div class="about-title-wrap">
-          <h2 id="about-title">iWebPlayer <span class="about-version" id="about-version-label"></span></h2>
-          <div class="about-subtitle">SongLoft 主题插件 · iPhone 体验优化</div>
+<div class="about-modal-backdrop" id="about-backdrop" aria-hidden="true">
+  <div class="about-modal" role="dialog" aria-modal="true">
+    <button class="about-close" id="about-close" aria-label="关闭">×</button>
+    <div class="about-header">
+      <div class="about-logo"><img id="about-logo-img" alt="iWebPlayer Logo" /></div>
+      <div class="about-title-wrap">
+        <h2 id="about-title">iWebPlayer <span class="about-version" id="about-version-label"></span></h2>
+        <div class="about-subtitle">SongLoft 主题插件 · iPhone 体验优化</div>
+      </div>
+    </div>
+    <div class="about-body">
+      <p><strong>iWebPlayer</strong> 是 <strong>SongLoft</strong> 的主题插件之一，专为 <strong>iPhone</strong> 交互优化，媲美原生APP的音乐播放与小爱音箱控制。</p>
+      <ul class="about-features">
+        <li>适配 iPhone Safari 浏览器</li>
+        <li>提供PWA/配置直装，类似原生APP界面</li>
+        <li>iPhone锁屏、灵动岛、媒体库完美体验</li>
+        <li>支持耳机线控（上一曲 / 下一曲 / 暂停）</li>
+        <li>封面 & 歌词自动刮削展示</li>
+        <li>支持倍速播放，记忆续播</li>
+        <li>自建歌单（添加/删除歌曲，自定义封面）</li>
+        <li>调用Songloft的LXMusic，WebDAV插件</li>
+      </ul>
+      <div class="about-link">
+        项目主页 / 更新地址：<br>
+        <a href="https://github.com/birdstudy-nj/iWebPlayer" target="_blank" rel="noopener">https://github.com/birdstudy-nj/iWebPlayer</a>
+      </div>
+    </div>
+    <div class="about-footer">
+      <button class="about-secondary hidden" id="about-migrate-btn">升级旧版歌单</button>
+      <button class="about-primary" id="about-ok">我知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="about-modal-backdrop" id="preferences-backdrop" aria-hidden="true">
+  <div class="about-modal modal-tall" role="dialog" aria-modal="true">
+    <button class="about-close" id="preferences-close" aria-label="关闭">×</button>
+    <div class="about-header modal-header-col">
+      <div class="modal-title-group mb-15">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" style="color: var(--text-main);"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <h2 class="modal-title-h2">参数设置</h2>
+      </div>
+    </div>
+    <div class="about-body modal-scroll-body">
+
+      <div class="pref-item mb-12">
+        <div class="pref-text-wrap">
+          <div class="pref-title">锁屏歌词</div>
+          <div class="pref-desc">在系统锁屏和控制中心的歌曲标题处动态显示当前歌词。</div>
+        </div>
+        <label class="ios-switch">
+          <input type="checkbox" id="switch-lock-lyric">
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="pref-item">
+        <div class="pref-text-wrap">
+          <div class="pref-title">沉浸氛围背景</div>
+          <div class="pref-desc">在全屏播放器背景显示基于当前封面的动态高斯模糊效果。(开发中...)</div>
+        </div>
+        <label class="ios-switch">
+          <input type="checkbox" id="switch-ambient-bg" disabled>
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="pref-item mt-12">
+        <div class="pref-text-wrap">
+          <div class="pref-title">高性能同步模式</div>
+          <div class="pref-desc">开启后极速同步全量曲库。仅限高配服务器使用，低配开启可能导致 504 错误。</div>
+        </div>
+        <label class="ios-switch">
+          <input type="checkbox" id="switch-high-perf">
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="pref-danger-zone">
+
+        <div style="position: relative; overflow: hidden; border-radius: 10px;">
+          <div id="reset-normal-view" style="transition: opacity 0.2s; width: 100%;">
+            <button id="btn-reset-app" class="btn-danger-outline" onmousedown="this.style.background='rgba(239, 68, 68, 0.05)'" onmouseup="this.style.background='transparent'" onmouseleave="this.style.background='transparent'">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              清除本地数据并恢复默认
+            </button>
+          </div>
+
+          <div id="reset-confirm-view" class="reset-confirm-panel">
+            <div class="reset-warn-text">
+              不可逆操作<br><span class="reset-warn-sub">将抹除所有进度与配置</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button id="btn-reset-cancel" class="edit-pl-text-btn edit-pl-cancel">取消</button>
+              <button id="btn-reset-confirm" class="edit-pl-text-btn edit-pl-confirm-delete">确定清除</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="reset-hint">
+          将彻底清空本机存储的播放进度记忆、搜索历史以及所有界面偏好设置。（不会删除服务端的任何真实歌单或音乐）
         </div>
       </div>
-      <div class="about-body">
-        <p><strong>iWebPlayer</strong> 是 <strong>SongLoft</strong> 的主题插件之一，专为 <strong>iPhone</strong> 交互优化，媲美原生APP的音乐播放与小爱音箱控制。</p>
-        <ul class="about-features">
-          <li>适配 iPhone Safari 浏览器</li>
-          <li>提供PWA/配置直装，类似原生APP界面</li>
-          <li>iPhone锁屏、灵动岛、媒体库完美体验</li>
-          <li>支持耳机线控（上一曲 / 下一曲 / 暂停）</li>
-          <li>封面 & 歌词自动刮削展示</li>
-          <li>支持倍速播放，记忆续播</li>
-          <li>自建歌单（添加/删除歌曲，自定义封面）</li>
-          <li>调用Songloft的LXMusic，Subsonic插件</li>
-        </ul>
-        <div class="about-link">
-          项目主页 / 更新地址：<br>
-          <a href="https://github.com/birdstudy-nj/iWebPlayer" target="_blank" rel="noopener">https://github.com/birdstudy-nj/iWebPlayer</a>
+
+    </div>
+  </div>
+</div>
+
+<div class="about-modal-backdrop" id="ios-desktop-backdrop" aria-hidden="true">
+  <div class="about-modal modal-tall" role="dialog" aria-modal="true">
+    <button class="about-close" id="ios-desktop-close" aria-label="关闭">×</button>
+    <div class="about-header modal-header-col">
+      <div class="modal-title-group mb-12">
+        <div class="ios-logo-wrap">
+          <img id="ios-header-logo-img" alt="Logo" />
         </div>
+        <h2 class="modal-title-h2">添加到 iPhone 主屏幕</h2>
       </div>
-      <div class="about-footer">
-        <button class="about-secondary" id="about-migrate-btn" style="display: none;">升级旧版歌单</button>
-        <button class="about-primary" id="about-ok">我知道了</button>
+      <div class="ios-tabs-row">
+        <div class="ios-plugin-tab active" data-target="ios-mode-shortcut">快捷链接</div>
+        <div class="ios-plugin-tab" data-target="ios-mode-pwa">PWA模式</div>
+        <div class="ios-plugin-tab" data-target="ios-mode-profile">配置直装</div>
+      </div>
+    </div>
+    <div class="about-body modal-scroll-body">
+      <div id="ios-mode-shortcut" class="ios-install-pane active">
+        <p class="guide-title">✨ 优点：</p>
+        <p class="guide-desc">功能完整，后台连播最稳定，锁屏后保活能力强。</p>
+        <p class="guide-title">💡 不足：</p>
+        <p class="guide-desc mb-4">有浏览器地址栏。</p>
+        <p class="guide-desc mb-12">正在播放时点击桌面图标会中断播放，需要点灵动岛进入。</p>
+        <div class="guide-title">🛠️ 操作步骤：</div>
+        <div class="guide-step-box">
+          1. 点击浏览器底部的 <svg class="guide-svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="19" cy="12" r="2.5"></circle></svg> 菜单<br>
+          2. 选择 <svg class="guide-svg-icon" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2"></path><polyline points="15 5 12 1 9 5"></polyline><line x1="12" y1="1" x2="12" y2="14"></line></svg> <b>共享</b><br>
+          3. 选择 <svg class="guide-svg-icon" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3" ry="3"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> <b>添加到主屏幕</b><br>
+          4. <span style="color: #ef4444; font-weight: bold;">将【作为网页App打开】开关关闭</span> <svg class="guide-svg-icon" viewBox="0 0 40 24" width="26" height="16"><rect width="40" height="24" rx="12" fill="#e5e7eb"/><circle cx="12" cy="12" r="10" fill="#fff" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.2))"/></svg><br>
+          5. 点击右上角 <b>添加</b><br>
+          6. 自动回到桌面，即可看到独立的原生 App 图标！
+        </div>
+        <button class="about-primary start-ios-guide-btn w-full-mt15" onclick="window.startIosGuide(event)">开启安装引导</button>
+      </div>
+
+      <div id="ios-mode-pwa" class="ios-install-pane">
+        <p class="guide-title">✨ 优点：</p>
+        <p class="guide-desc">无地址栏，100% 沉浸感，媲美原生UI体验。</p>
+        <p class="guide-title">💡 不足：</p>
+        <p class="guide-desc mb-12">受 iOS 限制，锁屏暂停后系统会强制终止进程，无法恢复播放</p>
+        <div class="guide-title">🛠️ 操作步骤：</div>
+        <div class="guide-step-box">
+          1. 点击浏览器底部的 <svg class="guide-svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="19" cy="12" r="2.5"></circle></svg> 菜单<br>
+          2. 选择 <svg class="guide-svg-icon" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2"></path><polyline points="15 5 12 1 9 5"></polyline><line x1="12" y1="1" x2="12" y2="14"></line></svg> <b>共享</b><br>
+          3. 选择 <svg class="guide-svg-icon" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3" ry="3"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> <b>添加到主屏幕</b><br>
+          4. <span style="color: #10b981; font-weight: bold;">确保【作为网页App打开】已开启</span> <svg class="guide-svg-icon" viewBox="0 0 40 24" width="26" height="16"><rect width="40" height="24" rx="12" fill="#34c759"/><circle cx="28" cy="12" r="10" fill="#fff" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.2))"/></svg><br>
+          5. 点击右上角 <b>添加</b><br>
+          6. 自动回到桌面，即可看到独立的原生 App 图标！
+        </div>
+        <button class="about-primary start-ios-guide-btn w-full-mt15" onclick="window.startIosGuide(event)">开启安装引导</button>
+      </div>
+
+      <div id="ios-mode-profile" class="ios-install-pane">
+        <p class="guide-title">✨ 优点：</p>
+        <p class="guide-desc">无地址栏，100% 沉浸感，媲美原生UI体验。</p>
+        <p class="guide-title">💡 不足：</p>
+        <p class="guide-desc mb-12">受 iOS 限制，锁屏暂停后系统会强制终止进程，无法恢复播放</p>
+        <div class="guide-title">🛠️ 操作步骤：</div>
+        <div class="guide-step-box">
+          1. 完成下方图标名称，绑定服务地址修改<br>
+          2. 点击<b>生成并下载配置</b>后，在弹窗中允许下载<br>
+          3. 打开手机自带的 <b>设置</b> 应用<br>
+          4. 前往 <b>通用</b> -> <b>VPN与设备管理</b><br>
+          5. 找到 <b>iWebPlayer Config</b> 点击进行安装，根据iPhone提示直到完成<br>
+          6. 回到桌面，即可看到独立的原生 App 图标！
+        </div>
+        <div style="margin-bottom: 12px;">
+            <div class="guide-title">图标名称</div>
+            <div class="icon-input-group">
+                <div class="icon-prefix">iWebPlayer</div>
+                <input type="text" id="ios-desktop-name" class="icon-input" placeholder="后缀(可选)，如: (家)" maxlength="10" autocomplete="off">
+            </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+            <div class="guide-title">绑定服务地址</div>
+            <div class="icon-input-group">
+                <input type="text" id="ios-desktop-url" class="icon-input" autocomplete="off">
+            </div>
+        </div>
+        <button class="about-primary w-full-mt15 btn-bold" id="btn-download-profile">生成并下载配置</button>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="about-modal-backdrop" id="preferences-backdrop" aria-hidden="true">
-    <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 85vh; display: flex; flex-direction: column;">
-      <button class="about-close" id="preferences-close" aria-label="关闭">×</button>
-      <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 15px;">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" style="color: var(--text-main);"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">参数设置</h2>
-        </div>
+<div class="ios-guide-bubble" id="ios-guide-bubble">
+  <div class="guide-title flex-y-center" style="justify-content: flex-end; width: 100%;">
+    点击底部的 <svg class="guide-svg-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><circle cx="5" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="19" cy="12" r="2.5"></circle></svg> 菜单
+  </div>
+  <div style="font-size: 13px; margin-top: 6px; opacity: 0.8;">
+    选择 <svg class="guide-svg-icon" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2"></path><polyline points="15 5 12 1 9 5"></polyline><line x1="12" y1="1" x2="12" y2="14"></line></svg><b>共享</b> -> <svg class="guide-svg-icon" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3" ry="3"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><b>添加到主屏幕</b>
+  </div>
+  <div class="ios-guide-arrow">
+    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="4" x2="12" y2="18"></line><polyline points="19 11 12 18 5 11"></polyline></svg>
+  </div>
+</div>
+
+<div class="about-modal-backdrop" id="dev-backdrop" aria-hidden="true">
+  <div class="about-modal" role="dialog" aria-modal="true">
+    <button class="about-close" id="dev-close" aria-label="关闭">×</button>
+    <div class="about-header">
+      <div class="about-title-wrap">
+        <h2 class="modal-title-h2" style="margin-top: 4px;">敬请期待 🚀</h2>
       </div>
-      <div class="about-body" style="flex: 1; padding: 0 18px 25px 18px; overflow-y: auto;">
+    </div>
+    <div class="about-body">
+      <p><strong id="dev-modal-feature-name">自定义歌单</strong> 功能正在开发中。</p>
+      <div class="about-link" style="margin-top: 15px;">
+        最新情况请访问项目主页：<br>
+        <a href="https://github.com/birdstudy-nj/iWebPlayer" target="_blank" rel="noopener">https://github.com/birdstudy-nj/iWebPlayer</a>
+      </div>
+    </div>
+    <div class="about-footer">
+      <button class="about-primary" id="dev-ok">我知道了</button>
+    </div>
+  </div>
+</div>
 
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px;">
-          <div style="min-width: 0; padding-right: 15px;">
-            <div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 4px;">锁屏歌词</div>
-            <div style="font-size: 12px; color: var(--text-sub); line-height: 1.4;">在系统锁屏和控制中心的歌曲标题处动态显示当前歌词。</div>
+<div class="about-modal-backdrop" id="config-modal-backdrop" aria-hidden="true">
+  <div class="about-modal modal-tall" role="dialog" aria-modal="true">
+    <button class="about-close" id="config-close" aria-label="关闭">×</button>
+    <div class="about-header modal-header-col">
+      <div class="flex-y-center modal-title-group mb-6">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>
+        <h2 class="text-title-bold">调速&续播</h2>
+      </div>
+      <div class="flex-y-center config-pl-info">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="color: var(--primary);"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        <span id="config-pl-name" class="config-pl-name">当前歌单名称</span>
+      </div>
+    </div>
+
+    <div class="about-body modal-scroll-body">
+
+      <div class="modal-sec-title">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"></path><path d="M3.34 16a10 10 0 1 1 17.32 0"></path></svg>
+        播放速度设置
+      </div>
+      <div class="modal-grey-box p-14 mb-20">
+         <div class="speed-val-row">
+           <span id="config-device-speed-title" style="font-weight: 500;">本机播放速度</span>
+           <span id="config-speed-val" class="speed-val-text">1.0x</span>
+         </div>
+         <div class="speed-slider-horizontal">
+           <button class="vol-adj-btn btn-square-26" id="config-speed-minus">-</button>
+           <span class="speed-hint-text">0.5x</span>
+           <input type="range" id="config-speed-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+           <span class="speed-hint-text">3.0x</span>
+           <button class="vol-adj-btn btn-square-26" id="config-speed-plus">+</button>
+         </div>
+      </div>
+
+      <div class="modal-sec-title">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"></circle><polyline points="12 9 12 13 14 15"></polyline><line x1="12" y1="2" x2="12" y2="4"></line><line x1="10" y1="2" x2="14" y2="2"></line></svg>
+        记忆续播模式 (<span id="config-device-resume-title" style="color: var(--primary);">本机生效</span>)
+      </div>
+      <div class="settings-radio-group modal-grey-box mb-12">
+
+        <label class="settings-radio-label">
+          <input type="radio" name="config-resume-mode" value="off">
+          <div>
+            <div id="config-resume-label-off" style="font-weight: 500;">关闭本机续播</div>
+            <div class="mode-desc-text">每次播放都从头开始。</div>
           </div>
-          <label class="ios-switch">
-            <input type="checkbox" id="switch-lock-lyric">
-            <span class="slider round"></span>
-          </label>
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px;">
-          <div style="min-width: 0; padding-right: 15px;">
-            <div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 4px;">沉浸氛围背景</div>
-            <div style="font-size: 12px; color: var(--text-sub); line-height: 1.4;">在全屏播放器背景显示基于当前封面的动态高斯模糊效果。(开发中...)</div>
+        </label>
+        <label class="settings-radio-label">
+          <input type="radio" name="config-resume-mode" value="local" checked>
+          <div>
+            <div style="font-weight: 500;">设备独立记忆</div>
+            <div class="mode-desc-text">仅记录当前设备的进度，互不干扰。</div>
           </div>
-          <label class="ios-switch">
-            <input type="checkbox" id="switch-ambient-bg" disabled>
-            <span class="slider round"></span>
-          </label>
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; margin-top: 12px;">
-          <div style="min-width: 0; padding-right: 15px;">
-            <div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 4px;">高性能同步模式</div>
-            <div style="font-size: 12px; color: var(--text-sub); line-height: 1.4;">开启后极速同步全量曲库。仅限高配服务器使用，低配开启可能导致 504 错误。</div>
+        </label>
+        <label class="settings-radio-label">
+          <input type="radio" name="config-resume-mode" value="global">
+          <div>
+            <div style="font-weight: 500;">多端无缝接力</div>
+            <div class="mode-desc-text">进度实时同步至云端，所有开启接力的设备无缝共享。</div>
           </div>
-          <label class="ios-switch">
-            <input type="checkbox" id="switch-high-perf">
-            <span class="slider round"></span>
-          </label>
-        </div>
+        </label>
+      </div>
 
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px dashed var(--border); text-align: center;">
+      <div id="config-cloud-hint" class="cloud-hint-row">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+        <span id="config-cloud-text">正在拉取云端记录...</span>
+      </div>
 
-          <div style="position: relative; overflow: hidden; border-radius: 10px;">
-            <div id="reset-normal-view" style="transition: opacity 0.2s; width: 100%;">
-              <button id="btn-reset-app" style="background: transparent; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 10px; padding: 12px 20px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.2s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;" onmousedown="this.style.background='rgba(239, 68, 68, 0.05)'" onmouseup="this.style.background='transparent'" onmouseleave="this.style.background='transparent'">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                清除本地数据并恢复默认
+    </div>
+    <div class="about-footer">
+      <button class="about-secondary" id="config-cancel">取消</button>
+      <button class="about-primary" id="config-save" style="font-weight: bold;">保存设置</button>
+    </div>
+  </div>
+</div>
+
+<div class="about-modal-backdrop" id="remove-song-modal-backdrop" aria-hidden="true">
+  <div class="about-modal" role="dialog" aria-modal="true">
+    <button class="about-close" id="remove-song-close" aria-label="关闭">×</button>
+    <div class="about-header">
+      <div class="about-title-wrap">
+        <h2 class="song-modal-title">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> 移出歌曲
+        </h2>
+      </div>
+    </div>
+    <div class="about-body">
+      <p class="song-modal-text">确定要将 <span id="remove-song-name" class="song-modal-highlight"></span> 移出当前列表吗？</p>
+      <p class="song-modal-sub">💡 仅从当前列表中移除，不会删除真实的本地音乐文件。</p>
+      <label class="checkbox-label">
+        <input type="checkbox" id="remove-song-dont-ask" class="checkbox-input">
+        刷新页面前不再提示，直接移出。
+      </label>
+    </div>
+    <div class="about-footer">
+      <button class="about-secondary" id="remove-song-cancel">取消</button>
+      <button class="about-danger" id="remove-song-confirm">确定移出</button>
+    </div>
+  </div>
+</div>
+
+<div class="about-modal-backdrop" id="add-song-modal-backdrop" aria-hidden="true">
+  <div class="about-modal" role="dialog" aria-modal="true">
+    <button class="about-close" id="add-song-close" aria-label="关闭">×</button>
+    <div class="about-header">
+      <div class="about-title-wrap">
+        <h2 class="song-modal-title">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg> 创建/加入歌单
+        </h2>
+      </div>
+    </div>
+    <div class="about-body">
+      <p style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">将 <span id="add-song-name" class="song-modal-highlight"></span> 加入到：</p>
+      <div class="add-song-input-row">
+        <input type="text" id="add-new-playlist-input" class="add-song-input" placeholder="输入新歌单名称..." autocomplete="off">
+        <button class="about-primary btn-create-add" id="add-new-playlist-btn">创建并加入</button>
+      </div>
+      <div class="add-song-list-title">或选择已有自定义歌单：</div>
+      <ul id="add-song-playlist-list" class="add-song-playlist-ul"></ul>
+      <label class="checkbox-label">
+        <input type="checkbox" id="add-song-dont-ask" class="checkbox-input">
+        刷新页面前不再提示，默认加入选择的歌单。
+      </label>
+    </div>
+    <div class="about-footer">
+      <button class="about-secondary" id="add-song-cancel">取消</button>
+      <button class="about-primary" id="add-song-confirm">确定加入</button>
+    </div>
+  </div>
+</div>
+
+<div class="about-modal-backdrop" id="edit-playlist-backdrop" aria-hidden="true">
+  <div class="about-modal edit-pl-modal" role="dialog" aria-modal="true">
+    <button class="about-close" id="edit-playlist-close" aria-label="关闭">×</button>
+    <div class="about-header edit-pl-header">
+      <div class="modal-title-group">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        <h2 class="modal-title-h2">编辑自定义歌单</h2>
+      </div>
+    </div>
+    <div class="about-body edit-pl-body">
+      <div class="edit-pl-input-row">
+        <input type="text" id="edit-pl-new-input" class="edit-pl-input" placeholder="输入新歌单名称..." autocomplete="off">
+        <button class="about-primary btn-create-pl" id="edit-pl-create-btn">创建歌单</button>
+      </div>
+      <ul id="edit-playlist-list" class="edit-pl-list-container"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="about-modal-backdrop" id="plugin-modal-backdrop" aria-hidden="true">
+  <div class="about-modal modal-tall" role="dialog" aria-modal="true">
+    <button class="about-close" id="plugin-close" aria-label="关闭">×</button>
+
+    <div class="about-header modal-header-col" style="border-bottom: 1px solid var(--border); background: var(--card-bg);">
+      <div class="modal-title-group mb-12">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        <h2 class="modal-title-h2">在线资源配置</h2>
+      </div>
+      <div class="plugin-header-row">
+        <div class="plugin-tab active" data-target="plugin-lx-pane">LXMusic</div>
+        <div class="plugin-tab" data-target="plugin-webdav-pane">WebDAV</div>
+      </div>
+    </div>
+
+    <div class="about-body plugin-body-col">
+
+      <div id="plugin-lx-pane" class="plugin-pane active">
+        <div style="display: flex; flex-direction: column;">
+          <div class="plugin-section-title">LX音源</div>
+          <div class="plugin-section-box">
+            <div class="plugin-section-box p-12">
+              <button id="btn-import-plugin" class="about-primary btn-import-js">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                导入脚本文件(.js)
               </button>
+              <input type="file" id="plugin-upload-input" accept=".js" class="hidden">
             </div>
-
-            <div id="reset-confirm-view" style="position: absolute; inset: 0; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; transform: translateX(100%); transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);">
-              <div style="font-size: 13px; font-weight: bold; color: #ef4444; text-align: left; line-height: 1.2;">
-                不可逆操作<br><span style="font-size: 11px; font-weight: normal; opacity: 0.8;">将抹除所有进度与配置</span>
-              </div>
-              <div style="display: flex; gap: 8px;">
-                <button id="btn-reset-cancel" class="edit-pl-text-btn" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); height: 28px;">取消</button>
-                <button id="btn-reset-confirm" class="edit-pl-text-btn" style="background: #ef4444; color: #fff; border: none; height: 28px;">确定清除</button>
-              </div>
-            </div>
+            <ul id="plugin-list-ul" class="plugin-list-box">
+              <div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">正在加载源脚本...</div>
+            </ul>
           </div>
 
-          <div style="font-size: 11px; color: var(--text-sub); margin-top: 10px; line-height: 1.4;">
-            将彻底清空本机存储的播放进度记忆、搜索历史以及所有界面偏好设置。（不会删除服务端的任何真实歌单或音乐）
+          <div class="plugin-section-title p-24">LX音质</div>
+          <div class="plugin-section-box p-flex">
+            <label class="quality-radio-label">
+              <input type="radio" name="lx-quality-radio" value="128k" class="quality-radio">
+              <span class="quality-text">标准</span>
+            </label>
+            <label class="quality-radio-label">
+              <input type="radio" name="lx-quality-radio" value="320k" checked class="quality-radio">
+              <span class="quality-text">高品质</span>
+            </label>
+            <label class="quality-radio-label">
+              <input type="radio" name="lx-quality-radio" value="flac" class="quality-radio">
+              <span class="quality-text">无损</span>
+            </label>
+            <label class="quality-radio-label">
+              <input type="radio" name="lx-quality-radio" value="flac24bit" class="quality-radio">
+              <span class="quality-text">Hi-Res</span>
+            </label>
+            <label class="quality-radio-label">
+              <input type="radio" name="lx-quality-radio" value="master" class="quality-radio">
+              <span class="quality-text">母带</span>
+            </label>
+          </div>
+
+          <div class="plugin-section-title p-24">平台排序</div>
+          <div class="plugin-section-box">
+            <ul id="platform-sort-ul" class="plugin-list-box"></ul>
           </div>
         </div>
-
-      </div>
-    </div>
-  </div>
-
-  <div class="about-modal-backdrop" id="ios-desktop-backdrop" aria-hidden="true" style="align-items: flex-start; padding-top: 8vh;">
-    <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 80vh; display: flex; flex-direction: column;">
-      <button class="about-close" id="ios-desktop-close" aria-label="关闭">×</button>
-      <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 12px;">
-          <div class="about-logo" style="width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;">
-            <img id="ios-header-logo-img" alt="Logo" style="width: 100%; height: 100%; object-fit: cover;" />
-          </div>
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">添加到 iPhone 主屏幕</h2>
-        </div>
-        <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--border); width: 100%;">
-          <div class="ios-plugin-tab active" data-target="ios-mode-shortcut" style="padding-bottom: 10px; cursor: pointer; font-weight: bold; color: var(--primary); border-bottom: 2px solid var(--primary); transition: color 0.2s;">快捷链接</div>
-          <div class="ios-plugin-tab" data-target="ios-mode-pwa" style="padding-bottom: 10px; cursor: pointer; font-weight: 500; color: var(--text-sub); border-bottom: 2px solid transparent; transition: color 0.2s;">PWA模式</div>
-          <div class="ios-plugin-tab" data-target="ios-mode-profile" style="padding-bottom: 10px; cursor: pointer; font-weight: 500; color: var(--text-sub); border-bottom: 2px solid transparent; transition: color 0.2s;">配置直装</div>
-        </div>
-      </div>
-      <div class="about-body" style="flex: 1; padding: 15px 18px 25px 18px; overflow-y: auto;">
-        <div id="ios-mode-shortcut" class="ios-install-pane active">
-          <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">✨ 优点：</p>
-          <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px; padding-left: 6px;">功能完整，后台连播最稳定，锁屏后保活能力强。</p>
-          <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">💡 不足：</p>
-          <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 4px; padding-left: 6px;">有浏览器地址栏。</p>
-          <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px; padding-left: 6px;">正在播放时点击桌面图标会中断播放，需要点灵动岛进入。</p>
-          <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">🛠️ 操作步骤：</div>
-          <div style="font-size: 13px; color: var(--text-main); background: var(--bg-color); padding: 12px; border-radius: 10px; line-height: 1.8;">
-            1. 点击浏览器底部的 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: text-bottom; margin: 0 2px;"><circle cx="5" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="19" cy="12" r="2.5"></circle></svg> 菜单<br>
-            2. 选择 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin: 0 2px;"><path d="M8 9H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2"></path><polyline points="15 5 12 1 9 5"></polyline><line x1="12" y1="1" x2="12" y2="14"></line></svg> <b>共享</b><br>
-            3. 选择 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin: 0 2px;"><rect x="4" y="4" width="16" height="16" rx="3" ry="3"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> <b>添加到主屏幕</b><br>
-            4. <span style="color: #ef4444; font-weight: bold;">将【作为网页App打开】开关关闭</span> <svg viewBox="0 0 40 24" width="26" height="16" style="vertical-align: text-bottom; margin-left: 2px;"><rect width="40" height="24" rx="12" fill="#e5e7eb"/><circle cx="12" cy="12" r="10" fill="#fff" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.2))"/></svg><br>
-            5. 点击右上角 <b>添加</b><br>
-            6. 自动回到桌面，即可看到独立的原生 App 图标！
-          </div>
-          <button class="about-primary start-ios-guide-btn" style="width: 100%; margin-top: 15px;" onclick="window.startIosGuide(event)">开启安装引导</button>
-        </div>
-
-        <div id="ios-mode-pwa" class="ios-install-pane">
-          <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">✨ 优点：</p>
-          <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px; padding-left: 6px;">无地址栏，100% 沉浸感，媲美原生UI体验。</p>
-          <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">💡 不足：</p>
-          <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px; padding-left: 6px;">受 iOS 限制，锁屏暂停后系统会强制终止进程，无法恢复播放</p>
-          <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">🛠️ 操作步骤：</div>
-          <div style="font-size: 13px; color: var(--text-main); background: var(--bg-color); padding: 12px; border-radius: 10px; line-height: 1.8;">
-            1. 点击浏览器底部的 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: text-bottom; margin: 0 2px;"><circle cx="5" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="19" cy="12" r="2.5"></circle></svg> 菜单<br>
-            2. 选择 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin: 0 2px;"><path d="M8 9H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2"></path><polyline points="15 5 12 1 9 5"></polyline><line x1="12" y1="1" x2="12" y2="14"></line></svg> <b>共享</b><br>
-            3. 选择 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin: 0 2px;"><rect x="4" y="4" width="16" height="16" rx="3" ry="3"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> <b>添加到主屏幕</b><br>
-            4. <span style="color: #10b981; font-weight: bold;">确保【作为网页App打开】已开启</span> <svg viewBox="0 0 40 24" width="26" height="16" style="vertical-align: text-bottom; margin-left: 2px;"><rect width="40" height="24" rx="12" fill="#34c759"/><circle cx="28" cy="12" r="10" fill="#fff" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.2))"/></svg><br>
-            5. 点击右上角 <b>添加</b><br>
-            6. 自动回到桌面，即可看到独立的原生 App 图标！
-          </div>
-          <button class="about-primary start-ios-guide-btn" style="width: 100%; margin-top: 15px;" onclick="window.startIosGuide(event)">开启安装引导</button>
-        </div>
-
-        <div id="ios-mode-profile" class="ios-install-pane">
-          <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">✨ 优点：</p>
-          <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px; padding-left: 6px;">无地址栏，100% 沉浸感，媲美原生UI体验。</p>
-          <p style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--text-main);">💡 不足：</p>
-          <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px; padding-left: 6px;">受 iOS 限制，锁屏暂停后系统会强制终止进程，无法恢复播放</p>
-          <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">🛠️ 操作步骤：</div>
-          <div style="font-size: 13px; color: var(--text-main); background: var(--bg-color); padding: 12px; border-radius: 10px; line-height: 1.8; margin-bottom: 15px;">
-            1. 完成下方图标名称，绑定服务地址修改<br>
-            2. 点击<b>生成并下载配置</b>后，在弹窗中允许下载<br>
-            3. 打开手机自带的 <b>设置</b> 应用<br>
-            4. 前往 <b>通用</b> -> <b>VPN与设备管理</b><br>
-            5. 找到 <b>iWebPlayer Config</b> 点击进行安装，根据iPhone提示直到完成<br>
-            6. 回到桌面，即可看到独立的原生 App 图标！
-          </div>
-          <div style="margin-bottom: 12px;">
-              <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-main);">图标名称</div>
-              <div style="display: flex; align-items: center; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; height: 36px;">
-                  <div style="padding: 0 10px; font-size: 14px; color: var(--text-sub); background: var(--border); height: 100%; display: flex; align-items: center; border-right: 1px solid var(--border); font-weight: bold; flex-shrink: 0; user-select: none;">iWebPlayer</div>
-                  <input type="text" id="ios-desktop-name" placeholder="后缀(可选)，如: (家)" maxlength="10" autocomplete="off" style="flex: 1; border: none; background: transparent; padding: 0 10px; font-size: 14px; color: var(--text-main); outline: none; height: 100%;">
-              </div>
-          </div>
-          <div style="margin-bottom: 12px;">
-              <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-main);">绑定服务地址</div>
-              <div class="modal-input-group" style="margin-top: 0; height: 36px; border-radius: 8px;">
-                  <input type="text" id="ios-desktop-url" autocomplete="off" style="padding: 0 10px; font-size: 14px; height: 100%;">
-              </div>
-          </div>
-          <button class="about-primary" id="btn-download-profile" style="width: 100%; margin-top: 15px; font-weight: bold;">生成并下载配置</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="ios-guide-bubble" id="ios-guide-bubble">
-    <div style="font-size: 14px; font-weight: bold; display: flex; align-items: center; justify-content: flex-end; width: 100%;">
-      点击底部的 <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="margin: 0 4px;"><circle cx="5" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="19" cy="12" r="2.5"></circle></svg> 菜单
-    </div>
-    <div style="font-size: 13px; margin-top: 6px; opacity: 0.8;">
-      选择 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin: 0 2px;"><path d="M8 9H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2"></path><polyline points="15 5 12 1 9 5"></polyline><line x1="12" y1="1" x2="12" y2="14"></line></svg><b>共享</b> -> <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin: 0 2px;"><rect x="4" y="4" width="16" height="16" rx="3" ry="3"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><b>添加到主屏幕</b>
-    </div>
-    <div class="ios-guide-arrow">
-      <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="4" x2="12" y2="18"></line><polyline points="19 11 12 18 5 11"></polyline></svg>
-    </div>
-  </div>
-
-  <div class="about-modal-backdrop" id="dev-backdrop" aria-hidden="true">
-    <div class="about-modal" role="dialog" aria-modal="true">
-      <button class="about-close" id="dev-close" aria-label="关闭">×</button>
-      <div class="about-header">
-        <div class="about-title-wrap">
-          <h2 style="font-size: 18px; font-weight: 800; margin-top: 4px;">敬请期待 🚀</h2>
-        </div>
-      </div>
-      <div class="about-body">
-        <p><strong id="dev-modal-feature-name">自定义歌单</strong> 功能正在开发中。</p>
-        <div class="about-link" style="margin-top: 15px;">
-          最新情况请访问项目主页：<br>
-          <a href="https://github.com/birdstudy-nj/iWebPlayer" target="_blank" rel="noopener">https://github.com/birdstudy-nj/iWebPlayer</a>
-        </div>
-      </div>
-      <div class="about-footer">
-        <button class="about-primary" id="dev-ok">我知道了</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-modal-backdrop" id="config-modal-backdrop" aria-hidden="true">
-    <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 85vh; display: flex; flex-direction: column;">
-      <button class="about-close" id="config-close" aria-label="关闭">×</button>
-      <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0;">
-        <div class="flex-y-center" style="gap: 8px; margin-top: 4px; margin-bottom: 6px;">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>
-          <h2 class="text-title-bold">调速&续播</h2>
-        </div>
-        <div class="flex-y-center" style="font-size: 13px; color: var(--text-sub); gap: 6px; margin-bottom: 10px;">
-          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="color: var(--primary);"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          <span id="config-pl-name" style="color: var(--primary); font-weight: bold;">当前歌单名称</span>
-        </div>
       </div>
 
-      <div class="about-body" style="flex: 1; padding: 10px 18px 20px 18px; overflow-y: auto;">
+      <div id="plugin-webdav-pane" class="plugin-pane hidden">
 
-        <div class="modal-sec-title">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"></path><path d="M3.34 16a10 10 0 1 1 17.32 0"></path></svg>
-          播放速度设置
-        </div>
-        <div class="modal-grey-box p-14 mb-20">
-           <div class="flex-y-center" style="justify-content: flex-start; gap: 8px; font-size: 13px; color: var(--text-main); margin-bottom: 6px;">
-             <span id="config-device-speed-title" style="font-weight: 500;">本机播放速度</span>
-             <span id="config-speed-val" style="color: var(--primary); font-weight: bold; font-variant-numeric: tabular-nums;">1.0x</span>
-           </div>
-           <div class="speed-slider-horizontal" style="margin: 0; gap: 8px;">
-             <button class="vol-adj-btn" id="config-speed-minus" style="width: 26px; height: 26px; margin: 0; background: var(--card-bg); border: 1px solid var(--border); flex-shrink: 0;">-</button>
-             <span style="font-size: 12px; color: var(--text-sub); font-weight: 500; flex-shrink: 0;">0.5x</span>
-             <input type="range" id="config-speed-slider" min="0.5" max="3.0" step="0.1" value="1.0">
-             <span style="font-size: 12px; color: var(--text-sub); font-weight: 500; flex-shrink: 0;">3.0x</span>
-             <button class="vol-adj-btn" id="config-speed-plus" style="width: 26px; height: 26px; margin: 0; background: var(--card-bg); border: 1px solid var(--border); flex-shrink: 0;">+</button>
-           </div>
+        <div class="plugin-section-title p-16-flex">
+          <div>网盘节点管理</div>
+          <button id="wd-btn-add" class="edit-pl-icon-btn btn-import-js" style="width: 22px; height: 22px; padding:0;" title="新增">
+            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
         </div>
 
-        <div class="modal-sec-title">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"></circle><polyline points="12 9 12 13 14 15"></polyline><line x1="12" y1="2" x2="12" y2="4"></line><line x1="10" y1="2" x2="14" y2="2"></line></svg>
-          记忆续播模式 (<span id="config-device-resume-title" style="color: var(--primary);">本机生效</span>)
-        </div>
-        <div class="settings-radio-group modal-grey-box mb-12" style="padding: 12px; gap: 14px;">
-           ```
+        <div class="plugin-section-box p-12" style="position: relative;">
 
-### ✨ 净化效果总结
+          <div id="wd-server-anim-wrap" style="position: relative; overflow: visible; border-radius: 8px;">
+              <div id="wd-server-view" class="wd-server-row">
+                <div class="custom-select wd-server-select" id="wd-server-container">
+                  <div class="select-value wd-server-val" id="wd-server-val" data-value="">加载中...</div>
+                  <ul class="select-options wd-server-opts" id="wd-server-opts"></ul>
+                </div>
 
-1. **瘦身成功**：去掉了至少二十几个重复的 `style="width: 1px; height: 14px;..."` 和 `style="display: flex;..."`，HTML 骨架瞬间清晰可见。
-2. **安全第一**：我特意没有碰你写在 JS 组件里的拼装样式（例如：进度条宽度计算、动态海报遮罩），因为那些是和核心逻辑绑定的。
-
-这就是当前项目阶段的**最优雅解法**：用几行原子化的 Class 解决 80% 的 HTML 视觉污染，但同时不碰业务雷区。修改保存后可以刷新看下，页面外观保证一模一样，但你的代码已经高了一个段位了！
-          <label class="settings-radio-label" style="margin:0; font-size: 14px; align-items: flex-start;">
-            <input type="radio" name="config-resume-mode" value="off" style="margin-top: 2px;">
-            <div>
-              <div id="config-resume-label-off" style="font-weight: 500;">关闭本机续播</div>
-              <div style="font-size: 12px; color: var(--text-sub); margin-top: 3px; font-weight: normal; line-height: 1.4;">每次播放都从头开始。</div>
-            </div>
-          </label>
-          <label class="settings-radio-label" style="margin:0; font-size: 14px; align-items: flex-start;">
-            <input type="radio" name="config-resume-mode" value="local" checked style="margin-top: 2px;">
-            <div>
-              <div style="font-weight: 500;">设备独立记忆 <span style="font-size: 12px; font-weight: normal; color: var(--text-sub);"></span></div>
-              <div style="font-size: 12px; color: var(--text-sub); margin-top: 3px; font-weight: normal; line-height: 1.4;">仅记录当前设备的进度，互不干扰。</div>
-            </div>
-          </label>
-          <label class="settings-radio-label" style="margin:0; font-size: 14px; align-items: flex-start;">
-            <input type="radio" name="config-resume-mode" value="global" style="margin-top: 2px;">
-            <div>
-              <div style="font-weight: 500;">多端无缝接力 <span style="font-size: 12px; font-weight: normal; color: var(--text-sub);"></span></div>
-              <div style="font-size: 12px; color: var(--text-sub); margin-top: 3px; font-weight: normal; line-height: 1.4;">进度实时同步至云端，所有开启接力的设备无缝共享。</div>
-            </div>
-          </label>
-        </div>
-
-        <div id="config-cloud-hint" style="font-size: 13px; color: var(--text-sub); margin-left: 4px; display: none; align-items: center; gap: 6px;">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
-          <span id="config-cloud-text">正在拉取云端记录...</span>
-        </div>
-
-      </div>
-      <div class="about-footer">
-        <button class="about-secondary" id="config-cancel">取消</button>
-        <button class="about-primary" id="config-save" style="font-weight: bold;">保存设置</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-modal-backdrop" id="remove-song-modal-backdrop" aria-hidden="true">
-    <div class="about-modal" role="dialog" aria-modal="true">
-      <button class="about-close" id="remove-song-close" aria-label="关闭">×</button>
-      <div class="about-header">
-        <div class="about-title-wrap">
-          <h2 style="font-size: 18px; font-weight: 800; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> 移出歌曲
-          </h2>
-        </div>
-      </div>
-      <div class="about-body">
-        <p style="font-size: 15px; font-weight: 500;">确定要将 <span id="remove-song-name" style="color: var(--primary); font-weight: bold;"></span> 移出当前列表吗？</p>
-        <p style="font-size: 13px; color: var(--text-sub); margin-top: 10px;">💡 仅从当前列表中移除，不会删除真实的本地音乐文件。</p>
-        <label style="display: flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 13px; color: var(--text-sub); cursor: pointer; user-select: none;">
-          <input type="checkbox" id="remove-song-dont-ask" style="width: 16px; height: 16px; accent-color: var(--primary);">
-          刷新页面前不再提示，直接移出。
-        </label>
-      </div>
-      <div class="about-footer">
-        <button class="about-secondary" id="remove-song-cancel">取消</button>
-        <button class="about-danger" id="remove-song-confirm">确定移出</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-modal-backdrop" id="add-song-modal-backdrop" aria-hidden="true">
-    <div class="about-modal" role="dialog" aria-modal="true">
-      <button class="about-close" id="add-song-close" aria-label="关闭">×</button>
-      <div class="about-header">
-        <div class="about-title-wrap">
-          <h2 style="font-size: 18px; font-weight: 800; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 6a6 6 0 0 0-6 6"></path></svg> 创建/加入歌单
-          </h2>
-        </div>
-      </div>
-      <div class="about-body">
-        <p style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">将 <span id="add-song-name" style="color: var(--primary); font-weight: bold;"></span> 加入到：</p>
-        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-          <input type="text" id="add-new-playlist-input" placeholder="输入新歌单名称..." autocomplete="off" style="flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; outline: none; background: var(--bg-color); color: var(--text-main); font-size: 14px;">
-          <button class="about-primary" id="add-new-playlist-btn" style="padding: 8px 14px; border-radius: 8px; flex-shrink: 0;">创建并加入</button>
-        </div>
-        <div style="font-size: 14px; font-weight: 500; color: var(--text-main); margin-bottom: 8px;">或选择已有自定义歌单：</div>
-        <ul id="add-song-playlist-list" style="list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color);"></ul>
-        <label style="display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; color: var(--text-sub); cursor: pointer; user-select: none;">
-          <input type="checkbox" id="add-song-dont-ask" style="width: 16px; height: 16px; accent-color: var(--primary);">
-          刷新页面前不再提示，默认加入选择的歌单。
-        </label>
-      </div>
-      <div class="about-footer">
-        <button class="about-secondary" id="add-song-cancel">取消</button>
-        <button class="about-primary" id="add-song-confirm">确定加入</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-modal-backdrop" id="edit-playlist-backdrop" aria-hidden="true">
-    <div class="about-modal" role="dialog" aria-modal="true" style="height: 60vh; display: flex; flex-direction: column;">
-      <button class="about-close" id="edit-playlist-close" aria-label="关闭">×</button>
-      <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--card-bg);">
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">编辑自定义歌单</h2>
-        </div>
-      </div>
-      <div class="about-body" style="flex: 1; padding: 0; display: flex; flex-direction: column; overflow: hidden;">
-        <div style="flex-shrink: 0; padding: 15px 18px; border-bottom: 1px solid var(--border); background: var(--bg-color); display: flex; align-items: center; gap: 10px;">
-          <input type="text" id="edit-pl-new-input" placeholder="输入新歌单名称..." autocomplete="off" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; outline: none; background: var(--card-bg); color: var(--text-main); font-size: 16px;">
-          <button class="about-primary" id="edit-pl-create-btn" style="border-radius: 8px; white-space: nowrap; font-weight: bold;">创建歌单</button>
-        </div>
-        <ul id="edit-playlist-list" style="flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 0; padding-bottom: 20px; overscroll-behavior: contain;"></ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-modal-backdrop" id="plugin-modal-backdrop" aria-hidden="true" style="align-items: flex-start; padding-top: 8vh; padding-bottom: calc(10vh + env(safe-area-inset-bottom)); box-sizing: border-box;">
-    <div class="about-modal" role="dialog" aria-modal="true" style="height: auto; max-height: 100%; display: flex; flex-direction: column; overflow: hidden;">
-      <button class="about-close" id="plugin-close" aria-label="关闭">×</button>
-
-      <div class="about-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 0; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--card-bg);">
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 12px;">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0;">在线资源配置</h2>
-        </div>
-        <div style="display: flex; align-items: center; width: 100%; gap: 20px;">
-          <div class="plugin-tab active" data-target="plugin-lx-pane" style="padding-bottom: 10px; cursor: pointer; font-weight: bold; color: var(--primary); border-bottom: 2px solid var(--primary);">LXMusic</div>
-          <div class="plugin-tab" data-target="plugin-webdav-pane" style="padding-bottom: 10px; cursor: pointer; font-weight: 500; color: var(--text-sub); border-bottom: 2px solid transparent;">WebDAV</div>
-        </div>
-      </div>
-
-      <div class="about-body" style="flex: 1; padding: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--bg-color);">
-
-        <div id="plugin-lx-pane" class="plugin-pane active" style="display: block;">
-          <div style="display: flex; flex-direction: column;">
-            <div style="padding: 18px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">LX音源</div>
-            <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
-              <div style="padding: 12px 18px; border-bottom: 1px solid var(--border);">
-                <button id="btn-import-plugin" class="about-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold;">
-                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                  导入脚本文件(.js)
+                <button id="wd-btn-default" class="edit-pl-icon-btn btn-wd-icon" title="设为默认节点">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                 </button>
-                <input type="file" id="plugin-upload-input" accept=".js" style="display: none;">
+
+                <button id="wd-btn-del" class="edit-pl-icon-btn btn-wd-icon" title="删除">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
               </div>
-              <ul id="plugin-list-ul" style="margin: 0; padding: 0; list-style: none;">
-                <div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">正在加载源脚本...</div>
-              </ul>
-            </div>
 
-            <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">LX音质</div>
-            <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 16px 10px; display: flex; justify-content: space-around; align-items: center;">
-              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-                <input type="radio" name="lx-quality-radio" value="128k" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">标准</span>
-              </label>
-              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-                <input type="radio" name="lx-quality-radio" value="320k" checked style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">高品质</span>
-              </label>
-              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-                <input type="radio" name="lx-quality-radio" value="flac" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">无损</span>
-              </label>
-              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-                <input type="radio" name="lx-quality-radio" value="flac24bit" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">Hi-Res</span>
-              </label>
-              <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-                <input type="radio" name="lx-quality-radio" value="master" style="width: 18px; height: 18px; accent-color: var(--primary); margin: 0;">
-                <span style="font-size: 12px; color: var(--text-main); font-weight: 500;">母带</span>
-              </label>
-            </div>
+              <div id="wd-server-delete-view" class="wd-delete-view">
+                <div class="edit-pl-delete-warn">确定移出该节点？</div>
+                <div class="wd-edit-btns">
+                  <button id="wd-btn-del-cancel" class="edit-pl-text-btn edit-pl-cancel">取消</button>
+                  <button id="wd-btn-del-confirm" class="edit-pl-text-btn edit-pl-confirm-delete">确认移出</button>
+                </div>
+              </div>
 
-            <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">平台排序</div>
-            <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
-              <ul id="platform-sort-ul" style="margin: 0; padding: 0; list-style: none;"></ul>
+          </div>
+
+          <div id="wd-server-edit" class="wd-edit-panel">
+            <input type="text" id="wd-edit-name" class="wd-input-field" placeholder="节点名称 (如: 我的阿里云盘)">
+            <input type="text" id="wd-edit-url" class="wd-input-field" placeholder="WebDAV 地址 (如: https://dav.xxx.com)">
+            <input type="text" id="wd-edit-user" class="wd-input-field" placeholder="用户名">
+            <input type="text" id="wd-edit-pass" class="wd-input-field" placeholder="密码 / 授权码">
+
+            <div class="wd-edit-btns">
+              <button id="wd-btn-test" class="edit-pl-text-btn wd-btn-test">测试连接</button>
+              <button id="wd-btn-cancel" class="edit-pl-text-btn wd-btn-cancel">取消</button>
+              <button id="wd-btn-save" class="edit-pl-text-btn wd-btn-save">保存</button>
             </div>
           </div>
         </div>
 
-        <div id="plugin-webdav-pane" class="plugin-pane" style="display: none;">
-
-          <div style="padding: 16px 18px 8px 18px; display: flex; align-items: center; gap: 10px;">
-            <div style="font-size: 14px; font-weight: bold; color: var(--text-main);">网盘节点管理</div>
-            <button id="wd-btn-add" class="edit-pl-icon-btn" style="width: 22px; height: 22px; background: var(--primary); color: #fff; flex-shrink: 0;" title="新增">
-              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            </button>
+        <div class="plugin-section-title p-24">设置根目录</div>
+        <div class="plugin-section-box p-12">
+          <div id="wd-dir-view" class="wd-dir-row">
+            <div id="wd-dir-path" class="wd-dir-path-box">/</div>
+            <button id="wd-btn-browse" class="about-secondary btn-browse">📂 选择</button>
           </div>
 
-          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 18px; position: relative;">
-
-            <div id="wd-server-anim-wrap" style="position: relative; overflow: visible; border-radius: 8px;">
-                <div id="wd-server-view" style="display: flex; gap: 8px; align-items: center; transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);">
-                  <div class="custom-select" id="wd-server-container" style="flex: 1; height: 36px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px;">
-                    <div class="select-value" id="wd-server-val" data-value="" style="width: 100%; height: 100%; outline: none; padding: 0 24px 0 10px; font-size: 14px; color: var(--text-main); display: flex; align-items: center; border: none; background: transparent url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%236b7280\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpolyline points=\\'6 9 12 15 18 9\\'%3E%3C/polyline%3E%3C/svg%3E') no-repeat right 8px center / 12px; cursor: pointer; border-radius: 8px;">加载中...</div>
-                    <ul class="select-options" id="wd-server-opts" style="min-width: 100%; left: 0; right: 0; top: 100%; margin-top: 4px; max-height: 200px; overflow-y: auto;"></ul>
-                  </div>
-
-                  <button id="wd-btn-default" class="edit-pl-icon-btn" style="background: #6b7280; color: #fff; flex-shrink: 0; transition: all 0.2s;" title="设为默认节点">
-                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                  </button>
-
-                  <button id="wd-btn-del" class="edit-pl-icon-btn" style="background: #6b7280; color: #fff; flex-shrink: 0;" title="删除">
-                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  </button>
-                </div>
-
-                <div id="wd-server-delete-view" style="position: absolute; inset: 0; padding: 0 10px; display: none; align-items: center; justify-content: space-between; transform: translateX(100%); transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);">
-                  <div class="edit-pl-delete-warn">确定移出该节点？</div>
-                  <div style="display: flex; gap: 8px;">
-                    <button id="wd-btn-del-cancel" class="edit-pl-text-btn edit-pl-cancel">取消</button>
-                    <button id="wd-btn-del-confirm" class="edit-pl-text-btn edit-pl-confirm-delete">确认移出</button>
-                  </div>
-                </div>
-
-            </div>
-
-            <div id="wd-server-edit" style="display: none; flex-direction: column; gap: 8px; margin-top: 12px;">
-              <input type="text" id="wd-edit-name" placeholder="节点名称 (如: 我的阿里云盘)" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); padding: 0 10px; font-size: 14px; outline: none;">
-              <input type="text" id="wd-edit-url" placeholder="WebDAV 地址 (如: https://dav.xxx.com)" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); padding: 0 10px; font-size: 14px; outline: none;">
-              <input type="text" id="wd-edit-user" placeholder="用户名" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); padding: 0 10px; font-size: 14px; outline: none;">
-              <input type="text" id="wd-edit-pass" placeholder="密码 / 授权码" style="width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); padding: 0 10px; font-size: 14px; outline: none;">
-
-              <div style="display: flex; gap: 8px; margin-top: 6px;">
-                <button id="wd-btn-test" class="edit-pl-text-btn" style="flex: 1; background: var(--bg-color); color: var(--primary); border: 1px solid var(--primary); height: 32px;">测试连接</button>
-                <button id="wd-btn-cancel" class="edit-pl-text-btn" style="flex: 1; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); height: 32px;">取消</button>
-                <button id="wd-btn-save" class="edit-pl-text-btn" style="flex: 1; background: var(--primary); color: #fff; border: none; height: 32px; font-weight: bold;">保存</button>
-              </div>
+          <div id="wd-dir-browser" class="wd-dir-browser">
+            <div id="wd-dir-breadcrumbs" class="wd-dir-breadcrumbs"></div>
+            <ul id="wd-dir-list" class="wd-dir-list">
+              <li style="padding: 10px; text-align: center; color: var(--text-sub); font-size: 13px;">正在加载目录...</li>
+            </ul>
+            <div class="wd-dir-actions">
+              <button id="wd-btn-dir-cancel" class="about-secondary btn-dir-cancel">取消</button>
+              <button id="wd-btn-dir-confirm" class="about-primary btn-dir-confirm">✅ 设为此目录</button>
             </div>
           </div>
 
-          <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">设置根目录</div>
-          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 18px;">
-            <div id="wd-dir-view" style="display: flex; align-items: center; gap: 8px;">
-              <div id="wd-dir-path" style="flex: 1; height: 36px; line-height: 34px; padding: 0 10px; border: 1px dashed var(--border); border-radius: 8px; background: var(--bg-color); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left;">/</div>
-              <button id="wd-btn-browse" class="about-secondary" style="height: 36px; padding: 0 12px; font-size: 13px;">📂 选择</button>
-            </div>
+          <button id="btn-webdav-scan" class="about-primary btn-wd-scan">建立索引 (扫库)</button>
+        </div>
 
-            <div id="wd-dir-browser" style="display: none; flex-direction: column; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 4px;">
-              <div id="wd-dir-breadcrumbs" style="padding: 8px 10px; background: var(--card-bg); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--primary); font-weight: bold; overflow-x: auto; white-space: nowrap;"></div>
-              <ul id="wd-dir-list" style="list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto;">
-                <li style="padding: 10px; text-align: center; color: var(--text-sub); font-size: 13px;">正在加载目录...</li>
-              </ul>
-              <div style="display: flex; border-top: 1px solid var(--border);">
-                <button id="wd-btn-dir-cancel" class="about-secondary" style="flex: 1; border: none; border-radius: 0; border-right: 1px solid var(--border); height: 36px;">取消</button>
-                <button id="wd-btn-dir-confirm" class="about-primary" style="flex: 1; border-radius: 0; height: 36px;">✅ 设为此目录</button>
-              </div>
-            </div>
-
-            <button id="btn-webdav-scan" class="about-primary" style="width: 100%; font-weight: bold; margin-top: 16px; display: flex; justify-content: center; align-items: center; gap: 6px; height: 40px;">
-               建立索引 (扫库)
-            </button>
+        <div class="plugin-section-title p-24">在线播放模式</div>
+        <div class="plugin-section-box p-16">
+          <div class="radio-mode-row">
+            <label class="radio-mode-label">
+              <input type="radio" name="webdav-mode-radio" value="proxy" class="radio-mode-input">服务端代理 (推荐)
+            </label>
+            <label class="radio-mode-label">
+              <input type="radio" name="webdav-mode-radio" value="direct" class="radio-mode-input">直连 (受限)
+            </label>
           </div>
-
-          <div style="padding: 24px 18px 8px 18px; font-size: 14px; font-weight: bold; color: var(--text-main);">在线播放模式</div>
-          <div style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 16px 18px;">
-            <div style="display: flex; gap: 20px;">
-              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; color: var(--text-main); user-select: none;">
-                <input type="radio" name="webdav-mode-radio" value="proxy" style="accent-color: var(--primary); width: 16px; height: 16px; margin: 0;">
-                服务端代理 (推荐)
-              </label>
-              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; color: var(--text-main); user-select: none;">
-                <input type="radio" name="webdav-mode-radio" value="direct" style="accent-color: var(--primary); width: 16px; height: 16px; margin: 0;">
-                直连 (受限)
-              </label>
-            </div>
-            <div style="font-size: 11px; color: var(--text-sub); margin-top: 8px; line-height: 1.4;">
+          <div class="mode-desc-text">
             <b>代理：</b>通过Songloft中转。<br>
             <b>直连：</b>本机直接访问，对WebDAV要求高
           </div>
 
-          <div id="wd-direct-test-wrap" style="display: none; margin-top: 12px; font-size: 12px; background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px dashed var(--border);">
-            <div style="font-weight: bold; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="var(--primary)" stroke-width="2.5" fill="none"><path d="M15 3h6v6"></path><path d="M10 14L21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
-                直连环境初始化
-            </div>
-            <div style="color: var(--text-sub); margin-bottom: 12px; line-height: 1.4;">
-                为突破浏览器对账号密码的拦截，首次直连前需让浏览器建立授权凭证。点击下方按钮，系统将自动弹开验证窗口并于 2 秒后自动关闭。
-            </div>
-            <button id="wd-btn-direct-auth" class="about-primary" style="width: 100%; height: 34px; font-size: 13px; font-weight: bold; background: var(--primary); display: flex; justify-content: center; align-items: center; gap: 6px; border-radius: 8px;">
-                ⚡ 一键激活授权通道
-            </button>
-            <div id="wd-direct-url-hidden" style="display:none;"></div>
-        </div>
-
-        </div>
-
-        </div>
+        <div id="wd-direct-test-wrap" class="direct-test-wrap">
+          <div class="direct-test-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="var(--primary)" stroke-width="2.5" fill="none"><path d="M15 3h6v6"></path><path d="M10 14L21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+              直连环境初始化
+          </div>
+          <div class="direct-test-desc">为突破浏览器对账号密码的拦截，首次直连前需让浏览器建立授权凭证。点击下方按钮，系统将自动弹开验证窗口并于 2 秒后自动关闭。</div>
+          <button id="wd-btn-direct-auth" class="about-primary btn-direct-auth">⚡ 一键激活授权通道</button>
+          <div id="wd-direct-url-hidden" class="hidden"></div>
+      </div>
 
       </div>
+
+      </div>
+
     </div>
   </div>
+</div>
 
   <script>
     /* ==========================================
@@ -1384,7 +1435,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v0.8.2';
+    window.APP_VERSION = 'v0.8.3';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -1870,6 +1921,29 @@
           if (!audioEl.duration || isDragging) return;
           const current = audioEl.currentTime;
           const duration = audioEl.duration;
+
+          // 🌟 修复 WebDAV 直连断流：缓冲停滞检测与自动重载
+          // 如果当前时间极度逼近已缓冲的末尾（相差不到 0.2 秒），且没到歌曲末尾，说明遭遇了死锁断流
+          if (audioEl.buffered.length > 0) {
+              const bufferEnd = audioEl.buffered.end(audioEl.buffered.length - 1);
+              if (current > bufferEnd - 0.2 && current < duration - 1) {
+                  if (!window._stalledRecoveryTimeout) {
+                      console.warn("⚠️ 检测到缓冲停滞 (断流)，尝试重载音频流...");
+                      window._stalledRecoveryTimeout = setTimeout(() => {
+                          const resumeTime = audioEl.currentTime;
+                          audioEl.load(); // 强行重置底层网络连接
+                          audioEl.currentTime = resumeTime; // 拨回到断点
+                          audioEl.play().catch(()=>{});
+                          window._stalledRecoveryTimeout = null;
+                      }, 500); // 给浏览器 0.5 秒的挣扎时间，如果还是没数据则介入
+                  }
+              } else {
+                  if (window._stalledRecoveryTimeout) {
+                      clearTimeout(window._stalledRecoveryTimeout);
+                      window._stalledRecoveryTimeout = null;
+                  }
+              }
+          }
 
           if (Math.floor(current) % 2 === 0 && Math.floor(current) !== window._lastSavedTime) {
               window._lastSavedTime = Math.floor(current);
