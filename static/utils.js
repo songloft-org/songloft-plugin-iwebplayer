@@ -70,11 +70,7 @@ window.fetchLxMusicUrl = async function(sd, quality) {
     const pInfo = await window.getLxPluginInfo();
 
     if (pInfo.type === 3) {
-        // 类型 3：直接拦截并提示不支持
-        if (!window._hasShownType3Toast) {
-            window.showToast("⚠️ 当前洛雪插件版本过高，暂不支持音质调节", true);
-            window._hasShownType3Toast = true;
-        }
+        // 类型 3：直接拦截（不再弹 Toast，已移至设置界面 UI 内联提示）
     } else if (pInfo.type === 2) {
         // 类型 2：先发 POST 强行改写底层全局配置
         try {
@@ -309,20 +305,49 @@ window.updateVolumeIcon = function(vol) {
   }
 };
 
+// 🌟 新增：动态控制音量按钮变灰
+window.updateVolumeBtnUI = function() {
+    const btnVolume = document.getElementById('btn-volume');
+    if (!btnVolume) return;
+    const isMiot = window.MiotManager && window.MiotManager.currentDevice.type === 'miot';
+    if (window.isIOS && !isMiot) {
+        btnVolume.style.opacity = '0.3';
+        btnVolume.style.color = 'var(--text-sub)';
+    } else {
+        btnVolume.style.opacity = '';
+        btnVolume.style.color = '';
+    }
+};
+
 window.updatePlayButtonUI = function(playing) {
-  window.isPlaying = playing;
-  const iconPlay = document.getElementById('icon-play');
-  const iconPause = document.getElementById('icon-pause');
-  const miniCover = document.getElementById('mini-cover');
-  if (iconPlay) iconPlay.style.display = 'none';
-  if (iconPause) iconPause.style.display = 'none';
-  if (playing) {
-    if (iconPause) iconPause.style.display = 'block';
-    if (miniCover) miniCover.classList.add('spinning');
-  } else {
-    if (iconPlay) iconPlay.style.display = 'block';
-    if (miniCover) miniCover.classList.remove('spinning');
-  }
+      window.isPlaying = playing;
+      const miniCover = document.getElementById('mini-cover');
+
+      // 获取 4 个图标 DOM
+      const iconPlay = document.getElementById('icon-play');
+      const iconPause = document.getElementById('icon-pause');
+      const iconMiotPlay = document.getElementById('icon-miot-play');
+      const iconMiotPause = document.getElementById('icon-miot-pause');
+
+      // 判断当前是否处于小爱音箱推送状态
+      const isMiot = window.MiotManager && window.MiotManager.currentDevice.type === 'miot';
+
+      // 先把所有图标无情隐藏
+      if (iconPlay) iconPlay.style.display = 'none';
+      if (iconPause) iconPause.style.display = 'none';
+      if (iconMiotPlay) iconMiotPlay.style.display = 'none';
+      if (iconMiotPause) iconMiotPause.style.display = 'none';
+
+      // 根据 播放状态 和 设备状态，精准点亮唯一一个图标
+      if (playing) {
+        if (isMiot && iconMiotPause) iconMiotPause.style.display = 'block';
+        else if (iconPause) iconPause.style.display = 'block';
+        if (miniCover) miniCover.classList.add('spinning');
+      } else {
+        if (isMiot && iconMiotPlay) iconMiotPlay.style.display = 'block';
+        else if (iconPlay) iconPlay.style.display = 'block';
+        if (miniCover) miniCover.classList.remove('spinning');
+      }
 };
 
 window.getPlaylistConfig = function(plName) {

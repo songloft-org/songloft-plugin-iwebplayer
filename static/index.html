@@ -209,6 +209,7 @@
   .pl-card-b .pl-time { color: rgba(255,255,255,0.75); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pl-card-b .pl-playcount { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.4); color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 8px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); font-weight: 500; display: flex; align-items: center; gap: 2px; }
 
+  body.miot-mode [id^="time-wrap-"] > div:not(.song-dead-tag) { display: none !important; }
   /* ==========================================
      7. 底部播放控制条与进度条
      ========================================== */
@@ -221,6 +222,11 @@
   .progress-bg { width: 100%; height: 4px; background: var(--border); position: relative; border-radius: 4px; }
   .progress-bar { height: 100%; background: var(--primary); width: 0%; position: absolute; top: 0; left: 0; border-radius: 4px; }
   .progress-thumb { position: absolute; right: -7px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; border-radius: 50%; background: #ffffff; border: 3px solid var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+
+  /* 🌟 新增：小爱音箱模式下进度条置灰并彻底禁用拖拽 */
+  body.miot-mode .progress-container { pointer-events: none; }
+  body.miot-mode .progress-bar { background: var(--text-sub) !important; }
+  body.miot-mode .progress-thumb { display: none !important; }
 
   .player-container { max-width: 800px; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-evenly; }
   .time-row { width: 100%; display: flex; justify-content: space-between; }
@@ -601,12 +607,13 @@
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
-  <script src="./static/utils.js?v0.7.5" defer></script>
+  <script src="./static/utils.js?v1.0.1" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v0.8.2" defer></script>
+  <script src="./static/playlist.js?v1.0.0" defer></script>
   <script src="./static/online.js?v0.8.2" defer></script>
-  <script src="./static/plugins.js?v0.8.2" defer></script>
-  <script src="./static/player.js?v0.8.0" defer></script>
+  <script src="./static/plugins.js?v1.0.1" defer></script>
+  <script src="./static/player.js?v1.0.1" defer></script>
+  <script src="./static/miot.js?v1.0.1" defer></script>
 
 </head>
 <body>
@@ -835,6 +842,19 @@
       <button class="iwp-btn play-btn" id="btn-play">
         <svg id="icon-play" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
         <svg id="icon-pause" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+
+        <svg id="icon-miot-play" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+          <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+          <line x1="2" y1="20" x2="2.01" y2="20"></line>
+          <polygon points="12 9 17 12 12 15 12 9" fill="currentColor" stroke="currentColor"></polygon>
+        </svg>
+
+        <svg id="icon-miot-pause" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+          <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+          <line x1="2" y1="20" x2="2.01" y2="20"></line>
+          <line x1="12" y1="9" x2="12" y2="15"></line>
+          <line x1="16" y1="9" x2="16" y2="15"></line>
+        </svg>
       </button>
       <button class="iwp-btn" id="btn-next">
         <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
@@ -1267,27 +1287,33 @@
           </div>
 
           <div class="plugin-section-title p-24">LX音质</div>
-          <div class="plugin-section-box p-flex">
-            <label class="quality-radio-label">
-              <input type="radio" name="lx-quality-radio" value="128k" class="quality-radio">
-              <span class="quality-text">标准</span>
-            </label>
-            <label class="quality-radio-label">
-              <input type="radio" name="lx-quality-radio" value="320k" checked class="quality-radio">
-              <span class="quality-text">高品质</span>
-            </label>
-            <label class="quality-radio-label">
-              <input type="radio" name="lx-quality-radio" value="flac" class="quality-radio">
-              <span class="quality-text">无损</span>
-            </label>
-            <label class="quality-radio-label">
-              <input type="radio" name="lx-quality-radio" value="flac24bit" class="quality-radio">
-              <span class="quality-text">Hi-Res</span>
-            </label>
-            <label class="quality-radio-label">
-              <input type="radio" name="lx-quality-radio" value="master" class="quality-radio">
-              <span class="quality-text">母带</span>
-            </label>
+          <div class="plugin-section-box" style="padding-bottom: 16px;">
+            <div style="padding: 16px 10px 12px 10px; display: flex; justify-content: space-around; align-items: center;">
+              <label class="quality-radio-label">
+                <input type="radio" name="lx-quality-radio" value="128k" class="quality-radio">
+                <span class="quality-text">标准</span>
+              </label>
+              <label class="quality-radio-label">
+                <input type="radio" name="lx-quality-radio" value="320k" checked class="quality-radio">
+                <span class="quality-text">高品质</span>
+              </label>
+              <label class="quality-radio-label">
+                <input type="radio" name="lx-quality-radio" value="flac" class="quality-radio">
+                <span class="quality-text">无损</span>
+              </label>
+              <label class="quality-radio-label">
+                <input type="radio" name="lx-quality-radio" value="flac24bit" class="quality-radio">
+                <span class="quality-text">Hi-Res</span>
+              </label>
+              <label class="quality-radio-label">
+                <input type="radio" name="lx-quality-radio" value="master" class="quality-radio">
+                <span class="quality-text">母带</span>
+              </label>
+            </div>
+
+            <div id="lx-quality-warning" style="display: none; margin: 0 16px; padding: 10px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; color: #ef4444; font-size: 13px; text-align: center; line-height: 1.4;">
+              ⚠️ 当前洛雪插件不支持音质调节<br>请安装版本 2026.x 或 2.x 的洛雪插件
+            </div>
           </div>
 
           <div class="plugin-section-title p-24">平台排序</div>
@@ -1435,7 +1461,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v0.8.3';
+    window.APP_VERSION = 'v1.0.1';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -1922,23 +1948,27 @@
           const current = audioEl.currentTime;
           const duration = audioEl.duration;
 
-          // 🌟 修复 WebDAV 直连断流：缓冲停滞检测与自动重载
-          // 如果当前时间极度逼近已缓冲的末尾（相差不到 0.2 秒），且没到歌曲末尾，说明遭遇了死锁断流
-          if (audioEl.buffered.length > 0) {
+          // 🌟 修复 WebDAV 直连断流：缓冲停滞检测与自动重载 (仅限直连模式生效)
+          const currentItem = window.songList[window.currentIndex];
+          const isDavDirect = currentItem && currentItem.plugin_entry_path === 'dav' && localStorage.getItem('iwebplayer.webdav_mode') === 'direct';
+
+          if (isDavDirect && audioEl.buffered.length > 0) {
               const bufferEnd = audioEl.buffered.end(audioEl.buffered.length - 1);
-              if (current > bufferEnd - 0.2 && current < duration - 1) {
+              // 1. 条件收紧：只有进度距离缓冲末尾不到 0.1 秒（几乎完全卡住），才进入观察期
+              if (bufferEnd - current < 0.2 && current < duration - 1) {
                   if (!window._stalledRecoveryTimeout) {
-                      console.warn("⚠️ 检测到缓冲停滞 (断流)，尝试重载音频流...");
+                      // 2. 耐心拉长：给予浏览器 1000 毫秒（1秒）的自然网络缓冲时间
                       window._stalledRecoveryTimeout = setTimeout(() => {
                           const resumeTime = audioEl.currentTime;
                           audioEl.load(); // 强行重置底层网络连接
                           audioEl.currentTime = resumeTime; // 拨回到断点
                           audioEl.play().catch(()=>{});
                           window._stalledRecoveryTimeout = null;
-                      }, 500); // 给浏览器 0.5 秒的挣扎时间，如果还是没数据则介入
+                      }, 500);
                   }
               } else {
                   if (window._stalledRecoveryTimeout) {
+                      // 只要缓冲成功往前走了，立刻取消重载计划
                       clearTimeout(window._stalledRecoveryTimeout);
                       window._stalledRecoveryTimeout = null;
                   }
@@ -1999,6 +2029,15 @@
         });
 
         btnPlay.addEventListener('click', () => {
+          // =========================================================
+          // 🌟 MIoT 小爱音箱播放流劫持 (第二道岔：接管暂停/继续)
+          // =========================================================
+          if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
+              window.MiotManager.togglePlay();
+              return;
+          }
+          // =========================================================
+
           if (!window._hasManuallyPlayed && currentIndex !== -1 && audioEl.paused && (!audioEl.src || audioEl.src === window.location.href)) {
               window._hasManuallyPlayed = true; window.playSong(currentIndex, true); return;
           }
@@ -2017,10 +2056,20 @@
         modePopup.querySelectorAll('.mode-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation(); playMode = parseInt(item.dataset.mode); window.updatePlayModeUI();
-                localStorage.setItem('iwebplayer.local_play_mode', playMode); modePopup.classList.remove('show');
+
+                // 🌟 核心优化：只有在本机模式下，切换播放顺序才记忆到本机的本地缓存
+                if (!window.MiotManager || window.MiotManager.currentDevice.type !== 'miot') {
+                    localStorage.setItem('iwebplayer.local_play_mode', playMode);
+                }
+
+                modePopup.classList.remove('show');
+
+                // 同步给小爱音箱
+                if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
+                    window.MiotManager.setPlayMode(playMode);
+                }
             });
         });
-
         function playNextSong(isAutoEnd = false) {
             if (songList.length === 0) return;
             if (isAutoEnd && playMode === 3) { audioEl.currentTime = 0; audioEl.play(); return; }
@@ -2072,14 +2121,53 @@
         });
         btnPrev.addEventListener('click', playPrevSong);
 
-        btnVolume.addEventListener('click', (e) => { e.stopPropagation(); if (isIOS) { window.showToast("iPhone不支持调节本机音量"); return; } volumePopup.classList.toggle('show'); });
-        volumeSlider.addEventListener('input', (e) => { const vol = e.target.value; volumeText.innerText = vol + '%'; localStorage.setItem('iwebplayer.player_volume', vol); window.updateVolumeIcon(vol); audioEl.volume = vol / 100; });
+      btnVolume.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isMiot = window.MiotManager && window.MiotManager.currentDevice.type === 'miot';
+          // 🌟 解除封印：只有在 iPhone 且 控制本机 时才拦截，控制小爱音箱时放行！
+          if (window.isIOS && !isMiot) {
+              window.showToast("iPhone不支持调节本机音量");
+              return;
+          }
+          volumePopup.classList.toggle('show');
+      });
+      let _volSyncTimeout = null;
+      volumeSlider.addEventListener('input', (e) => {
+            const vol = e.target.value;
+            volumeText.innerText = vol + '%';
+            window.updateVolumeIcon(vol);
 
+            // 🌟 核心优化：只有在本机模式下，拖动才记忆到本机的缓存和音频标签
+            if (!window.MiotManager || window.MiotManager.currentDevice.type !== 'miot') {
+                localStorage.setItem('iwebplayer.player_volume', vol);
+                audioEl.volume = vol / 100;
+            }
+
+            // 核心黑科技：防抖发送 (Debounce)
+            if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
+                if (_volSyncTimeout) clearTimeout(_volSyncTimeout);
+                _volSyncTimeout = setTimeout(() => {
+                    window.MiotManager.setVolume(vol);
+                }, 300);
+            }
+        });
+
+        volumeSlider.addEventListener('change', (e) => {
+            if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
+                window.MiotManager.setVolume(e.target.value);
+            }
+        });
         const adjustVolumeBy = (delta) => {
             let currentVol = parseInt(volumeSlider.value) || 0;
             let newVol = currentVol + delta;
             if (newVol > 100) newVol = 100; if (newVol < 0) newVol = 0;
-            volumeSlider.value = newVol; volumeSlider.dispatchEvent(new Event('input'));
+            volumeSlider.value = newVol;
+
+            // 触发 UI 上的百分比和图标更新
+            volumeSlider.dispatchEvent(new Event('input'));
+
+            // 🌟 核心修复：补发 change 事件，通知小爱音箱同步！
+            volumeSlider.dispatchEvent(new Event('change'));
         };
         document.getElementById('vol-plus')?.addEventListener('click', (e) => { e.stopPropagation(); adjustVolumeBy(5); });
         document.getElementById('vol-minus')?.addEventListener('click', (e) => { e.stopPropagation(); adjustVolumeBy(-5); });
@@ -2694,7 +2782,7 @@
       defaultCover = window.defaultCover;
       renderLogos();
       initSplitView();
-      initDeviceDropdown();
+      if (window.MiotManager) window.MiotManager.init();
       bindAllEvents();
       checkLocalVersionUpdate();
 
@@ -2727,10 +2815,11 @@
 
         window.initPlaylistDropdown();
 
-        const savedVol = localStorage.getItem('iwebplayer.player_volume') || 50;
+        const savedVol = localStorage.getItem('iwebplayer.player_volume') || 100;
         volumeSlider.value = savedVol; audioEl.volume = savedVol / 100; volumeText.innerText = savedVol + '%';
 
         window.updateVolumeIcon(savedVol);
+        if (window.updateVolumeBtnUI) window.updateVolumeBtnUI(); // 🌟 新增：首屏加载判定
         window.updatePlayModeUI();
         loadingEl.style.display = 'none';
 

@@ -1182,16 +1182,23 @@
                     window.playlistMeta = cache.playlistMeta || [];
 
                     const poolMap = new Map((cache.songsPool || []).map(s => [s.id, s]));
+
+                    // 🌟 核心修复 1：在覆盖 allPlaylists 之前，必须先将内存中现存的 WebDAV/搜索数据保护起来！
+                    const tempOnlineCache = window.allPlaylists ? (window.allPlaylists["在线资源"] || []) : [];
+                    const tempSearchCache = window.allPlaylists ? (window.allPlaylists["曲库搜索"] || []) : [];
+
                     window.allPlaylists = {};
 
                     for (const [plName, idArray] of Object.entries(cache.playlistsMap || {})) {
                         window.allPlaylists[plName] = idArray.map(id => poolMap.get(id)).filter(Boolean);
                     }
 
-                    window.allPlaylists["我的歌单"] = [];
                     if (!window.allPlaylists["收藏"]) window.allPlaylists["收藏"] = [];
-                    window.allPlaylists["曲库搜索"] = [];
-                    window.allPlaylists["在线资源"] = [];
+
+                    // 🌟 核心修复 2：将保护好的数据原封不动还原回去，防止被无情清零！
+                    window.allPlaylists["曲库搜索"] = tempSearchCache;
+                    window.allPlaylists["在线资源"] = tempOnlineCache;
+
                     window.favoriteList = window.allPlaylists["收藏"].map(item => window.getSongNameObj(item));
 
                     hasCache = true;
@@ -1321,7 +1328,7 @@
                     const tempSearch = window.allPlaylists["曲库搜索"] || [];
 
                     window.allPlaylists = syncReconstructed;
-                    window.allPlaylists["我的歌单"] = [];
+                    // 🌟 顺手把这里可能清空首页数据的垃圾代码删除了
                     if (!window.allPlaylists["收藏"]) window.allPlaylists["收藏"] = [];
                     window.allPlaylists["曲库搜索"] = tempSearch;
                     window.allPlaylists["在线资源"] = tempOnline;

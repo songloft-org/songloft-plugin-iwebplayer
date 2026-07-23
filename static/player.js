@@ -27,7 +27,7 @@
         if (text === "暂无播放") {
             if (miniCover) miniCover.style.display = 'none';
         } else {
-            if (miniCover) miniCover.style.display = '';
+            if (miniCover) miniCover.style.display = 'block';
         }
 
         let favSvg = '';
@@ -132,8 +132,17 @@
         const timeDurationEl = $('time-duration');
         const progressBar = $('progress-bar');
 
-        if (timeCurrentEl) timeCurrentEl.innerText = "00:00";
-        if (timeDurationEl) timeDurationEl.innerText = "--:--";
+        const isMiot = window.MiotManager && window.MiotManager.currentDevice.type === 'miot';
+
+        if (timeCurrentEl) {
+            // 🌟 核心 1：小爱模式切歌时显示 --:-- 等待真实推送，本机模式则正常显示 00:00
+            timeCurrentEl.innerText = isMiot ? "--:--" : "00:00";
+        }
+        if (timeDurationEl) {
+            // 🌟 核心 2：提取当前歌曲的真实时长，如果有，保留显示；没有才显示 --:--
+            const dur = window.songList[window.currentIndex]?.duration;
+            timeDurationEl.innerText = dur ? window.formatTime(dur) : "--:--";
+        }
         if (progressBar) progressBar.style.width = '0%';
 
         window.updateNpTitleUI(window.currentSongName, true, false);
@@ -279,6 +288,117 @@
 
     window.playSong = async function(index, autoPlay = true, resumeTime = 0) {
         if (index < 0 || index >= window.songList.length) return;
+
+        // =========================================================
+        // 🌟 MIoT 小爱音箱播放流劫持 (第一道岔)
+        // =========================================================
+        if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
+            const audioEl = $('audio');
+            if (audioEl && !audioEl.paused) audioEl.pause(); // 强行掐断本机可能正在播放的声音
+
+            const pl = window.playlistMeta ? window.playlistMeta.find(p => p.name === window.currentPlaylist) : null;
+            let targetPlId = pl ? pl.id : null;
+
+            // 🌟 核心拦截：如果没有查到当前列表的真实 ID (说明身处在线资源或曲库搜索等虚拟列表)
+            if (!targetPlId) {
+                if (window.showToast) window.showToast("⏳ 正在将列表打包推送到音箱...", true);
+
+                // 呼叫 MIoT 管家，把当前的虚拟列表动态灌入专属歌单
+                targetPlId = await window.MiotManager.syncListToPushPlaylist(window.songList);
+
+                if (!targetPlId) {
+                    if (window.showToast) window.showToast("❌ 打包推送失败，请重试");
+                    return; // 打包失败，阻断播放
+                }
+            }
+
+            window.highlightSongUI(index);
+            window.updateNpTitleUI(window.currentSongName, true, false);
+
+            if (autoPlay) {
+                // 🌟 注意：这里把原本写死的 pl.id 换成了智能获取到的 targetPlId
+                window.MiotManager.playPlaylist(targetPlId, index);
+            }
+
+            // 🌟 恢复：独立获取封面与歌词
+            const rawItem = window.songList[index];
+            const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
+
+            const fpCover = $('fp-cover');
+            const miniCoverImg = $('mini-cover-img');
+
+            // 🌟 修复 Bug 2 (核心)：补上 onerror 兜底，防止链接失效导致白板不刮削！
+            if (fpCover) fpCover.onerror = function() { if (this.src !== window.defaultCover) this.src = window.defaultCover; };
+            if (miniCoverImg) miniCoverImg.onerror = function() { if (this.src !== window.defaultCover) this.src = window.defaultCover; };
+
+            // 1. 恢复封面解析
+            let finalCover = window.defaultCover;
+            const listImg = $('list-cover-' + index);
+            if (listImg && listImg.src && !listImg.src.includes('undefined') && listImg.src !== window.location.href && !listImg.src.startsWith('data:image/svg+xml')) {
+                finalCover = listImg.src;
+            } else if (rawItem._scrapedCover) {
+                finalCover = rawItem._scrapedCover;
+            } else if (rawItem.cover_url) {
+                // 🌟 修复拼接符号，防止生成死链
+                const sep = rawItem.cover_url.includes('?') ? '&' : '?';
+                finalCover = `${rawItem.cover_url}${sep}access_token=${globalToken}`;
+            }
+
+            const applyCoverUI = (coverSrc) => {
+                if (fpCover) fpCover.src = coverSrc;
+                if (miniCoverImg) miniCoverImg.src = coverSrc;
+                if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, coverSrc, window.favoriteList, window.APP_LOGO);
+            };
+
+            applyCoverUI(finalCover);
+
+            // 刮削器兜底
+            if (finalCover === window.defaultCover && window.Scraper) {
+                window.Scraper.getCover(rawItem).then(hdCover => {
+                    if (window.currentSongName === window.getSongNameObj(rawItem) && hdCover) {
+                        rawItem._scrapedCover = hdCover;
+                        if (listImg) listImg.src = hdCover;
+                        applyCoverUI(hdCover);
+                    }
+                }).catch(()=>{});
+            }
+
+            // 2. 恢复歌词解析
+            if (window.LyricsEngine) window.LyricsEngine.parse(null); // 先清空上一首
+
+            const loadLyric = async () => {
+                let finalLrc = null;
+                try {
+                    if (rawItem._isOnlineObj && rawItem.plugin_entry_path !== 'dav') {
+                        let sd = rawItem.source_data;
+                        if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
+                        const engineValEl = $('engine-val');
+                        const currentEngine = engineValEl ? engineValEl.dataset.value : 'LXMusic';
+                        if (currentEngine === 'LXMusic') {
+                            const lrcUrl = `/api/v1/jsplugin/lxmusic/api/direct/lyric?source=${sd.source}&songmid=${sd.songmid || sd.musicId}&musicId=${sd.musicId}&duration=${sd.duration}`;
+                            const lrcRes = await fetch(lrcUrl);
+                            const lrcData = await lrcRes.json();
+                            if (lrcData.code === 0 && lrcData.data && lrcData.data.lyric) {
+                                finalLrc = lrcData.data.lyric;
+                            }
+                        }
+                    }
+                    if (!finalLrc) {
+                        finalLrc = await window.fetchScrape(rawItem, 'lyric', window.currentSongName);
+                    }
+
+                    if (finalLrc && window.currentSongName === window.getSongNameObj(rawItem) && window.LyricsEngine) {
+                        window.LyricsEngine.parse(finalLrc);
+                    }
+                } catch(e) {}
+            };
+            loadLyric();
+
+            return; // 无论成功与否，彻底阻断本机 <audio>！
+        }
+        // =========================================================
+
+        // 以下是原本本机 <audio> 播放的防卡死检测逻辑，保持不动
         if (window.consecutiveFailures >= 5) {
             window.showToast(`🛑 连续获取失败，已暂停`);
             const audioEl = $('audio');
@@ -311,7 +431,9 @@
         } else if (rawItem._scrapedCover) {
             finalCover = rawItem._scrapedCover;
         } else if (rawItem.cover_url) {
-            finalCover = `${rawItem.cover_url}&access_token=${globalToken}`;
+            // 🌟 同样修复本机的死链拼接问题
+            const sep = rawItem.cover_url.includes('?') ? '&' : '?';
+            finalCover = `${rawItem.cover_url}${sep}access_token=${globalToken}`;
         }
 
         let currentRenderedCover = null;

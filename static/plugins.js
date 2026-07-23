@@ -222,16 +222,29 @@
     // 4. 事件监听器注入
     // ==========================================
     window.addEventListener('DOMContentLoaded', () => {
-        // 🌟 新增：绑定平铺单选框事件，并读取本地存储回显
         const qualityRadios = document.querySelectorAll('input[name="lx-quality-radio"]');
         if (qualityRadios.length > 0) {
             const currentQ = typeof window.getLxQuality === 'function' ? window.getLxQuality() : '320k';
             qualityRadios.forEach(radio => {
                 if (radio.value === currentQ) radio.checked = true;
-                radio.addEventListener('change', (e) => {
+                // 🌟 改为 async 函数以等待版本检测
+                radio.addEventListener('change', async (e) => {
                     if (e.target.checked) {
                         localStorage.setItem('iwebplayer.lx_quality', e.target.value);
-                        window.showToast(`✅ 优先音质已设为: ${e.target.nextElementSibling.innerText}`);
+
+                        // 🌟 核心：检测插件版本，如果不支持，直接展现红底警告框
+                        if (typeof window.getLxPluginInfo === 'function') {
+                            const pInfo = await window.getLxPluginInfo();
+                            const warningEl = document.getElementById('lx-quality-warning');
+
+                            // 类型 3：非 2026 开头 且 非 2.x 开头
+                            if (pInfo.type === 3) {
+                                if (warningEl) warningEl.style.display = 'block';
+                            } else {
+                                if (warningEl) warningEl.style.display = 'none';
+                                window.showToast(`✅ 优先音质已设为: ${e.target.nextElementSibling.innerText}`);
+                            }
+                        }
                     }
                 });
             });
