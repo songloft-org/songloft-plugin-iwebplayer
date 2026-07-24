@@ -287,6 +287,7 @@
     };
 
     window.playSong = async function(index, autoPlay = true, resumeTime = 0) {
+        if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout); // 🌟 核心：每次切歌，第一时间杀掉上首歌的定时器
         if (index < 0 || index >= window.songList.length) return;
 
         // =========================================================
@@ -545,16 +546,43 @@
             if (!info || !info.url) throw new Error("接口未返回有效的播放直链");
 
             if (info && info.url && audioEl) {
-                window.localState.playlist = window.currentPlaylist;
-                window.localState.songName = window.currentSongName;
-                localStorage.setItem('iwebplayer.local_state', JSON.stringify(window.localState));
+                    window.localState.playlist = window.currentPlaylist;
+                    window.localState.songName = window.currentSongName;
+                    localStorage.setItem('iwebplayer.local_state', JSON.stringify(window.localState));
 
-                audioEl.dataset.playingPlaylist = window.currentPlaylist;
-                audioEl.dataset.playingSongName = targetSongName;
-                audioEl.dataset.hasStarted = "0";
-                audioEl.src = info.url;
+                    audioEl.dataset.playingPlaylist = window.currentPlaylist;
+                    audioEl.dataset.playingSongName = targetSongName;
+                    audioEl.dataset.hasStarted = "0";
+                    audioEl.src = info.url;
 
-                let targetResumeTime = resumeTime > 0 ? resumeTime : 0;
+                    // 🌟 新增：WebDAV 直连模式专属的 8 秒硬超时防卡死
+                    if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout);
+                    const isDavDirect = rawItem.plugin_entry_path === 'dav' && localStorage.getItem('iwebplayer.webdav_mode') === 'direct';
+
+                    if (isDavDirect) {
+                        const targetIdx = index;
+                        window._davDirectTimeout = setTimeout(() => {
+                            // 8秒后还在尝试播这首歌，且依然没拉到哪怕一点点媒体元数据 (readyState === 0)
+                            if (window.currentIndex === targetIdx && audioEl.readyState === 0) {
+                                console.warn("[超时] WebDAV 直连无响应，强行斩断");
+                                audioEl.src = ''; // 强行重置音频源，打断浏览器的无尽等待
+                                window.showToast("⚠️ 直连节点无响应，自动跳过...");
+
+                                window.consecutiveFailures++;
+                                window.markSongAsDead(window.currentPlaylist, targetIdx);
+                                if (window.updatePlayButtonUI) window.updatePlayButtonUI(false);
+
+                                if (window.consecutiveFailures >= 5) {
+                                    window.showToast(`🛑 连续 5 首失效，已暂停播放`);
+                                    window.consecutiveFailures = 0;
+                                } else {
+                                    if (typeof window.playNextSong === 'function') window.playNextSong(true);
+                                }
+                            }
+                        }, 8000);
+                    }
+
+                    let targetResumeTime = resumeTime > 0 ? resumeTime : 0;
                 let targetSpeed = plConfig.speedLocal || 1.0;
 
                 if (targetResumeTime === 0) {
@@ -619,6 +647,7 @@
             }
 
         } catch (err) {
+            if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout); // 🌟 核心：解析异常时，也要杀掉定时器
             console.error("播放请求失败:", err);
             window.showToast("⚠️ 获取链接失败，自动跳过...");
 

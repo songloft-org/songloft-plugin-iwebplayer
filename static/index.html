@@ -607,13 +607,13 @@
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
-  <script src="./static/utils.js?v1.0.1" defer></script>
+  <script src="./static/utils.js?v1.0.2" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
   <script src="./static/playlist.js?v1.0.0" defer></script>
-  <script src="./static/online.js?v0.8.2" defer></script>
+  <script src="./static/online.js?v1.0.2" defer></script>
   <script src="./static/plugins.js?v1.0.1" defer></script>
-  <script src="./static/player.js?v1.0.1" defer></script>
-  <script src="./static/miot.js?v1.0.1" defer></script>
+  <script src="./static/player.js?v1.0.2" defer></script>
+  <script src="./static/miot.js?v1.0.2" defer></script>
 
 </head>
 <body>
@@ -901,7 +901,7 @@
       </ul>
       <div class="about-link">
         项目主页 / 更新地址：<br>
-        <a href="https://github.com/birdstudy-nj/iWebPlayer" target="_blank" rel="noopener">https://github.com/birdstudy-nj/iWebPlayer</a>
+        <a href="https://github.com/songloft-org/songloft-plugin-iwebplayer" target="_blank" rel="noopener">https://github.com/songloft-org/songloft-plugin-iwebplayer</a>
       </div>
     </div>
     <div class="about-footer">
@@ -917,7 +917,7 @@
     <div class="about-header modal-header-col">
       <div class="modal-title-group mb-15">
         <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" style="color: var(--text-main);"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <h2 class="modal-title-h2">参数设置</h2>
+        <h2 class="modal-title-h2">偏好设置</h2>
       </div>
     </div>
     <div class="about-body modal-scroll-body">
@@ -953,6 +953,17 @@
           <input type="checkbox" id="switch-high-perf">
           <span class="slider round"></span>
         </label>
+      </div>
+
+      <div class="pref-item mt-12" id="pref-default-device-item">
+        <div class="pref-text-wrap">
+          <div class="pref-title">默认连接设备</div>
+          <div class="pref-desc">设定每次打开/刷新iWebPlayer时优先连接的播放设备。</div>
+        </div>
+        <div class="custom-select" id="pref-default-device-container" style="flex-shrink: 0; width: 140px;">
+          <div class="select-value" id="pref-default-device-val" data-value="last" style="font-size: 13px; height: 32px; line-height: 18px; padding: 6px 22px 6px 10px; border: 1px solid var(--border); box-shadow: none; width: 100%;">记住上次选择</div>
+          <ul class="select-options" id="pref-default-device-opts" style="bottom: 100%; top: auto; right: 0; margin-top: 0; margin-bottom: 6px; max-height: 160px; width: max-content; min-width: 100%;"></ul>
+        </div>
       </div>
 
       <div class="pref-danger-zone">
@@ -1461,7 +1472,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.0.1';
+    window.APP_VERSION = 'v1.0.2';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -1791,6 +1802,9 @@
         }
 
         document.addEventListener('click', (e) => {
+          if (e.target.closest('.select-option') && (e.target.closest('#playlist-opts') || e.target.closest('#engine-opts') || e.target.closest('#mf-plugin-opts'))) {
+              window.deadSongIndexes = {};
+          }
           if (!e.isTrusted) return;
           if (!e.target.closest('#playlist-container')) playlistOpts.classList.remove('show');
           if (!e.target.closest('#settings-container') && settingsOpts) settingsOpts.classList.remove('show');
@@ -1803,6 +1817,7 @@
           if (fpSpeedPopup && !fpSpeedPopup.contains(e.target) && !e.target.closest('#fp-corner-speed')) fpSpeedPopup.classList.remove('show');
           if (!e.target.closest('#engine-container')) document.getElementById('engine-opts')?.classList.remove('show');
           if (!e.target.closest('#mf-plugin-container')) document.getElementById('mf-plugin-opts')?.classList.remove('show');
+          if (!e.target.closest('#pref-default-device-container')) document.getElementById('pref-default-device-opts')?.classList.remove('show');
           const popup = document.getElementById('search-history-popup');
           if (popup && !e.target.closest('#mf-search-input-wrap')) popup.style.display = 'none';
         });
@@ -1899,6 +1914,7 @@
         });
 
         audioEl.addEventListener('error', () => {
+          if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout); // 🌟 核心：发生原生错误时，立刻杀掉幽灵定时器！
           if (audioEl.src && audioEl.src !== window.location.href) {
             if (audioEl.dataset.hasStarted === "1") { window.updatePlayButtonUI(false); return; }
             window.showToast("⚠️ 歌曲链接拒绝访问，自动跳过...");
@@ -2314,6 +2330,7 @@
 
             // 打字输入时：根据有没有字，动态决定 X 的生死
             searchInput.addEventListener('input', (e) => {
+                window.deadSongIndexes = {};
                 const keyword = e.target.value;
                 searchClear.classList.toggle('show', keyword.trim().length > 0);
                 localStorage.setItem('iwebplayer.local_search_keyword', keyword);
@@ -2404,6 +2421,7 @@
         const mfSearchBtn = document.getElementById('mf-search-btn');
         if (mfSearchBtn) mfSearchBtn.addEventListener('click', (e) => {
             e.preventDefault(); e.stopPropagation();
+            window.deadSongIndexes = {};
             // 🌟 分流：WebDAV 走本地搜，LX 走在线搜
             if (window.isWebDAVMode && window.doWebDavSearch) window.doWebDavSearch();
             else window.doOnlineSearch(false);
@@ -2412,6 +2430,7 @@
         const mfSearchPlaylistBtn = document.getElementById('mf-search-playlist-btn');
         if (mfSearchPlaylistBtn) mfSearchPlaylistBtn.addEventListener('click', (e) => {
             e.preventDefault(); e.stopPropagation();
+            window.deadSongIndexes = {};
             // 🌟 分流：WebDAV 走扫库指令，LX 走搜歌单
             if (window.isWebDAVMode && window.triggerWebDavScan) window.triggerWebDavScan();
             else window.doLxPlaylistSearch();
@@ -2472,6 +2491,7 @@
             });
 
             mfSearchInput.addEventListener('input', () => {
+                window.deadSongIndexes = {};
                 const hasText = mfSearchInput.value.trim().length > 0;
 
                 // 🌟 改造 2：打字时动态显隐“返回”按钮，并彻底封杀 X
@@ -2544,8 +2564,20 @@
         const switchLockLyric = document.getElementById('switch-lock-lyric');
         const switchAmbientBg = document.getElementById('switch-ambient-bg');
         const switchHighPerf = document.getElementById('switch-high-perf');
+        // 🌟 新增 DOM 抓取：
+        const prefDevVal = document.getElementById('pref-default-device-val');
+        const prefDevOpts = document.getElementById('pref-default-device-opts');
+        const prefDevItem = document.getElementById('pref-default-device-item');
 
         if (prefBtn && prefBackdrop) {
+                // 🌟 新增：绑定点击展开/收起菜单
+                if (prefDevVal) {
+                    prefDevVal.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        prefDevOpts?.classList.toggle('show');
+                    });
+                }
+
                 // 打开弹窗
                 prefBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -2556,6 +2588,71 @@
                     if (switchLockLyric) switchLockLyric.checked = currentPrefs.lockLyric;
                     if (switchAmbientBg) switchAmbientBg.checked = currentPrefs.ambientBg;
                     if (switchHighPerf) switchHighPerf.checked = currentPrefs.highPerf !== false;
+
+                    // 🌟 动态渲染自定义下拉框选项
+                    if (prefDevVal && prefDevOpts) {
+                        const hasPlugin = window.MiotManager && window.MiotManager.hasMiotPlugin;
+                        const devices = (window.MiotManager && window.MiotManager.devices) || [];
+                        const currentVal = currentPrefs.defaultDevice || 'last';
+
+                        const items = [
+                            { value: 'last', label: '记住上次选择', displayLabel: '记住上次选择', isOnline: true },
+                            { value: 'local', label: '固定：本机', displayLabel: '本机', isOnline: true }
+                        ];
+
+                        if (!hasPlugin) {
+                            prefDevVal.style.pointerEvents = 'none';
+                            if (prefDevItem) prefDevItem.style.opacity = '0.5';
+                        } else {
+                            prefDevVal.style.pointerEvents = 'auto';
+                            if (prefDevItem) prefDevItem.style.opacity = '1';
+
+                            devices.forEach(dev => {
+                                const isOnline = dev.presence === 'online';
+                                items.push({
+                                    value: `miot:${dev.deviceID}`,
+                                    label: `固定：${dev.name}`,
+                                    displayLabel: dev.name,
+                                    isOnline: isOnline
+                                });
+                            });
+                        }
+
+                        let html = '';
+                        let currentDisplayLabel = '记住上次选择';
+
+                        items.forEach(item => {
+                            const isActive = item.value === currentVal;
+                            if (isActive) currentDisplayLabel = item.displayLabel;
+                            const greyStyle = !item.isOnline ? 'style="opacity: 0.6;"' : '';
+                            html += `<li class="select-option ${isActive ? 'active' : ''}" data-value="${item.value}" data-display="${item.displayLabel}" ${greyStyle}>${item.label}</li>`;
+                        });
+
+                        prefDevOpts.innerHTML = html;
+                        prefDevVal.innerText = currentDisplayLabel;
+                        prefDevVal.dataset.value = currentVal;
+
+                        // 绑定选项点击保存事件
+                        prefDevOpts.querySelectorAll('.select-option').forEach(li => {
+                            li.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                const val = li.dataset.value;
+                                const displayLabel = li.dataset.display || li.innerText;
+
+                                prefDevOpts.querySelectorAll('.select-option').forEach(el => el.classList.remove('active'));
+                                li.classList.add('active');
+
+                                prefDevVal.innerText = displayLabel;
+                                prefDevVal.dataset.value = val;
+                                prefDevOpts.classList.remove('show');
+
+                                window.savePreferences({ defaultDevice: val });
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast("✅ 默认连接设备已更新");
+                                }
+                            });
+                        });
+                    }
 
                     prefBackdrop.classList.add('show');
                     prefBackdrop.setAttribute('aria-hidden', 'false');
@@ -2821,6 +2918,7 @@
         window.updateVolumeIcon(savedVol);
         if (window.updateVolumeBtnUI) window.updateVolumeBtnUI(); // 🌟 新增：首屏加载判定
         window.updatePlayModeUI();
+        if (window.updatePlayButtonUI) window.updatePlayButtonUI(window.isPlaying || false); // 🌟 新增：首屏加载时，根据当前设备类型强制刷新播放按钮图标
         loadingEl.style.display = 'none';
 
         const isValidPlaylist = localState.playlist && Array.from(document.querySelectorAll('#playlist-opts .select-option')).some(opt => opt.dataset.key === localState.playlist);

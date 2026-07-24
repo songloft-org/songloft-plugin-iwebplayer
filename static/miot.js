@@ -26,8 +26,32 @@
         // 初始化入口
         init: async function() {
             await this.loadDevices();
+
+            // 🌟 新增：读取偏好设置，决定默认启动设备
+            const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
+            const defDevSetting = prefs.defaultDevice || 'last';
+
+            if (defDevSetting === 'local') {
+                this.currentDevice = { id: 'local', type: 'local', accountId: '', name: '本机' };
+            } else if (defDevSetting.startsWith('miot:')) {
+                const targetDevId = defDevSetting.replace('miot:', '');
+                const foundDev = this.devices.find(d => d.deviceID === targetDevId);
+                if (foundDev) {
+                    this.currentDevice = {
+                        id: foundDev.deviceID,
+                        type: 'miot',
+                        accountId: foundDev.account_id,
+                        name: foundDev.name
+                    };
+                } else {
+                    // 如果设定的音箱下线或被删，回退至“本机”
+                    this.currentDevice = { id: 'local', type: 'local', accountId: '', name: '本机' };
+                }
+            }
+
             this.renderDeviceList();
             this.bindEvents();
+            // ...
 
             if (this.currentDevice && this.currentDevice.type === 'miot') {
                 document.body.classList.add('miot-mode');

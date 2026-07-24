@@ -743,7 +743,7 @@
                 else { if(grid) grid.style.display = 'none'; if(list) list.style.display = 'block'; }
 
                 // 极端兜底：如果完全没渲染过网盘，才去拉取
-                if (!window.webdavGridBackup && window.loadWebDavServers) window.loadWebDavServers();
+                if (window.loadWebDavServers) window.loadWebDavServers();
 
             } else {
                 window.allPlaylists['在线资源'] = window.lxOnlineBackup || [];
@@ -1057,12 +1057,12 @@
     };
 
     // ==========================================
-    // 10. WebDAV 节点可视化管理界面逻辑保留
+    // 10. WebDAV 节点可视化管理界面逻辑 (内存缓存极速版)
     // ==========================================
     let currentDavServers = [];
     let webdavDefaultServerName = "";
 
-    window.loadWebDavServers = async function() {
+    window.loadWebDavServers = async function(force = false) {
         const valEl = document.getElementById('wd-server-val');
         const optsEl = document.getElementById('wd-server-opts');
         const btnDefault = document.getElementById('wd-btn-default');
@@ -1071,6 +1071,15 @@
 
         if (!optsEl || !valEl) return;
 
+        // 🌟 核心优化 1：内存缓存命中判断（非强刷 且 内存已有节点数据）
+        if (!force && currentDavServers && currentDavServers.length > 0) {
+            renderDavUI();
+            // fetchWebDavLibrary 内部本身也自带 cachePool 内存缓存，双重秒开！
+            if (window.fetchWebDavLibrary) window.fetchWebDavLibrary();
+            return;
+        }
+
+        // 🌟 2. 内存无数据或触发了强刷：才走网络请求拉取
         optsEl.innerHTML = '<li class="select-option">正在拉取节点...</li>';
         if (mainOptsEl && window.isWebDAVMode) mainOptsEl.innerHTML = '<li class="select-option">拉取中...</li>';
 
@@ -1081,14 +1090,12 @@
 
             const res = await fetch('/api/v1/jsplugin/dav/lists');
 
-            // 🌟 修正：真正的看门狗，必须拦截对 dav/lists 接口的 403/404 响应！
             if (!res.ok) {
                 const list = document.getElementById('playlist');
                 const grid = document.getElementById('playlist-grid');
                 if (list) {
                     list.style.display = 'block';
-                    // 🌟 同理，完美克隆 LXMusic 样式
-                    const noPluginStr = window.NO_PLUGIN_HTML || '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">⚠️ 未检测到 LXMusic 插件，请先在主程序中安装并启用。</div>';
+                    const noPluginStr = window.NO_PLUGIN_HTML || '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">⚠️ 未检测到 WebDAV 插件，请先在主程序中安装并启用。</div>';
                     list.innerHTML = noPluginStr.replace(/LXMusic/gi, 'WebDAV');
                 }
                 if (grid) grid.style.display = 'none';
@@ -1103,11 +1110,19 @@
             }
 
             currentDavServers = await res.json() || [];
+            renderDavUI();
+            if (window.fetchWebDavLibrary) window.fetchWebDavLibrary();
+        } catch(e) {
+            valEl.innerText = "获取失败";
+            if (mainValEl && window.isWebDAVMode) mainValEl.innerText = "获取失败";
+        }
 
+        // 🌟 核心优化 2：抽离出纯粹的 UI 渲染函数，解耦网络请求
+        function renderDavUI() {
             optsEl.innerHTML = '';
             if (mainOptsEl && window.isWebDAVMode) mainOptsEl.innerHTML = '';
 
-            if(currentDavServers.length === 0) {
+            if (currentDavServers.length === 0) {
                 optsEl.innerHTML = '<li class="select-option disabled-text">未配置网盘</li>';
                 valEl.innerText = "请添加节点"; valEl.dataset.value = "";
                 if(btnDefault) { btnDefault.style.background = '#6b7280'; btnDefault.style.color = '#fff'; }
@@ -1120,12 +1135,16 @@
                 if (defIdx > 0) { const [defItem] = currentDavServers.splice(defIdx, 1); currentDavServers.unshift(defItem); }
             }
 
-            currentDavServers.forEach((srv, idx) => {
+            // 保持当前选中的节点名称，若未选则默认第 1 个
+            const activeServerName = window.webdavData.currentServer || (currentDavServers[0] ? currentDavServers[0].name : '');
+
+            currentDavServers.forEach((srv) => {
                 const isDefault = (srv.name === webdavDefaultServerName);
                 const displayName = isDefault ? `${srv.name} (默认)` : srv.name;
+                const isActive = (srv.name === activeServerName);
 
                 const li = document.createElement('li');
-                li.className = `select-option ${idx === 0 ? 'active' : ''}`;
+                li.className = `select-option ${isActive ? 'active' : ''}`;
                 li.dataset.value = srv.name; li.innerText = displayName;
 
                 li.addEventListener('click', (e) => {
@@ -1145,7 +1164,7 @@
 
                 if (mainOptsEl && window.isWebDAVMode) {
                     const mainLi = document.createElement('li');
-                    mainLi.className = `select-option ${idx === 0 ? 'active' : ''}`;
+                    mainLi.className = `select-option ${isActive ? 'active' : ''}`;
                     mainLi.dataset.value = srv.name; mainLi.innerText = srv.name;
 
                     mainLi.addEventListener('click', (e) => {
@@ -1164,16 +1183,12 @@
                     mainOptsEl.appendChild(mainLi);
                 }
 
-                if (idx === 0) {
+                if (isActive) {
                     valEl.dataset.value = srv.name; valEl.innerText = displayName;
                     if (mainValEl && window.isWebDAVMode) { mainValEl.dataset.value = srv.name; mainValEl.innerText = srv.name; }
                     window.webdavData.currentServer = srv.name; window.updateDefaultBtnUI(srv.name); window.loadWebDavRootPath(srv.name);
                 }
             });
-            window.fetchWebDavLibrary();
-        } catch(e) {
-            valEl.innerText = "获取失败";
-            if (mainValEl && window.isWebDAVMode) mainValEl.innerText = "获取失败";
         }
     };
 
@@ -1231,7 +1246,7 @@
             e.stopPropagation(); const curName = wdServerVal.dataset.value; if (!curName || curName === webdavDefaultServerName) return;
             window.showToast("⏳ 正在设定默认节点...");
             await fetch('/api/v1/jsplugin/iwebplayer/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'webdav_default_server', value: curName }) });
-            window.showToast("✅ 已成功设为默认"); window.loadWebDavServers();
+            window.showToast("✅ 已成功设为默认"); window.loadWebDavServers(true);
         });
 
         const animWrap = document.getElementById('wd-server-anim-wrap');
@@ -1260,7 +1275,7 @@
             wdServerView.style.transform = 'translateX(0)'; wdServerDelView.style.transform = 'translateX(100%)';
             document.getElementById('wd-server-view').parentElement.parentElement.style.background = 'var(--card-bg)';
             setTimeout(() => { wdServerDelView.style.display = 'none'; if (animWrap) animWrap.style.overflow = 'visible'; }, 200);
-            window.loadWebDavServers();
+            window.loadWebDavServers(true);
         });
 
         document.getElementById('wd-btn-test')?.addEventListener('click', async () => {
@@ -1289,7 +1304,7 @@
             window.showToast("⏳ 同步至服务器...");
             try {
                 await fetch('/api/v1/jsplugin/dav/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                window.showToast("🎉 保存成功"); wdServerEdit.style.display = 'none'; wdServerView.style.display = 'flex'; window.loadWebDavServers();
+                window.showToast("🎉 保存成功"); wdServerEdit.style.display = 'none'; wdServerView.style.display = 'flex'; window.loadWebDavServers(true); // 🌟 改为 true 强制刷新
             } catch(e) { window.showToast("❌ 节点数据保存失败"); }
         });
 

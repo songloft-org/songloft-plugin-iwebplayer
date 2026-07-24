@@ -2,7 +2,8 @@
 // 🌟 全局偏好设置管家
 window.defaultPreferences = {
     lockLyric: true,  // 默认开启锁屏歌词
-    ambientBg: false  // 默认关闭氛围背景
+    ambientBg: false,  // 默认关闭氛围背景
+    defaultDevice: 'last' // 默认启动设备 ('last' / 'local' / 'miot:deviceID')
 };
 
 // 获取当前设置
