@@ -841,6 +841,17 @@
         window.playlistObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 const li = entry.target;
+
+                // 🌟 终极优化：切回上级菜单导致列表隐藏时，立刻瞬间退出！
+                if (!entry.isIntersecting) {
+                    li._inView = false;
+                    if (li._scrapeTimer) {
+                        clearTimeout(li._scrapeTimer);
+                        li._scrapeTimer = null;
+                    }
+                    return;
+                }
+
                 const img = li.querySelector('.song-cover-img');
                 if (!img) return;
                 const index = li.dataset.index;

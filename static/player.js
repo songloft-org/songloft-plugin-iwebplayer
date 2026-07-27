@@ -192,31 +192,30 @@
     window.updateSearchUI = function(playlistName) {
         const searchWrap = $('search-inline-wrap');
         const mfPluginRow = $('mf-plugin-row');
-        const mfSearchWrap = $('mf-search-wrap');
+        const onlineToolbar = $('online-toolbar-container');
         const menuWrapper = $('global-menu-1-wrapper');
         const dropzone1 = $('menu-dropzone-row1');
-        const dropzone2 = $('menu-dropzone-row2');
-        const searchInput = $('search-input');
-        const searchClear = $('search-clear');
 
         if (playlistName === '曲库搜索') {
             if (searchWrap) searchWrap.classList.add('show');
             if (mfPluginRow) mfPluginRow.classList.remove('show');
-            if (mfSearchWrap) mfSearchWrap.classList.remove('show');
+            if (onlineToolbar) onlineToolbar.classList.remove('show');
             if (menuWrapper && dropzone1) dropzone1.appendChild(menuWrapper);
 
             const savedSearch = localStorage.getItem('iwebplayer.local_search_keyword') || '';
+            const searchInput = $('search-input');
             if (searchInput) searchInput.value = savedSearch;
 
         } else if (playlistName === '在线资源') {
             if (searchWrap) searchWrap.classList.remove('show');
             if (mfPluginRow) mfPluginRow.classList.add('show');
-            if (mfSearchWrap) mfSearchWrap.classList.add('show');
-            if (menuWrapper && dropzone2) dropzone2.appendChild(menuWrapper);
+            if (onlineToolbar) onlineToolbar.classList.add('show');
+            // 交由 online.js 的路由中枢分配右侧菜单的宿主
+            if (typeof window.refreshOnlineUI === 'function') window.refreshOnlineUI();
         } else {
             if (searchWrap) searchWrap.classList.remove('show');
             if (mfPluginRow) mfPluginRow.classList.remove('show');
-            if (mfSearchWrap) mfSearchWrap.classList.remove('show');
+            if (onlineToolbar) onlineToolbar.classList.remove('show');
             if (menuWrapper && dropzone1) dropzone1.appendChild(menuWrapper);
         }
     };

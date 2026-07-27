@@ -191,17 +191,24 @@
     });
 
     // ==========================================
-    // 5. 🌟 历史面板 (100% 还原你的原生代码UI)
+    // 5. 🌟 历史面板 (纯净重构版)
     // ==========================================
     window.renderSearchHistoryPopup = function() {
         let popup = document.getElementById('search-history-popup');
-        const inputWrap = document.getElementById('mf-search-input-wrap');
+        // 🌟 动态获取当前活跃的输入框容器
+        const isDav = window.PluginManager && window.PluginManager.currentEngineName === 'WebDAV';
+        const inputWrap = document.getElementById(isDav ? 'wd-search-row' : 'lx-search-row')?.querySelector('.search-input-box');
         if (!inputWrap) return;
+
         if (!popup) {
             popup = document.createElement('ul');
             popup.id = 'search-history-popup';
             popup.className = 'select-options';
             popup.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; width: 100%; min-width: auto; margin-top: 6px; display: none;';
+        }
+
+        // 🌟 确保弹窗挂载到当前展示的输入框下
+        if (popup.parentElement !== inputWrap) {
             inputWrap.appendChild(popup);
         }
 
@@ -212,7 +219,6 @@
             return;
         }
 
-        // 🌟 原汁原味的收起横条
         const closeBarHtml = `
             <div onclick="
                 document.getElementById('search-history-popup').style.display='none'; 
@@ -225,17 +231,13 @@
             </div>
         `;
 
-        // 🌟 100% 还原的搜歌与搜单布局
         const listHtml = history.map((item, idx) => {
             if (item.type === 'keyword') {
                 return `<li class="select-option" data-idx="${idx}" style="justify-content: space-between;"><div class="flex-y-center" style="min-width: 0;"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px; opacity:0.6; flex-shrink:0;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.text}</span></div></li>`;
             } else {
                 const platformName = window.PLATFORM_MAP ? (window.PLATFORM_MAP[item.platform] || item.platform) : item.platform;
-
-                // 🌟 终极优雅：直接从引擎基座里读取配置好的图标！
                 const engineConfig = window.PluginManager.engines[item.engine];
                 const targetSvg = engineConfig ? (engineConfig.icon || '') : '';
-
                 return `<li class="select-option" data-idx="${idx}">
                     <div class="flex-y-center" style="min-width: 0;">
                         ${targetSvg}
@@ -249,22 +251,26 @@
 
         popup.innerHTML = closeBarHtml + listHtml + clearBtnHtml;
 
-        // 绑定全新的中枢重放逻辑
         popup.querySelectorAll('.select-option[data-idx]').forEach(li => {
             li.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const record = history[parseInt(li.dataset.idx)];
                 popup.style.display = 'none';
 
-                const searchInput = document.getElementById('mf-search-input');
-                if (searchInput) {
-                    searchInput.value = record.type === 'keyword' ? record.text : record.name;
-                    searchInput.dispatchEvent(new Event('input'));
-                    const mfSearchClear = document.getElementById('mf-search-clear');
-                    if (mfSearchClear) mfSearchClear.classList.remove('show');
+                // 🌟 新逻辑：精准分发给对应的输入框
+                const lxSearchInput = document.getElementById('lx-search-input');
+                const wdSearchInput = document.getElementById('wd-search-input');
+
+                if (record.engine === 'WebDAV' && wdSearchInput) {
+                    wdSearchInput.value = record.type === 'keyword' ? record.text : record.name;
+                    wdSearchInput.dispatchEvent(new Event('input'));
+                } else if (lxSearchInput) {
+                    lxSearchInput.value = record.type === 'keyword' ? record.text : record.name;
+                    lxSearchInput.dispatchEvent(new Event('input'));
+                    const lxSearchClear = document.getElementById('lx-search-clear');
+                    if (lxSearchClear) lxSearchClear.classList.remove('show');
                 }
 
-                // 引擎跳转
                 if (record.engine && record.engine !== window.PluginManager.currentEngineName) {
                     window.PluginManager.switchEngine(record.engine);
                 }
@@ -299,90 +305,72 @@
     // ==========================================
     // 6. 统一调度中心：搜索、详情与恢复
     // ==========================================
+    // 🌟 终极解耦：智能分发三个物理隔离的外壳，动态宿主 ... 菜单
+    window.refreshOnlineUI = function() {
+       const menuWrapper = document.getElementById('global-menu-1-wrapper');
+       const lxRow = document.getElementById('lx-search-row');
+       const wdRow = document.getElementById('wd-search-row');
+       const detailRow = document.getElementById('detail-title-row');
+
+       if (lxRow) lxRow.style.display = 'none';
+       if (wdRow) wdRow.style.display = 'none';
+       if (detailRow) detailRow.style.display = 'none';
+
+       if (window.currentOnlineView === 'detail') {
+           if (detailRow) detailRow.style.display = 'flex';
+           if (menuWrapper) document.getElementById('menu-dropzone-detail')?.appendChild(menuWrapper);
+       } else if (window.PluginManager.currentEngineName === 'WebDAV') {
+           if (wdRow) wdRow.style.display = 'flex';
+           if (menuWrapper) document.getElementById('menu-dropzone-wd')?.appendChild(menuWrapper);
+       } else {
+           if (lxRow) lxRow.style.display = 'flex';
+           if (menuWrapper) document.getElementById('menu-dropzone-lx')?.appendChild(menuWrapper);
+       }
+    };
     window.restoreOnlineView = async function() {
         const oState = window.StateManager.getState();
-        const mfSearchInput = document.getElementById('mf-search-input');
         const grid = document.getElementById('playlist-grid');
         const list = document.getElementById('playlist');
-        const mfSearchMainBtns = document.getElementById('mf-search-main-btns');
-        const mfSearchBackBtn = document.getElementById('mf-search-back-btn');
-        const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');
-        const oldIcon = document.getElementById('mf-search-pl-icon');
-
-        if (!mfSearchInput || !grid || !list) return;
-
-        mfSearchInput.dataset.isTitleMode = "false";
-        if (oldIcon) oldIcon.remove();
+        if (!grid || !list) return;
 
         const isDav = window.PluginManager.currentEngineName === 'WebDAV';
 
-        // 🌟 核心改造：根据当前选择的引擎，精准探测对应的插件是否在主程序中安装
         let isPluginActive = true;
         try {
-            if (isDav) {
-                const res = await fetch('/api/v1/jsplugin/dav/lists');
-                if (!res.ok) isPluginActive = false;
-            } else {
-                const res = await fetch('/api/v1/jsplugin/lxmusic/api/sources');
-                if (!res.ok) isPluginActive = false;
-            }
-        } catch (err) {
-            isPluginActive = false;
-        }
+            if (isDav) { const res = await fetch('/api/v1/jsplugin/dav/lists'); if (!res.ok) isPluginActive = false; }
+            else { const res = await fetch('/api/v1/jsplugin/lxmusic/api/sources'); if (!res.ok) isPluginActive = false; }
+        } catch (err) { isPluginActive = false; }
 
         if (!isPluginActive) {
             if (list) list.style.display = 'block';
             if (grid) grid.style.display = 'none';
-            if (list) {
-                // 🌟 核心：直接提取 LXMusic 的专属提示模板
-                const noPluginStr = window.NO_PLUGIN_HTML || '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">⚠️ 未检测到 LXMusic 插件，请先在主程序中安装并启用。</div>';
-                // 🌟 动态克隆：如果是 WebDAV，直接将模板里的 LXMusic 替换为 WebDAV，保证样式 100% 完全一致！
-                list.innerHTML = isDav ? noPluginStr.replace(/LXMusic/gi, 'WebDAV') : noPluginStr;
-            }
+            const noPluginStr = window.NO_PLUGIN_HTML || '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">⚠️ 未检测到 LXMusic 插件。</div>';
+            if (list) list.innerHTML = isDav ? noPluginStr.replace(/LXMusic/gi, 'WebDAV') : noPluginStr;
             return;
         }
+
         window.currentOnlineView = oState.view;
 
         if (oState.view === 'song') {
-            mfSearchInput.value = isDav ? '' : (oState.keyword || '');
-            mfSearchInput.placeholder = isDav ? '在当前网盘中极速过滤...' : '搜全网资源...';
-            if (mfSearchMainBtns) mfSearchMainBtns.style.display = isDav ? 'none' : 'flex';
-            if (mfSearchBackBtn) mfSearchBackBtn.style.display = 'none';
-            if (shortDivider) shortDivider.style.display = isDav ? 'none' : '';
-
-            grid.style.display = 'none';
-            list.style.display = 'block';
-
+            if (isDav) document.getElementById('wd-search-input').value = oState.keyword || '';
+            else document.getElementById('lx-search-input').value = oState.keyword || '';
+            grid.style.display = 'none'; list.style.display = 'block';
             window.songList = window.getMergedSongList('在线资源');
             if (window.songList.length === 0) {
-                if (!isDav && oState.keyword) {
-                    window.performSearch('song', false, false);
-                } else {
-                    list.innerHTML = isDav ? '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">请在上方搜索或刷新网盘</div>' : '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">请在上方输入关键词搜索全网音乐或歌单</div>';
-                }
-            } else {
-                window.renderPlaylist();
-            }
+                if (!isDav && oState.keyword) window.performSearch('song', false, false);
+                else list.innerHTML = isDav ? '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">请在上方搜索或刷新网盘</div>' : '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">请在上方输入关键词搜索全网音乐或歌单</div>';
+            } else window.renderPlaylist();
         }
         else if (oState.view === 'playlist') {
-            mfSearchInput.value = isDav ? '' : (oState.keyword || '');
-            mfSearchInput.placeholder = isDav ? '在当前网盘中极速过滤...' : '搜全网资源...';
-            if (mfSearchMainBtns) mfSearchMainBtns.style.display = isDav ? 'none' : 'flex';
-            if (mfSearchBackBtn) mfSearchBackBtn.style.display = 'none';
-            if (shortDivider) shortDivider.style.display = isDav ? 'none' : '';
-
-            list.style.display = 'none';
-            grid.style.display = 'grid';
-
+            if (isDav) document.getElementById('wd-search-input').value = '';
+            else document.getElementById('lx-search-input').value = oState.keyword || '';
+            list.style.display = 'none'; grid.style.display = 'grid';
             if (isDav) {
                 if (window.loadWebDavServers) window.loadWebDavServers();
             } else {
                 if (!grid.querySelector('.pl-card-b')) {
-                    if (oState.keyword) {
-                        window.performSearch('playlist', false, false);
-                    } else {
-                        grid.innerHTML = '<div style="text-align: center; padding: 60px; color: var(--text-sub); font-size: 14px; grid-column: 1 / -1;">请在上方输入关键词搜索全网音乐或歌单</div>';
-                    }
+                    if (oState.keyword) window.performSearch('playlist', false, false);
+                    else grid.innerHTML = '<div style="text-align: center; padding: 60px; color: var(--text-sub); font-size: 14px; grid-column: 1 / -1;">请在上方输入关键词搜索全网音乐或歌单</div>';
                 }
             }
         }
@@ -396,16 +384,16 @@
                 if (isDav) {
                     if (list) { list.style.display = 'block'; list.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">正在恢复网盘资源...</div>'; }
                     if (grid) grid.style.display = 'none';
-                    if (mfSearchMainBtns) mfSearchMainBtns.style.display = 'none';
-                    if (mfSearchBackBtn) mfSearchBackBtn.style.display = 'block';
-                    if (shortDivider) shortDivider.style.display = '';
-                    if (mfSearchInput) { mfSearchInput.value = oState.detail_name || ''; mfSearchInput.dataset.isTitleMode = "true"; mfSearchInput.dataset.hasBackBtn = "true"; }
+                    const titleText = document.getElementById('detail-title-text');
+                    if (titleText) titleText.innerHTML = `<span style="display:inline-flex; transform:translateY(2px);">${window.SVG_ICONS.webdav.replace('width="15"', 'width="16"').replace('height="15"', 'height="16"')}</span><span>${oState.detail_name || ''}</span>`;
                 } else {
                     window.StateManager.setState({ view: 'song' });
                     window.restoreOnlineView();
                 }
             }
         }
+
+        window.refreshOnlineUI(); // 最后调用管家发牌！
     };
 
     window.performSearch = async function(action, isLoadMore = false, isRestore = false) {
@@ -413,9 +401,9 @@
         const engine = window.PluginManager.getCurrentEngine();
         if (!engine) { window.showToast("当前引擎未初始化"); return; }
 
-        const searchInputEl = document.getElementById('mf-search-input');
+        const isDav = engineName === 'WebDAV';
+        const searchInputEl = document.getElementById(isDav ? 'wd-search-input' : 'lx-search-input');
         let keyword = searchInputEl ? searchInputEl.value.trim() : '';
-
         if (!keyword && isRestore) {
             const oState = window.StateManager.getState();
             if (oState.keyword) { keyword = oState.keyword; if (searchInputEl) searchInputEl.value = keyword; }
@@ -545,7 +533,7 @@
         if (!engine) return;
 
         const oState = window.StateManager.getState();
-        const searchInputEl = document.getElementById('mf-search-input');
+        const searchInputEl = document.getElementById('lx-search-input'); // 🌟 换成 lx 框
 
         if (!isFromHistory) {
             window._gridScrollY = window.scrollY || document.documentElement.scrollTop;
@@ -558,41 +546,15 @@
 
         if (searchInputEl) searchInputEl.blur();
         window.currentOnlineView = 'detail';
+        window.refreshOnlineUI();
+
+        const titleText = document.getElementById('detail-title-text');
+        if (titleText) titleText.innerHTML = `<span style="display:inline-flex; transform:translateY(2px);">${window.SVG_ICONS?.lx_plugin_line || ''}</span><span>${name}</span>`;
 
         const grid = document.getElementById('playlist-grid');
         const list = document.getElementById('playlist');
         if(grid) grid.style.display = 'none';
         if(list) { list.style.display = 'block'; list.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">正在获取详情...</div>'; }
-
-        document.getElementById('mf-search-main-btns').style.display = 'none';
-        document.querySelector('.search-text-group').style.borderLeft = '';
-
-        const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');
-        const backBtn = document.getElementById('mf-search-back-btn');
-        if (isFromHistory) {
-            if (backBtn) backBtn.style.display = 'none';
-            if (shortDivider) shortDivider.style.display = 'none';
-        } else {
-            if (backBtn) backBtn.style.display = 'block';
-            if (shortDivider) shortDivider.style.display = '';
-        }
-
-        const oldIcon = document.getElementById('mf-search-pl-icon');
-        if (oldIcon) oldIcon.remove();
-        const iconSpan = document.createElement('span');
-        iconSpan.id = 'mf-search-pl-icon';
-        iconSpan.style.display = 'inline-flex';       // 🌟 保证容器对齐机制
-        iconSpan.style.transform = 'translateY(2px)';
-        iconSpan.innerHTML = window.SVG_ICONS?.lx_plugin_line || '';
-
-        if (searchInputEl) {
-            if (!isFromHistory) window._lastOnlineKeyword = searchInputEl.value || oState.keyword || '';
-            searchInputEl.parentNode.insertBefore(iconSpan, searchInputEl);
-            searchInputEl.value = name;
-            searchInputEl.placeholder = '';
-            searchInputEl.dataset.isTitleMode = "true";
-            searchInputEl.dataset.hasBackBtn = isFromHistory ? "false" : "true";
-        }
 
         if (!isFromHistory) window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -662,9 +624,11 @@
         }
 
         // 🎯 拦截 1：引擎切换 (沙盒完全隔离版)
+        // 🎯 拦截 1：引擎切换 (沙盒完全隔离版)
         const engineLi = e.target.closest('#engine-opts .select-option');
         if (engineLi) {
             e.stopPropagation();
+            window.deadSongIndexes = {}; // 🌟 切换引擎，立即清空失效标记
             const engine = engineLi.dataset.value;
             const grid = document.getElementById('playlist-grid');
             const list = document.getElementById('playlist');
@@ -707,158 +671,102 @@
                 window.allPlaylists['在线资源'] = window.webdavOnlineBackup || [];
                 window.songList = window.allPlaylists['在线资源'];
                 if (grid && window.webdavGridBackup !== undefined) grid.innerHTML = window.webdavGridBackup;
-                if (list && window.webdavListBackup !== undefined) list.innerHTML = window.webdavListBackup;
 
-                if (mfSearchMainBtns) mfSearchMainBtns.style.display = 'none';
-                if (shortDivider) shortDivider.style.display = 'none';
-
-                if (mfSearchInput) {
-                    mfSearchInput.placeholder = '在当前网盘中极速过滤...';
-                    if (oState.view === 'playlist') {
-                        mfSearchInput.value = '';
-                        mfSearchInput.dataset.isTitleMode = "false";
-                        if (mfSearchBackBtn) mfSearchBackBtn.style.display = 'none';
-                        if (oldIcon) oldIcon.remove();
-                    } else if (oState.view === 'detail') {
-                        mfSearchInput.value = oState.detail_name || '';
-                        mfSearchInput.dataset.isTitleMode = "true";
-                        if (mfSearchBackBtn) mfSearchBackBtn.style.display = 'block';
-                        if (!oldIcon) {
-                            const iconSpan = document.createElement('span');
-                            iconSpan.id = 'mf-search-pl-icon';
-                            iconSpan.style.display = 'inline-flex';
-                            iconSpan.style.transform = 'translateY(2px)';
-                            iconSpan.innerHTML = window.SVG_ICONS.webdav.replace('width="15"', 'width="16"').replace('height="15"', 'height="16"');
-                            mfSearchInput.parentNode.insertBefore(iconSpan, mfSearchInput);
-                        }
-                    } else if (oState.view === 'dav_search') {
-                        mfSearchInput.value = oState.keyword || '';
-                        mfSearchInput.dataset.isTitleMode = "false";
-                        if (mfSearchBackBtn) mfSearchBackBtn.style.display = mfSearchInput.value ? 'block' : 'none';
-                        if (oldIcon) oldIcon.remove();
+                if (list && window.webdavListBackup !== undefined) {
+                    if (window.songList && window.songList.length > 0 && typeof window.renderPlaylist === 'function') {
+                        window.renderPlaylist();
+                    } else {
+                        list.innerHTML = window.webdavListBackup;
                     }
                 }
+
+                document.getElementById('wd-search-input').value = oState.view === 'dav_search' ? (oState.keyword || '') : '';
 
                 if (oState.view === 'playlist') { if(grid) grid.style.display = 'grid'; if(list) list.style.display = 'none'; }
                 else { if(grid) grid.style.display = 'none'; if(list) list.style.display = 'block'; }
 
-                // 极端兜底：如果完全没渲染过网盘，才去拉取
                 if (window.loadWebDavServers) window.loadWebDavServers();
 
             } else {
                 window.allPlaylists['在线资源'] = window.lxOnlineBackup || [];
                 window.songList = window.allPlaylists['在线资源'];
                 if (grid && window.lxGridBackup !== undefined) grid.innerHTML = window.lxGridBackup;
-                if (list && window.lxListBackup !== undefined) list.innerHTML = window.lxListBackup;
 
-                document.getElementById('mf-search-btn').innerText = '搜歌';
-                document.getElementById('mf-search-playlist-btn').innerText = '搜单';
-
-                if (mfSearchInput) {
-                    mfSearchInput.placeholder = '搜全网资源...';
-                    if (oState.view === 'detail') {
-                        mfSearchInput.value = oState.detail_name || '';
-                        mfSearchInput.dataset.isTitleMode = "true";
-                        if (mfSearchBackBtn) mfSearchBackBtn.style.display = 'block';
-                        if (mfSearchMainBtns) mfSearchMainBtns.style.display = 'none';
-                        if (shortDivider) shortDivider.style.display = 'none';
-                        if (!oldIcon) {
-                            const iconSpan = document.createElement('span');
-                            iconSpan.id = 'mf-search-pl-icon';
-                            iconSpan.style.display = 'inline-flex';
-                            iconSpan.style.transform = 'translateY(2px)';
-                            iconSpan.innerHTML = window.SVG_ICONS?.lx_plugin_line || '';
-                            mfSearchInput.parentNode.insertBefore(iconSpan, mfSearchInput);
-                        }
+                if (list && window.lxListBackup !== undefined) {
+                    if (window.songList && window.songList.length > 0 && typeof window.renderPlaylist === 'function') {
+                        window.renderPlaylist();
                     } else {
-                        mfSearchInput.value = oState.keyword || '';
-                        mfSearchInput.dataset.isTitleMode = "false";
-                        if (mfSearchBackBtn) mfSearchBackBtn.style.display = 'none';
-                        if (mfSearchMainBtns) mfSearchMainBtns.style.display = 'flex';
-                        if (shortDivider) shortDivider.style.display = '';
-                        if (oldIcon) oldIcon.remove();
+                        list.innerHTML = window.lxListBackup;
                     }
                 }
+
+                document.getElementById('lx-search-input').value = oState.keyword || '';
 
                 if (oState.view === 'playlist') { if(grid) grid.style.display = 'grid'; if(list) list.style.display = 'none'; }
                 else { if(grid) grid.style.display = 'none'; if(list) list.style.display = 'block'; }
 
                 if (window.renderMainPlatformDropdown) window.renderMainPlatformDropdown();
 
-                // 极端兜底：如果完全没渲染过 LX，才走正常初始化
                 if ((!window.lxGridBackup && oState.view === 'playlist') || (!window.lxListBackup && oState.view === 'song')) {
                     if (window.currentPlaylist === '在线资源' && window.restoreOnlineView) window.restoreOnlineView();
                 }
             }
+            window.refreshOnlineUI();
             return;
         }
 
         // 🎯 拦截 2：全局快照返回引擎
-        const backBtn = e.target.closest('#mf-search-back-btn');
+        const backBtn = e.target.closest('#detail-back-btn');
         if (backBtn) {
             e.stopPropagation(); e.preventDefault();
+            window.deadSongIndexes = {};
             const success = window.SnapshotManager.restoreSnapshot();
 
             if (success) {
                 const oState = window.StateManager.getState();
                 let prevState = (oState.keyword && oState.view !== 'playlist') ? 'song' : 'playlist';
 
-                // 🌟 核心修复法则 1：WebDAV 返回必定是海报墙，强制清空底层记忆
                 if (window.PluginManager.currentEngineName === 'WebDAV') {
                     prevState = 'playlist';
                     window.StateManager.setState({ view: 'playlist', keyword: '' });
+                    document.getElementById('wd-search-input').value = '';
                 } else {
                     window.StateManager.setState({ view: prevState });
+                    document.getElementById('lx-search-input').value = window._lastOnlineKeyword || oState.keyword || '';
                 }
 
                 window.currentOnlineView = prevState;
-
-                // 🌟 核心修复：LX 和 WebDAV 区别对待！LX 返回后必须恢复“搜歌/搜单”按钮
-                document.getElementById('mf-search-main-btns').style.display = window.PluginManager.currentEngineName === 'WebDAV' ? 'none' : 'flex';
-                backBtn.style.display = 'none';
-
-                const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');
-                if (shortDivider) shortDivider.style.display = window.PluginManager.currentEngineName === 'WebDAV' ? 'none' : '';
-
-                const mfSearchInput = document.getElementById('mf-search-input');
-                if (mfSearchInput) {
-                    // 🌟 核心修复法则 2：只要是 WebDAV 模式，输入框必须是干干净净的
-                    if (window.PluginManager.currentEngineName === 'WebDAV') {
-                        mfSearchInput.value = '';
-                    } else {
-                        mfSearchInput.value = window._lastOnlineKeyword || oState.keyword || '';
-                    }
-                    mfSearchInput.placeholder = window.PluginManager.currentEngineName === 'WebDAV' ? '在当前网盘中极速过滤...' : '搜全网资源...';
-                    mfSearchInput.dataset.isTitleMode = "false";
-                }
-                const oldIcon = document.getElementById('mf-search-pl-icon');
-                if (oldIcon) oldIcon.remove();
+                window.refreshOnlineUI();
 
                 setTimeout(() => { window.scrollTo({ top: window._gridScrollY || 0, behavior: 'auto' }); }, 10);
             } else {
-                if (window.PluginManager.currentEngineName === 'WebDAV') {
-                    window.StateManager.setState({ view: 'playlist', keyword: '' });
-                } else {
-                    window.StateManager.setState({ view: 'playlist' });
-                }
+                if (window.PluginManager.currentEngineName === 'WebDAV') window.StateManager.setState({ view: 'playlist', keyword: '' });
+                else window.StateManager.setState({ view: 'playlist' });
                 window.restoreOnlineView();
             }
             return;
         }
 
-        // 🎯 拦截 3：WebDAV 节点切换
+        // 🎯 拦截 3：WebDAV 节点切换 (兼顾 LX 平台切换)
         const srvLi = e.target.closest('#mf-plugin-opts .select-option');
-        if (window.isWebDAVMode && srvLi && !srvLi.classList.contains('disabled-text')) {
-            e.stopPropagation();
-            const optsEl = document.getElementById('mf-plugin-opts');
-            const valEl = document.getElementById('mf-plugin-val');
-            optsEl.querySelectorAll('.select-option').forEach(el => el.classList.remove('active'));
-            srvLi.classList.add('active');
-            valEl.innerText = srvLi.innerText; valEl.dataset.value = srvLi.dataset.value;
-            window.webdavData.currentServer = srvLi.dataset.value;
-            optsEl.classList.remove('show');
-            if (window.fetchWebDavLibrary) window.fetchWebDavLibrary();
-            return;
+        if (srvLi && !srvLi.classList.contains('disabled-text')) {
+            window.deadSongIndexes = {}; // 🌟 第一步：无论什么模式，只要点了下拉框就清空失效记录
+
+            // 🌟 第二步：分流处理
+            if (window.isWebDAVMode) {
+                // 如果是 WebDAV，就在这里全权处理并拦截
+                e.stopPropagation();
+                const optsEl = document.getElementById('mf-plugin-opts');
+                optsEl.querySelectorAll('.select-option').forEach(el => el.classList.remove('active'));
+                srvLi.classList.add('active');
+                const valEl = document.getElementById('mf-plugin-val');
+                valEl.innerText = srvLi.innerText; valEl.dataset.value = srvLi.dataset.value;
+                window.webdavData.currentServer = srvLi.dataset.value;
+                optsEl.classList.remove('show');
+                if (window.fetchWebDavLibrary) window.fetchWebDavLibrary();
+                return;
+            }
+            // 如果不是 WebDAV（即 LXMusic 模式），则直接放行！让它原本的代码正常执行！
         }
 
         // 🎯 拦截 4：弹窗扫库按钮
@@ -950,6 +858,10 @@
     window.renderWebDavFolder = function(folderName, songs, isSearch = false, isHistory = false) {
         window.currentOnlineView = 'detail';
         window.setOnlineState({ view: 'detail', detail_name: folderName });
+        window.refreshOnlineUI();
+
+        const titleText = document.getElementById('detail-title-text');
+        if (titleText) titleText.innerHTML = `<span style="display:inline-flex; transform:translateY(2px);">${window.SVG_ICONS.webdav.replace('width="15"', 'width="16"').replace('height="15"', 'height="16"')}</span><span>${folderName}</span>`;
 
         const grid = document.getElementById('playlist-grid');
         const list = document.getElementById('playlist');
@@ -962,29 +874,6 @@
 
         if (!isSearch && !isHistory && typeof window.saveSearchHistory === 'function') {
             window.saveSearchHistory({ type: 'playlist', id: folderName, name: folderName, engine: 'WebDAV', platform: window.webdavData.currentServer || '' });
-        }
-
-        const btns = document.getElementById('mf-search-main-btns');
-        const backBtn = document.getElementById('mf-search-back-btn');
-        const divider = document.querySelector('#global-menu-1-wrapper .divider-v');
-        if(btns) btns.style.display = 'none';
-        if(backBtn) backBtn.style.display = 'block';
-        if(divider) divider.style.display = '';
-
-        const searchInput = document.getElementById('mf-search-input');
-        if (searchInput) {
-            searchInput.value = folderName; searchInput.dataset.isTitleMode = "true"; searchInput.dataset.hasBackBtn = "true";
-            const oldIcon = document.getElementById('mf-search-pl-icon');
-            if (oldIcon) oldIcon.remove();
-
-            if (!isSearch) {
-                const iconSpan = document.createElement('span');
-                iconSpan.id = 'mf-search-pl-icon';
-                iconSpan.style.display = 'inline-flex';       // 🌟 保证容器对齐机制
-                iconSpan.style.transform = 'translateY(2px)';
-                iconSpan.innerHTML = window.SVG_ICONS.webdav.replace('width="15"', 'width="16"').replace('height="15"', 'height="16"');
-                searchInput.parentNode.insertBefore(iconSpan, searchInput);
-            }
         }
 
         if(window.renderPlaylist) window.renderPlaylist();
@@ -1216,12 +1105,6 @@
                 if (targetLi) targetLi.classList.add('active');
                 engineVal.innerText = 'WebDAV'; engineVal.dataset.value = 'WebDAV';
             }
-            document.getElementById('mf-search-main-btns').style.display = 'none';
-            document.getElementById('mf-search-input').placeholder = '在当前网盘中极速过滤...';
-
-            // 🌟 修复：首屏直接是 WebDAV 启动时，直接把短线给毙掉
-            const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');
-            if (shortDivider) shortDivider.style.display = 'none';
         }
 
         const wdServerView = document.getElementById('wd-server-view');

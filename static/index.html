@@ -151,20 +151,20 @@
   .search-icon-btn { background: transparent; border: none; color: var(--text-sub); border-radius: 6px; width: 26px; height: 26px; display: none; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.2s, opacity 0.2s; }
   .search-icon-btn:active { background: var(--border); opacity: 0.8; transform: scale(0.95); }
 
-  #mf-search-wrap { flex: 0 0 38px; min-height: 38px; align-items: center; background: transparent; border: none; height: 38px; padding: 0; box-sizing: border-box; width: 100%; gap: 10px; }
-  #mf-search-input-wrap { flex: 1; display: flex; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; height: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative; padding-left: 10px; }
-  #mf-search-input { flex: 1; border: none; outline: none; background: transparent; padding: 0 4px 0 0; font-size: 14px; color: var(--text-main); height: 100%; margin: 0; line-height: normal; min-width: 0; -webkit-appearance: none; }
-  #mf-search-input-wrap .search-actions { display: flex; height: 100%; align-items: center; margin-right: 0; gap: 0; }
-  #mf-search-clear { margin-right: 0; width: 24px; }
+  #online-toolbar-container { flex: 0 0 38px; min-height: 38px; align-items: center; background: transparent; border: none; height: 38px; padding: 0; box-sizing: border-box; width: 100%; gap: 10px; }
+  .search-input-box { flex: 1; display: flex; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; height: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative; padding-left: 10px; min-width: 0; }
+  .search-input-box input { flex: 1; border: none; outline: none; background: transparent; padding: 0 4px 0 0; font-size: 14px; color: var(--text-main); height: 100%; margin: 0; line-height: normal; min-width: 0; -webkit-appearance: none; }
+  .search-input-box .search-actions { display: flex; height: 100%; align-items: center; margin-right: 0; gap: 0; }
+  .search-clear-btn { margin-right: 0; width: 24px; }
 
   .search-text-group { display: flex; height: 100%; border-left: 1px solid var(--border); }
   .search-text-btn { background: transparent !important; border: none; height: 100%; padding: 0 12px; font-size: 14px; font-weight: 600; color: var(--text-sub) !important; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
   .search-text-btn:active { background: var(--bg-color) !important; color: var(--text-main) !important; }
   .search-text-divider { width: 1px; height: 14px; background: var(--border); margin: 0 4px; }
 
-  #mf-search-main-btns, #menu-dropzone-row2 { display: flex; align-items: center; height: 100%; }
+  #lx-search-main-btns, .menu-dropzone-col { display: flex; align-items: center; height: 100%; }
   #mf-search-playlist-btn { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
-  #mf-search-back-btn { display: none; padding: 0 20px; color: var(--primary) !important; font-weight: bold !important; }
+  #detail-back-btn { padding: 0 20px; color: var(--primary) !important; font-weight: bold !important; }
   .btn-return { width: auto; height: 30px; margin: 0 4px; padding: 0 10px; border-radius: 6px; font-size: 14px; font-weight: bold; color: var(--primary); }
   #back-to-grid-wrap { display: none; height: 100%; flex: 0 0 auto; padding-right: 4px; }
 
@@ -609,10 +609,10 @@
   <script src="./static/icons.js?v0.8.0" defer></script>
   <script src="./static/utils.js?v1.0.2" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v1.0.0" defer></script>
-  <script src="./static/online.js?v1.0.2" defer></script>
+  <script src="./static/playlist.js?v1.0.3" defer></script>
+  <script src="./static/online.js?v1.0.3" defer></script>
   <script src="./static/plugins.js?v1.0.1" defer></script>
-  <script src="./static/player.js?v1.0.2" defer></script>
+  <script src="./static/player.js?v1.0.3" defer></script>
   <script src="./static/miot.js?v1.0.2" defer></script>
 
 </head>
@@ -740,33 +740,57 @@
       </div>
     </div>
 
-    <div class="search-inline-wrap" id="mf-search-wrap">
-      <div id="mf-search-input-wrap">
-        <input type="text" id="mf-search-input" placeholder="搜全网资源..." autocomplete="off">
-        <div class="search-actions">
-          <button class="search-icon-btn" id="mf-search-clear" title="清除">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
+    <div class="search-inline-wrap" id="online-toolbar-container" style="display: none;">
 
-          <div class="search-text-group">
-            <div id="mf-search-main-btns">
-              <button class="search-text-btn" id="mf-search-btn">搜歌</button>
-              <div class="search-text-divider" id="mf-search-divider"></div>
-              <button class="search-text-btn" id="mf-search-playlist-btn">搜单</button>
+      <div id="lx-search-row" class="w-full h-full" style="display: none; align-items: center;">
+        <div class="search-input-box" id="lx-search-input-wrap">
+          <input type="text" id="lx-search-input" placeholder="搜全网资源..." autocomplete="off">
+          <div class="search-actions">
+            <button class="search-icon-btn search-clear-btn" id="lx-search-clear" title="清除">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="search-text-group">
+              <div id="lx-search-main-btns">
+                <button class="search-text-btn" id="lx-search-btn">搜歌</button>
+                <div class="search-text-divider"></div>
+                <button class="search-text-btn" id="lx-search-playlist-btn">搜单</button>
+              </div>
+              <div id="menu-dropzone-lx" class="menu-dropzone-col"></div>
             </div>
-            <button class="search-text-btn" id="mf-search-back-btn">返回</button>
-
-            <div id="menu-dropzone-row2"></div>
-
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div id="loading">正在加载音乐...</div>
-<ul class="playlist" id="playlist"></ul>
+      <div id="wd-search-row" class="w-full h-full" style="display: none; align-items: center;">
+        <div class="search-input-box">
+          <input type="text" id="wd-search-input" placeholder="在当前网盘中极速过滤..." autocomplete="off">
+          <div class="search-actions">
+            <button class="search-icon-btn search-clear-btn" id="wd-search-clear" title="清除">
+               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="search-text-group" style="border-left: none;">
+              <div id="menu-dropzone-wd" class="menu-dropzone-col"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="detail-title-row" class="w-full h-full" style="display: none; align-items: center;">
+        <div class="search-input-box">
+          <div id="detail-title-text" style="flex: 1; padding: 0 4px; font-size: 14px; font-weight: bold; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px;"></div>
+          <div class="search-actions">
+            <div class="search-text-group">
+              <button class="search-text-btn" id="detail-back-btn">返回</button>
+              <div id="menu-dropzone-detail" class="menu-dropzone-col"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div> <ul class="playlist" id="playlist"></ul>
 <div class="playlist-grid" id="playlist-grid"></div>
+<div id="loading">正在加载音乐...</div>
 
 <div class="full-player" id="full-player">
   <div class="drawer-handle" id="drawer-handle">
@@ -1028,7 +1052,7 @@
           5. 点击右上角 <b>添加</b><br>
           6. 自动回到桌面，即可看到独立的原生 App 图标！
         </div>
-        <button class="about-primary start-ios-guide-btn w-full-mt15" onclick="window.startIosGuide(event)">开启安装引导</button>
+        <button class="about-primary start-ios-guide-btn w-full-mt15" onclick="window.startIosGuide(event, 'shortcut')">开启安装引导</button>
       </div>
 
       <div id="ios-mode-pwa" class="ios-install-pane">
@@ -1045,7 +1069,7 @@
           5. 点击右上角 <b>添加</b><br>
           6. 自动回到桌面，即可看到独立的原生 App 图标！
         </div>
-        <button class="about-primary start-ios-guide-btn w-full-mt15" onclick="window.startIosGuide(event)">开启安装引导</button>
+        <button class="about-primary start-ios-guide-btn w-full-mt15" onclick="window.startIosGuide(event, 'pwa')">开启安装引导</button>
       </div>
 
       <div id="ios-mode-profile" class="ios-install-pane">
@@ -1055,12 +1079,11 @@
         <p class="guide-desc mb-12">受 iOS 限制，锁屏暂停后系统会强制终止进程，无法恢复播放</p>
         <div class="guide-title">🛠️ 操作步骤：</div>
         <div class="guide-step-box">
-          1. 完成下方图标名称，绑定服务地址修改<br>
-          2. 点击<b>生成并下载配置</b>后，在弹窗中允许下载<br>
-          3. 打开手机自带的 <b>设置</b> 应用<br>
-          4. 前往 <b>通用</b> -> <b>VPN与设备管理</b><br>
-          5. 找到 <b>iWebPlayer Config</b> 点击进行安装，根据iPhone提示直到完成<br>
-          6. 回到桌面，即可看到独立的原生 App 图标！
+          1. 点击<b>生成并下载配置</b>后，在弹窗中允许下载<br>
+          2. 打开手机自带的 <b>设置</b> 应用<br>
+          3. 前往 <b>通用</b> -> <b>VPN与设备管理</b><br>
+          4. 找到 <b>iWebPlayer Config</b> 点击进行安装，根据iPhone提示直到完成<br>
+          5. 回到桌面，即可看到独立的原生 App 图标！
         </div>
         <div style="margin-bottom: 12px;">
             <div class="guide-title">图标名称</div>
@@ -1472,7 +1495,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.0.2';
+    window.APP_VERSION = 'v1.0.3';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -1802,9 +1825,6 @@
         }
 
         document.addEventListener('click', (e) => {
-          if (e.target.closest('.select-option') && (e.target.closest('#playlist-opts') || e.target.closest('#engine-opts') || e.target.closest('#mf-plugin-opts'))) {
-              window.deadSongIndexes = {};
-          }
           if (!e.isTrusted) return;
           if (!e.target.closest('#playlist-container')) playlistOpts.classList.remove('show');
           if (!e.target.closest('#settings-container') && settingsOpts) settingsOpts.classList.remove('show');
@@ -1819,7 +1839,7 @@
           if (!e.target.closest('#mf-plugin-container')) document.getElementById('mf-plugin-opts')?.classList.remove('show');
           if (!e.target.closest('#pref-default-device-container')) document.getElementById('pref-default-device-opts')?.classList.remove('show');
           const popup = document.getElementById('search-history-popup');
-          if (popup && !e.target.closest('#mf-search-input-wrap')) popup.style.display = 'none';
+          if (popup && !e.target.closest('#lx-search-input-wrap') && !e.target.closest('#wd-search-row')) popup.style.display = 'none';
         });
 
         // 按钮功能绑定
@@ -2337,12 +2357,102 @@
                 window.performLocalSearch(keyword);
             });
 
-            // 点击 X 时：清空字串，触发 input 重置列表，并用 preventDefault 强行保住焦点
             searchClear.addEventListener('mousedown', (e) => {
                 e.preventDefault(); // 极其关键：阻止输入框在点击 X 的瞬间失去焦点
                 searchInput.value = '';
                 searchInput.dispatchEvent(new Event('input'));
                 searchClear.classList.remove('show');
+            });
+        }
+
+        // 🌟 物理隔离 1：LXMusic 专属搜索逻辑
+        const lxSearchBtn = document.getElementById('lx-search-btn');
+        if (lxSearchBtn) lxSearchBtn.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation(); window.deadSongIndexes = {};
+            const popup = document.getElementById('search-history-popup');
+            if (popup) popup.style.display = 'none'; // 🌟 点击搜歌时，顺手隐藏历史记录
+            window.doOnlineSearch(false);
+        });
+
+        const lxSearchPlaylistBtn = document.getElementById('lx-search-playlist-btn');
+        if (lxSearchPlaylistBtn) lxSearchPlaylistBtn.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation(); window.deadSongIndexes = {};
+            const popup = document.getElementById('search-history-popup');
+            if (popup) popup.style.display = 'none'; // 🌟 点击搜单时，顺手隐藏历史记录
+            window.doLxPlaylistSearch();
+        });
+
+        const lxSearchInput = document.getElementById('lx-search-input');
+        const lxSearchClear = document.getElementById('lx-search-clear');
+        if (lxSearchInput) {
+            if (lxSearchClear) {
+                lxSearchClear.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); lxSearchInput.value = ''; lxSearchInput.dispatchEvent(new Event('input')); lxSearchClear.classList.remove('show');
+                });
+            }
+            lxSearchInput.addEventListener('focus', (e) => {
+                e.stopPropagation(); closeAllDropdownsExcept('search-history-popup');
+                if (lxSearchInput.value.trim().length > 0) lxSearchClear.classList.add('show');
+                if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
+                const popup = document.getElementById('search-history-popup');
+                if (popup) popup.style.display = 'block';
+            });
+            lxSearchInput.addEventListener('click', (e) => {
+                e.stopPropagation(); closeAllDropdownsExcept('search-history-popup');
+                if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
+                const popup = document.getElementById('search-history-popup');
+                if (popup) popup.style.display = 'block';
+            });
+            lxSearchInput.addEventListener('input', () => {
+                window.deadSongIndexes = {}; const hasText = lxSearchInput.value.trim().length > 0;
+                if (lxSearchClear) lxSearchClear.classList.toggle('show', hasText);
+                const popup = document.getElementById('search-history-popup');
+                if (popup) popup.style.display = 'none';
+            });
+            lxSearchInput.addEventListener('blur', () => { if (lxSearchClear) lxSearchClear.classList.remove('show'); });
+            // 🌟 顺手加个优化：手机上按回车直接搜歌
+            lxSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); lxSearchInput.blur(); window.deadSongIndexes = {}; window.doOnlineSearch(false); }
+            });
+        }
+
+        // 🌟 物理隔离 2：WebDAV 专属极速过滤逻辑
+        const wdSearchInput = document.getElementById('wd-search-input');
+        const wdSearchClear = document.getElementById('wd-search-clear');
+        if (wdSearchInput) {
+            if (wdSearchClear) {
+                wdSearchClear.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); wdSearchInput.value = ''; wdSearchInput.dispatchEvent(new Event('input')); wdSearchClear.classList.remove('show');
+                });
+            }
+            wdSearchInput.addEventListener('focus', (e) => {
+                e.stopPropagation(); closeAllDropdownsExcept('search-history-popup');
+                if (wdSearchInput.value.trim().length > 0) wdSearchClear.classList.add('show');
+                if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
+                const popup = document.getElementById('search-history-popup');
+                if (popup) popup.style.display = 'block';
+            });
+            wdSearchInput.addEventListener('click', (e) => {
+                e.stopPropagation(); closeAllDropdownsExcept('search-history-popup');
+                if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
+                const popup = document.getElementById('search-history-popup');
+                if (popup) popup.style.display = 'block';
+            });
+            wdSearchInput.addEventListener('blur', () => { if (wdSearchClear) wdSearchClear.classList.remove('show'); });
+            wdSearchInput.addEventListener('input', () => {
+                window.deadSongIndexes = {}; const kw = wdSearchInput.value.trim();
+                if (wdSearchClear) wdSearchClear.classList.toggle('show', kw.length > 0);
+
+                if (kw) {
+                    if (window.doOnlineSearch) window.doOnlineSearch(false);
+                } else {
+                    if (window.setOnlineState) window.setOnlineState({ view: 'playlist', keyword: '' });
+                    window.currentOnlineView = 'playlist';
+                    const list = document.getElementById('playlist'); const grid = document.getElementById('playlist-grid');
+                    if (list) list.style.display = 'none'; if (grid) grid.style.display = 'grid';
+                    window.songList = []; window.allPlaylists['在线资源'] = [];
+                    if (window.fetchWebDavLibrary) window.fetchWebDavLibrary();
+                }
             });
         }
 
@@ -2375,8 +2485,45 @@
                 });
             });
 
-            window.startIosGuide = (e) => { if (e) e.stopPropagation(); if (guideBubble) guideBubble.classList.add('show'); };
+            window.startIosGuide = (e, mode) => {
+                if (e) e.stopPropagation();
+
+                // 🌟 核心突破：如果检测到被 iframe 嵌套 (Songloft 嵌套模式)，则强制跳出到新标签页！
+                if (window.self !== window.top) {
+                    const url = window.location.origin + window.location.pathname + '?ios_guide=' + (mode || 'shortcut');
+                    window.open(url, '_blank');
+                    return;
+                }
+
+                // 如果已经是独立页面，直接显示右下角的提示气泡
+                if (guideBubble) guideBubble.classList.add('show');
+            };
+
             document.addEventListener('click', (e) => { if (guideBubble && guideBubble.classList.contains('show')) if (!e.target.closest('.start-ios-guide-btn')) guideBubble.classList.remove('show'); });
+
+            // 🌟 自动唤醒逻辑：新标签页加载时，检测到 URL 参数全自动触发
+            const urlParams = new URLSearchParams(window.location.search);
+            const guideMode = urlParams.get('ios_guide');
+            if (guideMode) {
+                setTimeout(() => {
+                    // 1. 模拟点击 iOS 桌面设置按钮：全自动完成弹窗打开、Logo 填充与服务地址初始化
+                    const settingIosBtn = document.getElementById('setting-ios-desktop');
+                    if (settingIosBtn) settingIosBtn.click();
+
+                    // 2. 精准切换到用户刚才点击的 Tab (支持 shortcut / pwa / profile)
+                    const targetId = guideMode === 'pwa' ? 'ios-mode-pwa' : (guideMode === 'profile' ? 'ios-mode-profile' : 'ios-mode-shortcut');
+                    const targetTab = document.querySelector(`.ios-plugin-tab[data-target="${targetId}"]`);
+                    if (targetTab) targetTab.click();
+
+                    // 3. 呼出右下角提示气泡
+                    if (typeof window.startIosGuide === 'function') {
+                        window.startIosGuide(null, guideMode);
+                    }
+
+                    // 4. 用 History API 抹除 URL 上的 ?ios_guide 参数，确保保存的桌面网址 100% 纯净！
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }, 300);
+            }
 
             const btnDownloadProfile = document.getElementById('btn-download-profile');
             if (btnDownloadProfile) {
@@ -2417,146 +2564,6 @@
                 });
             }
         }
-
-        const mfSearchBtn = document.getElementById('mf-search-btn');
-        if (mfSearchBtn) mfSearchBtn.addEventListener('click', (e) => {
-            e.preventDefault(); e.stopPropagation();
-            window.deadSongIndexes = {};
-            // 🌟 分流：WebDAV 走本地搜，LX 走在线搜
-            if (window.isWebDAVMode && window.doWebDavSearch) window.doWebDavSearch();
-            else window.doOnlineSearch(false);
-        });
-
-        const mfSearchPlaylistBtn = document.getElementById('mf-search-playlist-btn');
-        if (mfSearchPlaylistBtn) mfSearchPlaylistBtn.addEventListener('click', (e) => {
-            e.preventDefault(); e.stopPropagation();
-            window.deadSongIndexes = {};
-            // 🌟 分流：WebDAV 走扫库指令，LX 走搜歌单
-            if (window.isWebDAVMode && window.triggerWebDavScan) window.triggerWebDavScan();
-            else window.doLxPlaylistSearch();
-        });
-
-        const mfSearchInput = document.getElementById('mf-search-input');
-        const mfSearchClear = document.getElementById('mf-search-clear');
-        if (mfSearchInput) {
-            if (mfSearchClear) {
-                  // 用 mousedown 而不是 click，可以完美阻止输入框失去焦点！
-                  mfSearchClear.addEventListener('mousedown', (e) => {
-                      e.preventDefault();
-                      mfSearchInput.value = '';
-                      mfSearchInput.dispatchEvent(new Event('input')); // 假装敲键盘，触发UI重置
-                      mfSearchClear.classList.remove('show');
-                  });
-              }
-            mfSearchInput.addEventListener('focus', (e) => {
-                const hasText = mfSearchInput.value.trim().length > 0;
-
-                // 🌟 改造 1：WebDAV 模式永不显示 X，有字且非标题模式时，直接显示“返回”
-                if (window.isWebDAVMode) {
-                    if (mfSearchClear) mfSearchClear.classList.remove('show');
-                    if (hasText && mfSearchInput.dataset.isTitleMode !== "true") {
-                        document.getElementById('mf-search-back-btn').style.display = 'block';
-                    }
-                } else {
-                    if (mfSearchClear && hasText) mfSearchClear.classList.add('show');
-                }
-
-                e.stopPropagation(); closeAllDropdownsExcept('search-history-popup');
-
-                // 🌟 恢复：无条件渲染并显示历史面板
-                if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
-                const popup = document.getElementById('search-history-popup');
-                if (popup) popup.style.display = 'block';
-
-                if (mfSearchInput.dataset.isTitleMode === "true") {
-                    mfSearchInput.select();
-                    const oldIcon = document.getElementById('mf-search-pl-icon');
-                    if (oldIcon) oldIcon.style.display = 'none';
-                    document.getElementById('mf-search-back-btn').style.display = 'none';
-                    document.getElementById('mf-search-main-btns').style.display = window.isWebDAVMode ? 'none' : 'flex';
-                    const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');
-                    if (shortDivider) shortDivider.style.display = '';
-                }
-            });
-
-            mfSearchInput.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllDropdownsExcept('search-history-popup');
-
-                if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
-                const popup = document.getElementById('search-history-popup');
-                if (popup && mfSearchInput.dataset.isTitleMode !== "true") {
-                    popup.style.display = 'block';
-                }
-            });
-
-            mfSearchInput.addEventListener('input', () => {
-                window.deadSongIndexes = {};
-                const hasText = mfSearchInput.value.trim().length > 0;
-
-                // 🌟 改造 2：打字时动态显隐“返回”按钮，并彻底封杀 X
-                if (window.isWebDAVMode) {
-                    if (mfSearchClear) mfSearchClear.classList.remove('show');
-                    if (mfSearchInput.dataset.isTitleMode !== "true") {
-                        document.getElementById('mf-search-back-btn').style.display = hasText ? 'block' : 'none';
-                    }
-                } else {
-                    if (mfSearchClear) mfSearchClear.classList.toggle('show', hasText);
-                }
-
-                const popup = document.getElementById('search-history-popup');
-                if (popup) popup.style.display = 'none';
-
-                if (mfSearchInput.dataset.isTitleMode === "true") {
-                    mfSearchInput.dataset.isTitleMode = "false";
-                    const oldIcon = document.getElementById('mf-search-pl-icon');
-                    if (oldIcon) oldIcon.remove();
-                    // 破坏标题模式进入搜索时，如果有字，WebDAV 必须保留返回按钮
-                    document.getElementById('mf-search-back-btn').style.display = window.isWebDAVMode ? (hasText ? 'block' : 'none') : 'none';
-                    document.getElementById('mf-search-main-btns').style.display = window.isWebDAVMode ? 'none' : 'flex';
-                }
-
-                // 🌟 改造 3：WebDAV 实时内存秒搜核心闭环
-                if (window.isWebDAVMode) {
-                    const kw = mfSearchInput.value.trim();
-                    if (kw) {
-                        if (window.doOnlineSearch) window.doOnlineSearch(false);
-                    } else {
-                        // 🚨 终极防弹修复：清空输入框时，不仅重绘海报，还要把底层状态强行拨回 playlist！
-                        if (window.setOnlineState) window.setOnlineState({ view: 'playlist', keyword: '' });
-                        window.currentOnlineView = 'playlist';
-
-                        const list = document.getElementById('playlist');
-                        const grid = document.getElementById('playlist-grid');
-                        if (list) list.style.display = 'none';
-                        if (grid) grid.style.display = 'grid';
-
-                        window.songList = [];
-                        window.allPlaylists['在线资源'] = [];
-
-                        if (window.fetchWebDavLibrary) window.fetchWebDavLibrary();
-                    }
-                }
-            });
-
-            mfSearchInput.addEventListener('blur', () => {
-                if (mfSearchClear) mfSearchClear.classList.remove('show');
-                if (mfSearchInput.dataset.isTitleMode === "true") {
-                    const oldIcon = document.getElementById('mf-search-pl-icon');
-                    if (oldIcon) oldIcon.style.display = '';
-                    document.getElementById('mf-search-main-btns').style.display = 'none';
-                    const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');
-                    if (mfSearchInput.dataset.hasBackBtn === "true") {
-                        document.getElementById('mf-search-back-btn').style.display = 'block';
-                        if (shortDivider) shortDivider.style.display = '';
-                    } else {
-                        document.getElementById('mf-search-back-btn').style.display = 'none';
-                        if (shortDivider) shortDivider.style.display = 'none';
-                    }
-                }
-            });
-        }
-
 
         // 🌟 参数设置弹窗逻辑
         const prefBtn = document.getElementById('setting-preferences-btn');
@@ -2849,7 +2856,7 @@
         if (headerLogo) headerLogo.src = APP_LOGO;
         const aboutImg = document.getElementById('about-logo-img');
         if (aboutImg) aboutImg.src = APP_LOGO;
-        const iosLogoImg = document.getElementById('ios-desktop-logo-img');
+        const iosLogoImg = document.getElementById('ios-header-logo-img'); // 🌟 修复：修正 ID
         if (iosLogoImg) iosLogoImg.src = APP_LOGO;
         window.setHeadIcon('icon', APP_LOGO);
         window.setHeadIcon('apple-touch-icon', APP_LOGO, { sizes: '180x180' });
