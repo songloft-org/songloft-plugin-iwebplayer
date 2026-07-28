@@ -432,6 +432,8 @@
 
     window.performLocalSearch = function(keyword) {
         keyword = keyword.trim().toLowerCase();
+        window.matchedLocalPlaylists = []; // 🌟 新增：重置匹配的歌单池
+
         if (!keyword) {
             window.allPlaylists['曲库搜索'] = [];
             window.songList = [];
@@ -442,11 +444,21 @@
                 return songName && songName.toLowerCase().includes(keyword);
             });
             window.songList = window.allPlaylists['曲库搜索'];
+
+            // 🌟 新增：同步搜索本地歌单
+            const skipPls = ['全部', '所有歌曲', '最近新增', '曲库搜索', '收藏', '下载', '所有电台', 'cache_songs', '_local_iwebplayer_search', '电台收藏'];
+            if (window.playlistMeta) {
+                window.matchedLocalPlaylists = window.playlistMeta.filter(pl => {
+                    return !skipPls.includes(pl.name) && pl.name.toLowerCase().includes(keyword);
+                });
+            }
         }
 
         if (window.currentPlaylist === '曲库搜索') {
             window.renderPlaylist();
-            const text = window.formatPlaylistTextWithTags('曲库搜索', window.songList.length);
+            // 🌟 修复：顶部标题的数字要显示歌曲和歌单的总和！
+            const totalCount = window.songList.length + window.matchedLocalPlaylists.length;
+            const text = window.formatPlaylistTextWithTags('曲库搜索', totalCount);
             const playlistVal = document.getElementById('playlist-val');
             if (playlistVal) playlistVal.innerHTML = text;
             const searchOpt = document.querySelector('#playlist-opts .select-option[data-key="曲库搜索"]');
@@ -466,6 +478,7 @@
             if (k === '全部') return;
             uniqueBaseNames.add(k);
         });
+        uniqueBaseNames.add('我的歌单'); // 🌟 核心补漏：强制确保“我的歌单”海报墙入口永远存在！
 
         const allCleanKeys = Array.from(uniqueBaseNames);
         let defaultKey = (window.localState.playlist && allCleanKeys.includes(window.localState.playlist)) ? window.localState.playlist : '';
@@ -714,22 +727,30 @@
         const authData = JSON.parse(localStorage.getItem('songloft-auth') || "{}");
         const globalToken = authData.accessToken || "";
 
-        // 1. 渲染我的网格 (海报墙)
-        // 🌟 修复：精准沙盒！只有处于 WebDAV 模式，并且当前正点击了“在线资源”时，才允许网盘接管海报墙！
-        const isWebDavGrid = window.isWebDAVMode && window.currentPlaylist === '在线资源' && window.currentOnlineView !== 'detail';
+        // 🌟 新增：确保在 DOM 结构里，海报墙永远稳稳压在歌曲列表的上方！
+        if (grid && list && list.parentNode && grid.nextElementSibling !== list) {
+            list.parentNode.insertBefore(grid, list);
+        }
+        if (window.listObserver) window.listObserver.disconnect(); // 清理下方列表可能的遗留
 
-        if (window.currentPlaylist === '我的歌单' || isWebDavGrid) {
-            if (list) list.style.display = 'none';
+        // 1. 渲染我的网格 (海报墙)
+        const isWebDavGrid = window.isWebDAVMode && window.currentPlaylist === '在线资源' && window.currentOnlineView === 'playlist';
+        const isSearchGrid = window.currentPlaylist === '曲库搜索' && window.matchedLocalPlaylists && window.matchedLocalPlaylists.length > 0;
+
+        if (window.currentPlaylist === '我的歌单' || isWebDavGrid || isSearchGrid) {
+            if (list && !isSearchGrid) list.style.display = 'none'; // 🌟 如果是搜歌单，绝对不隐藏下方列表
             if (grid) grid.style.display = 'grid';
 
-            // 🌟 修复：不管是本地歌单还是网盘，渲染海报前必须彻底清空残留的“正在拉取...”文字
-            if (grid) grid.innerHTML = '';
+            if (grid) {
+                grid.innerHTML = isSearchGrid ? `<div style="grid-column: 1 / -1; font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: -4px; padding-left: 4px;">🎯 匹配到的歌单 (${window.matchedLocalPlaylists.length})</div>` : '';
+            }
 
             const metas = isWebDavGrid ?
                 (window.webdavPlaylistMeta || []) :
+                (isSearchGrid ? window.matchedLocalPlaylists :
                 [...(window.playlistMeta || [])]
                     .filter(pl => pl.name !== '所有电台' && pl.name !== '电台收藏')
-                    .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+                    .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')));
 
             window.playlistObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -748,26 +769,56 @@
                         } else {
                             const playlistSongs = window.getMergedSongList(plName);
                             if (playlistSongs && playlistSongs.length > 0) {
-                                const firstSong = playlistSongs[0];
-                                if (firstSong._scrapedCover) {
-                                    img.src = firstSong._scrapedCover;
-                                    window.playlistObserver.unobserve(card);
-                                } else if (firstSong.cover_url) {
-                                    img.src = `${firstSong.cover_url}&access_token=${globalToken}`;
-                                    window.playlistObserver.unobserve(card);
+                                // 🌟 智能寻回：向下遍历，必须排除掉默认的 window.defaultCover（防之前刮削失败的缓存干扰）
+                                const validSong = playlistSongs.find(s =>
+                                    (s._scrapedCover && s._scrapedCover !== 'null' && s._scrapedCover !== 'undefined' && s._scrapedCover !== window.defaultCover) ||
+                                    (s.cover_url && s.cover_url !== 'null' && s.cover_url !== 'undefined' && s.cover_url.trim() !== '')
+                                );
+
+                                if (validSong) {
+                                    if (validSong._scrapedCover && validSong._scrapedCover !== 'null' && validSong._scrapedCover !== 'undefined') {
+                                        img.src = validSong._scrapedCover;
+                                        window.playlistObserver.unobserve(card);
+                                    } else {
+                                        img.src = `${validSong.cover_url}&access_token=${globalToken}`;
+                                        window.playlistObserver.unobserve(card);
+                                    }
                                 } else {
+                                    // 🌟 深度连环刮削：如果没找到现成封面，依次抓前几首歌去全网请求，直到成功为止！
                                     if (card._scrapeTimer) clearTimeout(card._scrapeTimer);
                                     card._scrapeTimer = setTimeout(async () => {
                                         if (!card._inView) return;
                                         window.playlistObserver.unobserve(card);
-                                        // 🚀 这里会完美触发原生的刮削器，拿网盘文件夹的第一首歌去查全网封面！
-                                        const hdCover = await window.fetchScrape(firstSong, 'cover');
+
+                                        let foundCover = null;
+                                        // 限制最多只往后查 5 首歌，防止无封面文件夹引起服务器 API 并发爆炸
+                                        const maxCheck = Math.min(playlistSongs.length, 5);
+
+                                        for (let i = 0; i < maxCheck; i++) {
+                                            if (!card._inView) break;
+                                            const checkSong = playlistSongs[i];
+
+                                            // 如果这首歌之前已经被刮削过且确认为无封面，直接跳过，省一次网络请求
+                                            if (checkSong._scrapedCover === window.defaultCover) continue;
+
+                                            // 🚀 触发刮削器
+                                            const hdCover = await window.fetchScrape(checkSong, 'cover');
+
+                                            if (hdCover) {
+                                                foundCover = hdCover;
+                                                if (typeof checkSong === 'object') checkSong._scrapedCover = hdCover;
+                                                break; // 💡 一旦找到有效封面，立刻终结循环！
+                                            } else {
+                                                // 没找到，给这首歌打上黑名单缓存，下次就算重新加载页面也不去查它了
+                                                if (typeof checkSong === 'object') checkSong._scrapedCover = window.defaultCover;
+                                            }
+                                        }
+
                                         if (!card._inView) return;
-                                        if (hdCover) {
-                                            img.src = hdCover;
-                                            if (typeof firstSong === 'object') firstSong._scrapedCover = hdCover;
+                                        if (foundCover) {
+                                            img.src = foundCover;
                                         } else {
-                                            if (typeof firstSong === 'object') firstSong._scrapedCover = window.defaultCover;
+                                            img.src = window.defaultCover;
                                         }
                                     }, 500);
                                 }
@@ -820,25 +871,39 @@
                   </div>
                 `;
 
-                // 🌟 新架构：统一使用事件委托的数据标签，彻底抛弃 onclick 绑定！
+                // 🌟 新架构：统一使用事件委托的数据标签
                 card.dataset.action = 'open_playlist';
                 card.dataset.plEngine = isWebDavGrid ? 'WebDAV' : 'Local';
 
                 grid.appendChild(card);
                 window.playlistObserver.observe(card);
             });
-            window.currentIndex = -1;
-            return;
+
+            // 🌟 核心突破：如果是搜歌单模式，渲染完海报墙后，绝不 return！继续往下走去渲染歌曲列表！
+            if (!isSearchGrid) {
+                window.currentIndex = -1;
+                return;
+            }
+        } else {
+            if (grid) grid.style.display = 'none'; // 确保没搜到歌单时网格隐藏
         }
 
         // 2. 渲染歌曲列表
         if (window.songList.length === 0) {
-            playlistEl.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">列表为空</div>';
+            playlistEl.innerHTML = isSearchGrid && window.matchedLocalPlaylists.length > 0
+                ? '<li style="list-style:none; text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">没有匹配的歌曲</li>'
+                : '<li style="list-style:none; text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">列表为空</li>';
             window.currentIndex = -1;
             return;
         }
 
-        window.playlistObserver = new IntersectionObserver((entries) => {
+        // 🌟 搜歌单模式下，给歌曲列表加上一个小标题区分
+        if (isSearchGrid && window.songList.length > 0) {
+            playlistEl.insertAdjacentHTML('beforeend', `<li style="list-style:none; padding: 10px 16px 4px 16px; font-size: 13px; font-weight: bold; color: var(--text-sub);">🎵 匹配到的歌曲 (${window.songList.length})</li>`);
+        }
+
+        // 🌟 给歌曲列表新建一个专属的观察器，防止覆盖上面海报墙的！
+        window.listObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 const li = entry.target;
 
@@ -1120,7 +1185,7 @@
             });
 
             fragment.appendChild(li);
-            window.playlistObserver.observe(li);
+            window.listObserver.observe(li); // 🌟 换成专属的歌曲列表观察器
         }
 
         playlistEl.appendChild(fragment);
@@ -1130,8 +1195,6 @@
             window._renderTimer = setTimeout(renderChunk, 5);
         }
     };
-
-
 
 
 
@@ -1205,6 +1268,7 @@
                     }
 
                     if (!window.allPlaylists["收藏"]) window.allPlaylists["收藏"] = [];
+                    if (!window.allPlaylists["我的歌单"]) window.allPlaylists["我的歌单"] = []; // 🌟 补上“我的歌单”
 
                     // 🌟 核心修复 2：将保护好的数据原封不动还原回去，防止被无情清零！
                     window.allPlaylists["曲库搜索"] = tempSearchCache;
@@ -1341,6 +1405,7 @@
                     window.allPlaylists = syncReconstructed;
                     // 🌟 顺手把这里可能清空首页数据的垃圾代码删除了
                     if (!window.allPlaylists["收藏"]) window.allPlaylists["收藏"] = [];
+                    if (!window.allPlaylists["我的歌单"]) window.allPlaylists["我的歌单"] = []; // 🌟 补上“我的歌单”
                     window.allPlaylists["曲库搜索"] = tempSearch;
                     window.allPlaylists["在线资源"] = tempOnline;
 

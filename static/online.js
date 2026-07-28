@@ -312,18 +312,23 @@
        const wdRow = document.getElementById('wd-search-row');
        const detailRow = document.getElementById('detail-title-row');
 
-       if (lxRow) lxRow.style.display = 'none';
-       if (wdRow) wdRow.style.display = 'none';
-       if (detailRow) detailRow.style.display = 'none';
+       const targetView = window.currentOnlineView === 'detail' ? 'detail' : window.PluginManager.currentEngineName;
 
-       if (window.currentOnlineView === 'detail') {
-           if (detailRow) detailRow.style.display = 'flex';
+       // 🌟 核心修复：只有在目标与当前不一致时，才去改变 display，绝不无脑隐藏导致焦点丢失和输入法中断！
+       if (targetView === 'detail') {
+           if (lxRow && lxRow.style.display !== 'none') lxRow.style.display = 'none';
+           if (wdRow && wdRow.style.display !== 'none') wdRow.style.display = 'none';
+           if (detailRow && detailRow.style.display !== 'flex') detailRow.style.display = 'flex';
            if (menuWrapper) document.getElementById('menu-dropzone-detail')?.appendChild(menuWrapper);
-       } else if (window.PluginManager.currentEngineName === 'WebDAV') {
-           if (wdRow) wdRow.style.display = 'flex';
+       } else if (targetView === 'WebDAV') {
+           if (lxRow && lxRow.style.display !== 'none') lxRow.style.display = 'none';
+           if (detailRow && detailRow.style.display !== 'none') detailRow.style.display = 'none';
+           if (wdRow && wdRow.style.display !== 'flex') wdRow.style.display = 'flex';
            if (menuWrapper) document.getElementById('menu-dropzone-wd')?.appendChild(menuWrapper);
        } else {
-           if (lxRow) lxRow.style.display = 'flex';
+           if (wdRow && wdRow.style.display !== 'none') wdRow.style.display = 'none';
+           if (detailRow && detailRow.style.display !== 'none') detailRow.style.display = 'none';
+           if (lxRow && lxRow.style.display !== 'flex') lxRow.style.display = 'flex';
            if (menuWrapper) document.getElementById('menu-dropzone-lx')?.appendChild(menuWrapper);
        }
     };
@@ -357,8 +362,13 @@
             grid.style.display = 'none'; list.style.display = 'block';
             window.songList = window.getMergedSongList('在线资源');
             if (window.songList.length === 0) {
-                if (!isDav && oState.keyword) window.performSearch('song', false, false);
-                else list.innerHTML = isDav ? '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">请在上方搜索或刷新网盘</div>' : '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">请在上方输入关键词搜索全网音乐或歌单</div>';
+                if (oState.keyword) {
+                    // 🌟 核心修复：无论 LX 还是 WebDAV，只要带关键字切回来，直接发号施令重新过滤！
+                    list.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">正在恢复过滤结果...</div>`;
+                    window.performSearch('song', false, true);
+                } else {
+                    list.innerHTML = isDav ? '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">请在上方极速过滤或刷新网盘</div>' : '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">请在上方输入关键词搜索全网音乐或歌单</div>';
+                }
             } else window.renderPlaylist();
         }
         else if (oState.view === 'playlist') {
@@ -470,8 +480,16 @@
                     hasMoreOnlineSearch = res.hasMore;
 
                     if (engineName === 'WebDAV') {
-                        window.StateManager.setState({ view: 'dav_search', keyword: keyword });
-                        window.renderWebDavFolder(keyword, window.songList, true);
+                        // 🌟 修复 Bug 2：不再调用 renderWebDavFolder 变身成详情页标题
+                        window.StateManager.setState({ view: 'song', keyword: keyword });
+                        window.currentOnlineView = 'song';
+                        window.refreshOnlineUI();
+
+                        const grid = document.getElementById('playlist-grid');
+                        const list = document.getElementById('playlist');
+                        if (grid) grid.style.display = 'none';
+                        if (list) list.style.display = 'block';
+                        window.renderPlaylist();
                     } else {
                         window.renderPlaylist();
                         const plVal = document.getElementById('playlist-val');
@@ -615,6 +633,7 @@
             } else if (engine === 'Local') {
                 window._gridScrollY = window.scrollY || document.documentElement.scrollTop;
                 window._isGridClick = true;
+                window._gridOriginPlaylist = window.currentPlaylist; // 🌟 核心记录：保存是从“我的歌单”还是“曲库搜索”点进来的！
                 const targetOpt = Array.from(document.querySelectorAll('#playlist-opts .select-option')).find(el => el.dataset.key === name);
                 if (targetOpt) targetOpt.click();
                 window._isGridClick = false;
@@ -680,7 +699,7 @@
                     }
                 }
 
-                document.getElementById('wd-search-input').value = oState.view === 'dav_search' ? (oState.keyword || '') : '';
+                document.getElementById('wd-search-input').value = (oState.view === 'dav_search' || oState.view === 'song') ? (oState.keyword || '') : '';
 
                 if (oState.view === 'playlist') { if(grid) grid.style.display = 'grid'; if(list) list.style.display = 'none'; }
                 else { if(grid) grid.style.display = 'none'; if(list) list.style.display = 'block'; }
@@ -720,28 +739,42 @@
         if (backBtn) {
             e.stopPropagation(); e.preventDefault();
             window.deadSongIndexes = {};
+
+            // 🌟 物理隔离：WebDAV 专属极速返回（直达网盘海报墙，绝不触发 LX 快照）
+            if (window.PluginManager.currentEngineName === 'WebDAV') {
+                window.StateManager.setState({ view: 'playlist', keyword: '' });
+                window.currentOnlineView = 'playlist';
+
+                const wdInput = document.getElementById('wd-search-input');
+                if (wdInput) wdInput.value = '';
+
+                const grid = document.getElementById('playlist-grid');
+                const list = document.getElementById('playlist');
+                if (list) list.style.display = 'none';
+                if (grid) grid.style.display = 'grid';
+
+                window.refreshOnlineUI();
+                if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+                return;
+            }
+
+            // --- 以下为 LXMusic 专属快照恢复逻辑 ---
             const success = window.SnapshotManager.restoreSnapshot();
 
             if (success) {
                 const oState = window.StateManager.getState();
                 let prevState = (oState.keyword && oState.view !== 'playlist') ? 'song' : 'playlist';
 
-                if (window.PluginManager.currentEngineName === 'WebDAV') {
-                    prevState = 'playlist';
-                    window.StateManager.setState({ view: 'playlist', keyword: '' });
-                    document.getElementById('wd-search-input').value = '';
-                } else {
-                    window.StateManager.setState({ view: prevState });
-                    document.getElementById('lx-search-input').value = window._lastOnlineKeyword || oState.keyword || '';
-                }
+                window.StateManager.setState({ view: prevState });
+                const lxInput = document.getElementById('lx-search-input');
+                if (lxInput) lxInput.value = window._lastOnlineKeyword || oState.keyword || '';
 
                 window.currentOnlineView = prevState;
                 window.refreshOnlineUI();
 
                 setTimeout(() => { window.scrollTo({ top: window._gridScrollY || 0, behavior: 'auto' }); }, 10);
             } else {
-                if (window.PluginManager.currentEngineName === 'WebDAV') window.StateManager.setState({ view: 'playlist', keyword: '' });
-                else window.StateManager.setState({ view: 'playlist' });
+                window.StateManager.setState({ view: 'playlist' });
                 window.restoreOnlineView();
             }
             return;
@@ -812,7 +845,12 @@
                     window.renderWebDavFolder(oState.detail_name, window.webdavData.library[oState.detail_name], false, true);
                 } else if (oState.view === 'playlist') {
                     window.currentOnlineView = 'playlist'; list.style.display = 'none'; grid.style.display = 'grid'; window.renderPlaylist();
-                } else { window.currentOnlineView = 'song'; window.renderPlaylist(); }
+                } else {
+                    window.currentOnlineView = 'song';
+                    // 🌟 修复：网盘缓存载入后，如果有关键字，立刻执行静默恢复搜索！
+                    if (oState.keyword) window.performSearch('song', false, true);
+                    else window.renderPlaylist();
+                }
             }
             return;
         }
@@ -845,7 +883,12 @@
                     window.renderWebDavFolder(oState.detail_name, data[oState.detail_name], false, true);
                 } else if (oState.view === 'playlist') {
                     window.currentOnlineView = 'playlist'; list.style.display = 'none'; grid.style.display = 'grid'; window.renderPlaylist();
-                } else { window.currentOnlineView = 'song'; window.renderPlaylist(); }
+                } else {
+                    window.currentOnlineView = 'song';
+                    // 🌟 修复：网盘网络数据载入后，如果有关键字，立刻执行静默恢复搜索！
+                    if (oState.keyword) window.performSearch('song', false, true);
+                    else window.renderPlaylist();
+                }
             }
             if (window.updateWebDavDirectLinkUI) window.updateWebDavDirectLinkUI();
         } catch(e) {

@@ -129,7 +129,7 @@
 
   #playlist-container { position: static !important; flex: 1; min-width: 0; transition: all 0.2s; }
   #playlist-val { display: flex; align-items: center; width: 100%; border: none; background-color: transparent; height: 100%; box-shadow: none; padding: 0 28px 0 12px; margin: 0; line-height: normal; background-position: right 10px center; }
-  #playlist-opts { top: 40px !important; left: 16px !important; right: 16px !important; width: 100% !important; max-width: none !important; }
+  #playlist-opts { top: 40px !important; left: 16px !important; right: 16px !important; width: auto !important; max-width: none !important; }
 
   #engine-container { flex: 0 0 auto; }
   #engine-val { background-color: transparent; border: none; font-size: 13px; padding: 0 20px 0 4px; box-shadow: none; height: 100%; display: flex; align-items: center; background-position: right 4px center; background-size: 12px; color: var(--text-main); }
@@ -165,7 +165,7 @@
   #lx-search-main-btns, .menu-dropzone-col { display: flex; align-items: center; height: 100%; }
   #mf-search-playlist-btn { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
   #detail-back-btn { padding: 0 20px; color: var(--primary) !important; font-weight: bold !important; }
-  .btn-return { width: auto; height: 30px; margin: 0 4px; padding: 0 10px; border-radius: 6px; font-size: 14px; font-weight: bold; color: var(--primary); }
+  .btn-return { width: auto; height: 30px; margin: 0 4px; padding: 0 10px; border-radius: 6px; font-size: 14px; font-weight: bold; color: var(--primary) !important; }
   #back-to-grid-wrap { display: none; height: 100%; flex: 0 0 auto; padding-right: 4px; }
 
   /* ==========================================
@@ -609,10 +609,10 @@
   <script src="./static/icons.js?v0.8.0" defer></script>
   <script src="./static/utils.js?v1.0.2" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v1.0.3" defer></script>
-  <script src="./static/online.js?v1.0.3" defer></script>
+  <script src="./static/playlist.js?v1.0.5" defer></script>
+  <script src="./static/online.js?v1.0.5" defer></script>
   <script src="./static/plugins.js?v1.0.1" defer></script>
-  <script src="./static/player.js?v1.0.3" defer></script>
+  <script src="./static/player.js?v1.0.5" defer></script>
   <script src="./static/miot.js?v1.0.2" defer></script>
 
 </head>
@@ -1495,7 +1495,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.0.3';
+    window.APP_VERSION = 'v1.0.5';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -1805,10 +1805,18 @@
                 if (configBtn) configBtn.classList.toggle('disabled-text', currentPlaylist === '我的歌单');
 
                 const isOnline = currentPlaylist === '在线资源';
+                const isWebDAV = window.PluginManager && window.PluginManager.currentEngineName === 'WebDAV';
 
-                // 🌟 同一菜单，两界乾坤：在线时显示配置引擎隐藏刷新曲库；非在线时则相反
+                // 🌟 同一菜单，两界乾坤：在线时隐藏刷新曲库（除非是 WebDAV 用来快捷扫库）
                 const refreshBtn = document.getElementById('setting-refresh');
-                if (refreshBtn) refreshBtn.style.display = isOnline ? 'none' : 'flex';
+                if (refreshBtn) {
+                    if (isOnline && !isWebDAV) {
+                        refreshBtn.style.display = 'none';
+                    } else {
+                        refreshBtn.style.display = 'flex';
+                        refreshBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>${(isOnline && isWebDAV) ? '网盘扫库' : '刷新曲库'}`;
+                    }
+                }
 
                 const configEngineBtn = document.getElementById('menu-config-engine');
                 if (configEngineBtn) {
@@ -1845,9 +1853,14 @@
         // 按钮功能绑定
         if (settingRefreshBtn) settingRefreshBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            // 🌟 修复：刷新曲库现在在第一行的 ... 里，所以关掉的是 gm1Opts
             document.getElementById('global-menu-1-opts')?.classList.remove('show');
-            window.refreshMusicList(false);
+
+            // 🌟 智能分流：如果身处 WebDAV 在线资源页面，则执行网盘扫库；否则执行本地刷新
+            if (window.currentPlaylist === '在线资源' && window.PluginManager && window.PluginManager.currentEngineName === 'WebDAV') {
+                if (window.triggerWebDavScan) window.triggerWebDavScan();
+            } else {
+                window.refreshMusicList(false);
+            }
         });
 
         if (settingConfigBtn) settingConfigBtn.addEventListener('click', (e) => {
@@ -1900,7 +1913,9 @@
         if (backToGridBtn) {
             backToGridBtn.addEventListener('click', (e) => {
                 e.stopPropagation(); window._isBackAction = true;
-                const targetOpt = Array.from(document.querySelectorAll('#playlist-opts .select-option')).find(el => el.dataset.key === '我的歌单');
+                // 🌟 智能路由：优先返回到记录的来源页面（曲库搜索 或 我的歌单）
+                const targetKey = window._gridOriginPlaylist || '我的歌单';
+                const targetOpt = Array.from(document.querySelectorAll('#playlist-opts .select-option')).find(el => el.dataset.key === targetKey);
                 if (targetOpt) targetOpt.click();
                 window._isBackAction = false;
             });
@@ -2315,6 +2330,18 @@
                 if (!songList || songList.length === 0) { window.showToast("当前列表为空，无歌可加"); return; }
                 window.pendingBulkAdd = true; document.getElementById('add-song-name').textContent = `当前列表 ${songList.length} 首歌曲`;
                 if(window.renderPlaylistRadioList) window.renderPlaylistRadioList(document.getElementById('add-song-playlist-list'));
+
+                // 🌟 核心优化：如果身处在线资源的详情页，自动提取原歌单名/网盘文件夹名填入输入框！
+                const newPlaylistInput = document.getElementById('add-new-playlist-input');
+                if (newPlaylistInput) {
+                    if (window.currentPlaylist === '在线资源' && window.currentOnlineView === 'detail') {
+                        const oState = window.StateManager.getState();
+                        newPlaylistInput.value = oState.detail_name || '';
+                    } else {
+                        newPlaylistInput.value = '';
+                    }
+                }
+
                 addSongModal.classList.add('show'); addSongModal.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
             });
         });
@@ -2338,14 +2365,14 @@
         });
 
         if (searchInput && searchClear) {
-            // 聚焦时：如果输入框里有字，就显示 X
+            // 聚焦时：根据有没有字决定是否显示 X
             searchInput.addEventListener('focus', () => {
-                if (searchInput.value.trim().length > 0) searchClear.classList.add('show');
+                searchClear.classList.toggle('show', searchInput.value.trim().length > 0);
             });
 
-            // 失去焦点时：无条件隐藏 X
+            // 失去焦点时：只要有字就继续显示 X
             searchInput.addEventListener('blur', () => {
-                searchClear.classList.remove('show');
+                searchClear.classList.toggle('show', searchInput.value.trim().length > 0);
             });
 
             // 打字输入时：根据有没有字，动态决定 X 的生死
@@ -2427,21 +2454,39 @@
             }
             wdSearchInput.addEventListener('focus', (e) => {
                 e.stopPropagation(); closeAllDropdownsExcept('search-history-popup');
-                if (wdSearchInput.value.trim().length > 0) wdSearchClear.classList.add('show');
-                if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
-                const popup = document.getElementById('search-history-popup');
-                if (popup) popup.style.display = 'block';
+                const hasText = wdSearchInput.value.trim().length > 0;
+                if (hasText) {
+                    wdSearchClear.classList.add('show');
+                    const popup = document.getElementById('search-history-popup');
+                    if (popup) popup.style.display = 'none'; // 有字绝对不弹
+                } else {
+                    if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
+                    const popup = document.getElementById('search-history-popup');
+                    if (popup) popup.style.display = 'block'; // 没字才弹
+                }
             });
             wdSearchInput.addEventListener('click', (e) => {
                 e.stopPropagation(); closeAllDropdownsExcept('search-history-popup');
-                if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
-                const popup = document.getElementById('search-history-popup');
-                if (popup) popup.style.display = 'block';
+                const hasText = wdSearchInput.value.trim().length > 0;
+                if (hasText) {
+                    const popup = document.getElementById('search-history-popup');
+                    if (popup) popup.style.display = 'none'; // 有字绝对不弹
+                } else {
+                    if (typeof window.renderSearchHistoryPopup === 'function') window.renderSearchHistoryPopup();
+                    const popup = document.getElementById('search-history-popup');
+                    if (popup) popup.style.display = 'block'; // 没字才弹
+                }
             });
-            wdSearchInput.addEventListener('blur', () => { if (wdSearchClear) wdSearchClear.classList.remove('show'); });
+            wdSearchInput.addEventListener('blur', () => {
+                if (wdSearchClear) wdSearchClear.classList.toggle('show', wdSearchInput.value.trim().length > 0);
+            });
             wdSearchInput.addEventListener('input', () => {
                 window.deadSongIndexes = {}; const kw = wdSearchInput.value.trim();
                 if (wdSearchClear) wdSearchClear.classList.toggle('show', kw.length > 0);
+
+                // 🌟 核心补漏：打字时强制隐藏历史弹窗！
+                const popup = document.getElementById('search-history-popup');
+                if (popup) popup.style.display = 'none';
 
                 if (kw) {
                     if (window.doOnlineSearch) window.doOnlineSearch(false);
