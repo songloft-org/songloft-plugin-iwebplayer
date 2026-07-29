@@ -138,18 +138,17 @@
     window.PluginManager.register('LXMusic', {
         icon: window.SVG_ICONS?.lx_plugin_line || '',
         searchSong: async function(keyword, source, page) {
-            const res = await fetch(`/api/v1/jsplugin/lxmusic/api/search`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ keyword, source_id: source, type: "song", page, page_size: 30 })
-            });
+            // 🌟 恢复 LXMusic 正确的网络请求逻辑
+            const reqUrl = `/api/v1/jsplugin/lxmusic/api/music/search?source_id=${source}&keyword=${encodeURIComponent(keyword)}&page=${page}&limit=30`;
+            const res = await fetch(reqUrl);
             const resJson = await res.json();
             if (resJson.code !== 0 || !resJson.data || !resJson.data.list) return { list: [], hasMore: false };
-            const mapped = resJson.data.list.map(item => ({
+            const parsedList = resJson.data.list.map(item => ({
                 id: item.songmid || item.musicId, title: item.name || "未知歌曲", artist: item.singer || "未知歌手",
                 album: item.album || "", duration: item.duration || 0, cover_url: item.img || null,
                 _scrapedCover: item.img || null, _isOnlineObj: true, source_data: item
             }));
-            return { list: mapped, hasMore: mapped.length >= 30 };
+            return { list: parsedList, hasMore: resJson.data.list.length >= 20 };
         },
         searchPlaylist: async function(keyword, source, page) {
             const reqUrl = `/api/v1/jsplugin/lxmusic/api/songlist/search?source_id=${source}&keyword=${encodeURIComponent(keyword)}&page=${page}&limit=30`;
@@ -176,8 +175,19 @@
         searchSong: async function(keyword, source, page) {
             if (!window.webdavData.library) return { list: [], hasMore: false };
             let resultSongs = [];
+            window.matchedWebDavPlaylists = []; // 🌟 正确位置：给 WebDAV 重置网盘匹配池
             const lowerKey = keyword.toLowerCase();
-            for (const songs of Object.values(window.webdavData.library)) {
+
+            for (const [folderName, songs] of Object.entries(window.webdavData.library)) {
+                // 1. 匹配网盘文件夹名
+                if (folderName.toLowerCase().includes(lowerKey)) {
+                    window.matchedWebDavPlaylists.push({
+                        name: folderName,
+                        song_count: songs.length,
+                        cover_url: '' // 将交由海报墙自动刮削
+                    });
+                }
+                // 2. 匹配具体的歌曲名
                 const matches = songs.filter(s => s.title.toLowerCase().includes(lowerKey));
                 resultSongs = resultSongs.concat(matches);
             }
@@ -459,12 +469,16 @@
         try {
             if (action === 'song') {
                 const res = await engine.searchSong(keyword, source, currentSearchPage);
-                if (res.list && res.list.length > 0) {
+
+                // 🌟 核心修复：即使歌曲没搜到，但只要搜到了 WebDAV 文件夹，也必须放行进入渲染环节！
+                const hasSongMatches = res.list && res.list.length > 0;
+                const hasFolderMatches = engineName === 'WebDAV' && window.matchedWebDavPlaylists && window.matchedWebDavPlaylists.length > 0;
+
+                if (hasSongMatches || hasFolderMatches) {
                     if (!isLoadMore && !isRestore) {
                         if (engineName !== 'WebDAV') {
                             window.HistoryManager.save('keyword', keyword, null, source, 'song');
                         } else {
-                            // 🌟 核心机制：WebDAV 专属防抖。停手 1.5 秒且有结果时，才作为最终词汇写入历史
                             clearTimeout(window._davHistoryTimer);
                             window._davHistoryTimer = setTimeout(() => {
                                 window.HistoryManager.save('keyword', keyword, null, source, 'song');
@@ -472,34 +486,37 @@
                         }
                         window.StateManager.setState({ view: 'song', keyword: keyword });
                     }
-                    if (isLoadMore) onlineMusicItems = [...onlineMusicItems, ...res.list];
-                    else onlineMusicItems = res.list;
+                    // 即使没有歌曲也要赋予空数组，防止报错
+                    if (isLoadMore) onlineMusicItems = [...onlineMusicItems, ...(res.list || [])];
+                    else onlineMusicItems = res.list || [];
 
                     window.songList = [...onlineMusicItems];
                     window.allPlaylists['在线资源'] = window.songList;
                     hasMoreOnlineSearch = res.hasMore;
 
                     if (engineName === 'WebDAV') {
-                        // 🌟 修复 Bug 2：不再调用 renderWebDavFolder 变身成详情页标题
                         window.StateManager.setState({ view: 'song', keyword: keyword });
                         window.currentOnlineView = 'song';
                         window.refreshOnlineUI();
 
                         const grid = document.getElementById('playlist-grid');
                         const list = document.getElementById('playlist');
-                        if (grid) grid.style.display = 'none';
+                        // 🌟 彻底解除封印：不要在这里强制隐藏网格！把显隐大权全权交给 renderPlaylist
                         if (list) list.style.display = 'block';
                         window.renderPlaylist();
                     } else {
                         window.renderPlaylist();
                         const plVal = document.getElementById('playlist-val');
                         if (plVal) plVal.innerHTML = window.formatPlaylistText('在线资源', window.songList.length);
-                        // 🌟 修复问题2：快照保存必须移进 else 里！
-                        // 这样 WebDAV 搜索时就不会把底层的“海报墙快照”给抹杀掉了
                         if (!isLoadMore) window.SnapshotManager.saveSnapshot('song_list', list.innerHTML, window.songList);
                     }
                 } else {
-                    if (!isLoadMore) { if (list) list.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">未找到相关内容</div>`; }
+                    if (!isLoadMore) {
+                        // 🌟 确保隐藏网格，避免干扰
+                        const grid = document.getElementById('playlist-grid');
+                        if (grid) grid.style.display = 'none';
+                        if (list) list.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">未找到相关内容</div>`;
+                    }
                     else { hasMoreOnlineSearch = false; window.showToast("已经是最后一页啦"); }
                 }
             } else {
@@ -740,21 +757,35 @@
             e.stopPropagation(); e.preventDefault();
             window.deadSongIndexes = {};
 
-            // 🌟 物理隔离：WebDAV 专属极速返回（直达网盘海报墙，绝不触发 LX 快照）
+            // 🌟 物理隔离：WebDAV 专属极速返回（直达网盘海报墙或搜索结果）
             if (window.PluginManager.currentEngineName === 'WebDAV') {
-                window.StateManager.setState({ view: 'playlist', keyword: '' });
-                window.currentOnlineView = 'playlist';
+                const oState = window.StateManager.getState();
+                const wasSearch = oState.keyword && oState.keyword.trim().length > 0;
 
-                const wdInput = document.getElementById('wd-search-input');
-                if (wdInput) wdInput.value = '';
+                if (wasSearch) {
+                    // 🌟 如果带有搜索词，立刻发起静默搜索，恢复【海报墙+歌曲】的双重视图！
+                    window.StateManager.setState({ view: 'song' });
+                    window.currentOnlineView = 'song';
+                    window.refreshOnlineUI();
 
-                const grid = document.getElementById('playlist-grid');
-                const list = document.getElementById('playlist');
-                if (list) list.style.display = 'none';
-                if (grid) grid.style.display = 'grid';
+                    const list = document.getElementById('playlist');
+                    if (list) { list.style.display = 'block'; list.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">正在恢复过滤结果...</div>'; }
+                    window.performSearch('song', false, true);
+                } else {
+                    // 🌟 如果没有搜索词，直接退回纯净的网盘根目录
+                    window.StateManager.setState({ view: 'playlist', keyword: '' });
+                    window.currentOnlineView = 'playlist';
+                    const wdInput = document.getElementById('wd-search-input');
+                    if (wdInput) wdInput.value = '';
 
-                window.refreshOnlineUI();
-                if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+                    const grid = document.getElementById('playlist-grid');
+                    const list = document.getElementById('playlist');
+                    if (list) list.style.display = 'none';
+                    if (grid) grid.style.display = 'grid';
+
+                    window.refreshOnlineUI();
+                    if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+                }
                 return;
             }
 

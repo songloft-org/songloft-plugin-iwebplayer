@@ -736,21 +736,28 @@
         // 1. 渲染我的网格 (海报墙)
         const isWebDavGrid = window.isWebDAVMode && window.currentPlaylist === '在线资源' && window.currentOnlineView === 'playlist';
         const isSearchGrid = window.currentPlaylist === '曲库搜索' && window.matchedLocalPlaylists && window.matchedLocalPlaylists.length > 0;
+        // 🌟 新增：判定当前是否处于 WebDAV 的“混合搜索”状态！
+        const isWebDavSearchGrid = window.isWebDAVMode && window.currentPlaylist === '在线资源' && window.currentOnlineView === 'song' && window.matchedWebDavPlaylists && window.matchedWebDavPlaylists.length > 0;
 
-        if (window.currentPlaylist === '我的歌单' || isWebDavGrid || isSearchGrid) {
-            if (list && !isSearchGrid) list.style.display = 'none'; // 🌟 如果是搜歌单，绝对不隐藏下方列表
+        const showGrid = window.currentPlaylist === '我的歌单' || isWebDavGrid || isSearchGrid || isWebDavSearchGrid;
+
+        if (showGrid) {
+            if (list && !isSearchGrid && !isWebDavSearchGrid) list.style.display = 'none'; // 🌟 搜索模式绝对不隐藏下方列表
             if (grid) grid.style.display = 'grid';
 
             if (grid) {
-                grid.innerHTML = isSearchGrid ? `<div style="grid-column: 1 / -1; font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: -4px; padding-left: 4px;">🎯 匹配到的歌单 (${window.matchedLocalPlaylists.length})</div>` : '';
+                let matchText = '';
+                if (isSearchGrid) matchText = `匹配到的歌单 (${window.matchedLocalPlaylists.length})`;
+                else if (isWebDavSearchGrid) matchText = `匹配到的歌单 (${window.matchedWebDavPlaylists.length})`;
+                grid.innerHTML = matchText ? `<div style="grid-column: 1 / -1; font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: -4px; padding-left: 4px;">${matchText}</div>` : '';
             }
 
-            const metas = isWebDavGrid ?
-                (window.webdavPlaylistMeta || []) :
-                (isSearchGrid ? window.matchedLocalPlaylists :
-                [...(window.playlistMeta || [])]
-                    .filter(pl => pl.name !== '所有电台' && pl.name !== '电台收藏')
-                    .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')));
+            const metas = isWebDavGrid ? (window.webdavPlaylistMeta || []) :
+                          isWebDavSearchGrid ? window.matchedWebDavPlaylists :
+                          (isSearchGrid ? window.matchedLocalPlaylists :
+                          [...(window.playlistMeta || [])]
+                              .filter(pl => pl.name !== '所有电台' && pl.name !== '电台收藏')
+                              .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')));
 
             window.playlistObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -844,9 +851,9 @@
                 card.dataset.coverUrl = pl.cover_url || '';
 
                 // 🌟 严格视图隔离：只有身处网盘页面时，卡片才用云朵 SVG！
-                const isCustom = isWebDavGrid ? false : (window.customPlaylistNames && window.customPlaylistNames.includes(pl.name));
+                const isCustom = (isWebDavGrid || isWebDavSearchGrid) ? false : (window.customPlaylistNames && window.customPlaylistNames.includes(pl.name));
                 let nameIconHtml = '';
-                if (isWebDavGrid) {
+                if (isWebDavGrid || isWebDavSearchGrid) {
                     // ⚡ 注入 flex-shrink: 0 确保大小绝不变小，修改 margin-top 让云朵图标完美居中对齐第一行文本
                     nameIconHtml = window.SVG_ICONS.webdav.replace('width="15"', 'width="12"').replace('height="15"', 'height="12"').replace('margin-right: 6px', 'margin-right: 4px; flex-shrink: 0; margin-top: 2px;').replace('transform: translateY(-1px)', '');
                 } else {
@@ -855,7 +862,7 @@
                     nameIconHtml = rawSvg.replace('<svg ', '<svg style="margin-right: 4px; flex-shrink: 0; margin-top: 2px; opacity: 0.9;" ').replace('width="15"', 'width="12"').replace('height="15"', 'height="12"');
                 }
 
-                const conf = isWebDavGrid ? {} : window.getPlaylistConfig(pl.name);
+                const conf = (isWebDavGrid || isWebDavSearchGrid) ? {} : window.getPlaylistConfig(pl.name);
                 let subText = `共 ${pl.song_count || 0} 首`;
                 if (conf.speedLocal && conf.speedLocal !== 1.0) subText += ` · ${window.formatSpeed(conf.speedLocal)}`;
                 if (conf.resumeLocal && conf.resumeLocal !== 'off') subText += ` · 续播`;
@@ -873,14 +880,14 @@
 
                 // 🌟 新架构：统一使用事件委托的数据标签
                 card.dataset.action = 'open_playlist';
-                card.dataset.plEngine = isWebDavGrid ? 'WebDAV' : 'Local';
+                card.dataset.plEngine = (isWebDavGrid || isWebDavSearchGrid) ? 'WebDAV' : 'Local';
 
                 grid.appendChild(card);
                 window.playlistObserver.observe(card);
             });
 
             // 🌟 核心突破：如果是搜歌单模式，渲染完海报墙后，绝不 return！继续往下走去渲染歌曲列表！
-            if (!isSearchGrid) {
+            if (!isSearchGrid && !isWebDavSearchGrid) {
                 window.currentIndex = -1;
                 return;
             }
@@ -890,7 +897,8 @@
 
         // 2. 渲染歌曲列表
         if (window.songList.length === 0) {
-            playlistEl.innerHTML = isSearchGrid && window.matchedLocalPlaylists.length > 0
+            const hasGridMatch = (isSearchGrid && window.matchedLocalPlaylists.length > 0) || (isWebDavSearchGrid && window.matchedWebDavPlaylists.length > 0);
+            playlistEl.innerHTML = hasGridMatch
                 ? '<li style="list-style:none; text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">没有匹配的歌曲</li>'
                 : '<li style="list-style:none; text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">列表为空</li>';
             window.currentIndex = -1;
@@ -898,8 +906,9 @@
         }
 
         // 🌟 搜歌单模式下，给歌曲列表加上一个小标题区分
-        if (isSearchGrid && window.songList.length > 0) {
-            playlistEl.insertAdjacentHTML('beforeend', `<li style="list-style:none; padding: 10px 16px 4px 16px; font-size: 13px; font-weight: bold; color: var(--text-sub);">🎵 匹配到的歌曲 (${window.songList.length})</li>`);
+        if ((isSearchGrid || isWebDavSearchGrid) && window.songList.length > 0) {
+            // ⚡ 优化：去除了 Emoji，并通过 margin-top: -12px 把标题往上拉，消除多余的空隙
+            playlistEl.insertAdjacentHTML('beforeend', `<li style="list-style:none; padding: 0 10px 8px 10px; margin-top: -12px; font-size: 13px; font-weight: bold; color: var(--text-sub);">匹配到的歌曲 (${window.songList.length})</li>`);
         }
 
         // 🌟 给歌曲列表新建一个专属的观察器，防止覆盖上面海报墙的！
@@ -1066,9 +1075,22 @@
 
                 const targetSvg = isDavSource ? window.SVG_ICONS.webdav : (window.SVG_ICONS && window.SVG_ICONS.lx_plugin_line ? window.SVG_ICONS.lx_plugin_line : '');
 
-                // 🌟 修复：如果它是 WebDAV 资源，脱离 LXMusic 的绿色，赋予专属的 #3B6FE0 科技蓝色！
                 if (isDavSource) {
-                    pluginTagHtml = `<div class="song-plugin-tag" style="color: #3B6FE0; border-color: rgba(59, 111, 224, 0.3); background: rgba(59, 111, 224, 0.08);">${targetSvg}${pName}</div>`;
+                    // 🌟 智能截断：中文算2，英文算1。超过10宽度(5个中文字)时，截断保留8宽度(4个中文字) + ...
+                    let totalLen = 0;
+                    for (let i = 0; i < pName.length; i++) totalLen += pName.charCodeAt(i) > 255 ? 2 : 1;
+
+                    let finalName = pName;
+                    if (totalLen > 10) { // 超过 5 个字
+                        let tempLen = 0, cutIdx = 0;
+                        for (let i = 0; i < pName.length; i++) {
+                            tempLen += pName.charCodeAt(i) > 255 ? 2 : 1;
+                            if (tempLen > 8) { cutIdx = i; break; } // 卡在第 4 个字处
+                        }
+                        finalName = pName.substring(0, cutIdx) + '...';
+                    }
+
+                    pluginTagHtml = `<div class="song-plugin-tag" style="color: #3B6FE0; border-color: rgba(59, 111, 224, 0.3); background: rgba(59, 111, 224, 0.08);">${targetSvg}${finalName}</div>`;
                 } else {
                     pluginTagHtml = `<div class="song-plugin-tag">${targetSvg}${pName}</div>`;
                 }

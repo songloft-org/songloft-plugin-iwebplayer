@@ -81,16 +81,37 @@
                 resJson.data.forEach(account => {
                     if (account.devices && account.devices.length > 0) {
                         account.devices.forEach(dev => {
-                            this.devices.push({ ...dev, account_id: account.account_id });
+                            // 🌟 默认附加一个 is_playing = false 属性
+                            this.devices.push({ ...dev, account_id: account.account_id, is_playing: false });
                         });
                     }
                 });
+
+                // 🌟 核心突破：不阻塞主流程，异步并发查询所有在线设备的播放状态
+                const statusPromises = this.devices.map(async (dev) => {
+                    if (dev.presence === 'online') {
+                        try {
+                            const statusRes = await fetch(`/api/v1/jsplugin/miot/player/status?account_id=${dev.account_id}&device_id=${dev.deviceID}`);
+                            if (statusRes.ok) {
+                                const statusJson = await statusRes.json();
+                                if (statusJson.success && statusJson.data && statusJson.data.state === 'playing') {
+                                    dev.is_playing = true; // 查到正在播放，打上标记！
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                });
+
+                // 🌟 状态全部查完后，静默触发一次 UI 重绘（用户感知：瞬间出列表，半秒后有个图标变成了跳动波浪）
+                Promise.all(statusPromises).then(() => {
+                    this.renderDeviceList();
+                });
+
             } catch (e) {
                 this.hasMiotPlugin = false;
                 console.warn("[MIoT] 设备拉取失败或未安装插件", e);
             }
         },
-
 
         // 渲染设备下拉框 HTML
         renderDeviceList: function() {
@@ -112,10 +133,8 @@
                 </li>
             `;
 
-            // 🌟 核心修改：如果没有插件，或者设备数为 0，渲染友好的置灰提示项
             if (!this.hasMiotPlugin || this.devices.length === 0) {
                 const tipText = !this.hasMiotPlugin ? '小爱音箱 <span style="font-size: 11px; opacity: 0.6;">(未启用插件)</span>' : '小爱音箱 <span style="font-size: 11px; opacity: 0.6;">(未发现设备)</span>';
-
                 html += `
                 <li class="select-option disabled-text" data-type="disabled">
                     <div style="display: flex; align-items: center; width: 100%;">
@@ -127,7 +146,6 @@
                     </div>
                 </li>`;
             } else {
-                // 原有的设备渲染逻辑
                 this.devices.forEach(dev => {
                     const isOnline = dev.presence === 'online';
                     const dotColor = isOnline ? '#10b981' : 'var(--text-sub)';
@@ -135,15 +153,34 @@
 
                     if (isActive) this.currentDevice.name = dev.name;
 
-                    html += `
-                    <li class="select-option ${isActive ? 'active' : ''}" data-value="${dev.deviceID}" data-account="${dev.account_id}" data-type="miot" data-name="${dev.name}" ${!isOnline ? 'style="opacity: 0.6;"' : ''}>
-                        <div style="display: flex; align-items: center; width: 100%;">
+                    // 🌟 动态计算 SVG：如果正在播放，显示粉红色跳动波浪！
+                    let iconHtml = '';
+                    if (dev.is_playing) {
+                        iconHtml = `
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="var(--primary)" style="margin-right: 4px; flex-shrink: 0;">
+                                <rect x="5" y="10" width="3" height="10" class="eq-bar eq-bar-1"></rect>
+                                <rect x="10.5" y="5" width="3" height="15" class="eq-bar eq-bar-2"></rect>
+                                <rect x="16" y="12" width="3" height="8" class="eq-bar eq-bar-3"></rect>
+                            </svg>
+                        `;
+                    } else {
+                        iconHtml = `
                             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;">
                                 <rect x="4" y="2" width="16" height="20" rx="4" ry="4"></rect>
                                 <circle cx="12" cy="14" r="3" fill="${dotColor}" stroke="none"></circle>
                                 <line x1="12" y1="6" x2="12" y2="6.01" stroke-width="3"></line>
                             </svg>
-                            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dev.name}</span>
+                        `;
+                    }
+
+                    // 💡 如果在播放，连带字体也会变成粉红色粗体以示高亮
+                    const textStyle = dev.is_playing ? 'color: var(--primary); font-weight: bold;' : '';
+
+                    html += `
+                    <li class="select-option ${isActive ? 'active' : ''}" data-value="${dev.deviceID}" data-account="${dev.account_id}" data-type="miot" data-name="${dev.name}" ${!isOnline ? 'style="opacity: 0.6;"' : ''}>
+                        <div style="display: flex; align-items: center; width: 100%;">
+                            ${iconHtml}
+                            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${textStyle}">${dev.name}</span>
                         </div>
                     </li>`;
                 });
@@ -261,6 +298,13 @@
             this.lastWsPos = 0;       // 🌟 强行清空上一首歌的进度缓存
             this.lastWsDuration = 0;  // 🌟 归零总时长，挂起虚拟时钟，静静等待 WebSocket 的真实推送唤醒！
 
+            // 🌟 同步让下拉框里的设备图标变成跳动波浪！
+            const targetDev = this.devices.find(d => d.deviceID === this.currentDevice.id);
+            if (targetDev && !targetDev.is_playing) {
+                targetDev.is_playing = true;
+                this.renderDeviceList();
+            }
+
             try {
                 const res = await fetch('/api/v1/jsplugin/miot/player/play', {
                     method: 'POST',
@@ -290,6 +334,13 @@
             this._stateLockTime = Date.now() + 4000;
             this.isWsPlaying = targetState;
             if (window.updatePlayButtonUI) window.updatePlayButtonUI(targetState);
+
+            // 🌟 同步更新下拉框里的图标
+            const targetDev = this.devices.find(d => d.deviceID === this.currentDevice.id);
+            if (targetDev && targetDev.is_playing !== targetState) {
+                targetDev.is_playing = targetState;
+                this.renderDeviceList();
+            }
 
             try {
                 // 发送无脑翻转的 toggle 指令
@@ -537,6 +588,13 @@
                 if (window.updatePlayButtonUI) window.updatePlayButtonUI(isPlaying);
             }
 
+            // 🌟 监听真实物理状态，随时纠偏下拉框里的波浪图标！
+            const targetDev = this.devices.find(d => d.deviceID === this.currentDevice.id);
+            if (targetDev && targetDev.is_playing !== isPlaying) {
+                targetDev.is_playing = isPlaying;
+                this.renderDeviceList(); // 重新渲染下拉框（因为菜单通常是收起的，所以静默重绘毫无性能损耗）
+            }
+
             // ③ 如果是暂停状态，直接定格界面
             if (!isPlaying) {
                 const timeCurrentEl = document.getElementById('time-current');
@@ -582,9 +640,5 @@
             }
         }
     }; // MiotManager 结束
-
-    document.addEventListener('DOMContentLoaded', () => {
-        if (window.MiotManager) window.MiotManager.init();
-    });
 
 })(window);

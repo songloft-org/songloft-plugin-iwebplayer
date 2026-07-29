@@ -38,7 +38,11 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
     padding-bottom: calc(var(--player-height) + env(safe-area-inset-bottom) + 10px);
-    overflow-x: hidden;
+  }
+
+  /* 🌟 终极护盾：用最高权限强制可见，彻底废掉底层 JS 强制锁屏的命令，根除 iOS 乱跳！ */
+  body {
+    overflow: visible !important;
   }
 
   /* 通用原子类与初始显隐状态 */
@@ -58,7 +62,7 @@
      2. 顶部导航栏、Logo 与 下拉组件
      ========================================== */
   .header {
-    position: sticky; top: 0; background-color: var(--bg-color); padding: 0 16px;
+    position: -webkit-sticky; position: sticky; top: 0; background-color: var(--bg-color); padding: 0 16px;
     height: 56px; z-index: 150; display: flex; justify-content: space-between;
     align-items: center; transform: translate3d(0, 0, 0); -webkit-transform: translate3d(0, 0, 0);
   }
@@ -116,7 +120,7 @@
      4. 歌单筛选与多引擎调度工具栏 (Toolbar Row)
      ========================================== */
   .playlist-row {
-    position: sticky; top: 56px; z-index: 85; background: rgba(243, 244, 246, 0.7);
+    position: -webkit-sticky; position: sticky; top: 56px; z-index: 85; background: rgba(243, 244, 246, 0.7);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
     border-bottom: 1px solid rgba(0, 0, 0, 0.05); display: flex; align-items: stretch; flex-direction: column;
@@ -604,16 +608,23 @@
     .about-modal-backdrop { width: 100% !important; left: 0 !important; margin-left: 0 !important; }
     body.split-view-active .toast-message { left: 50% !important; transform: translateX(calc(-50% + 240px)) !important; }
   }
+
+  /* 🌟 小爱音箱动态播放波浪图标 */
+  .eq-bar { transform-origin: bottom; animation: eq-bounce 0.8s infinite ease-in-out alternate; }
+  .eq-bar-1 { animation-delay: 0s; }
+  .eq-bar-2 { animation-delay: -0.4s; }
+  .eq-bar-3 { animation-delay: -0.2s; }
+  @keyframes eq-bounce { 0% { transform: scaleY(0.3); } 100% { transform: scaleY(1); } }
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
   <script src="./static/utils.js?v1.0.2" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v1.0.5" defer></script>
-  <script src="./static/online.js?v1.0.5" defer></script>
+  <script src="./static/playlist.js?v1.0.6" defer></script>
+  <script src="./static/online.js?v1.0.6" defer></script>
   <script src="./static/plugins.js?v1.0.1" defer></script>
   <script src="./static/player.js?v1.0.5" defer></script>
-  <script src="./static/miot.js?v1.0.2" defer></script>
+  <script src="./static/miot.js?v1.0.6" defer></script>
 
 </head>
 <body>
@@ -763,7 +774,7 @@
 
       <div id="wd-search-row" class="w-full h-full" style="display: none; align-items: center;">
         <div class="search-input-box">
-          <input type="text" id="wd-search-input" placeholder="在当前网盘中极速过滤..." autocomplete="off">
+          <input type="text" id="wd-search-input" placeholder="在当前网盘中极速检索..." autocomplete="off">
           <div class="search-actions">
             <button class="search-icon-btn search-clear-btn" id="wd-search-clear" title="清除">
                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1495,7 +1506,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.0.5';
+    window.APP_VERSION = 'v1.0.6';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -3032,39 +3043,49 @@
         console.error("引擎启动失败:", err);
         if (window.location.protocol === 'file:') {
             loadingEl.innerText = '🚫 加载失败：前端代码必须部署在 SongLoft 服务端运行，请勿直接双击本地 HTML 文件打开！';
-        } else {
-            // 🌟 1. 探查当前是否为高性能模式
-            let isHighPerf = true;
-            try {
-                const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : JSON.parse(localStorage.getItem('iwebplayer.preferences') || '{}');
-                isHighPerf = prefs.highPerf !== false;
-            } catch(e){}
+            return;
+        }
 
-            // 🌟 2. 动态生成下方的辅助容灾按钮（完全复刻主按钮的紫红色高颜值样式）
-            let fallbackBtnHtml = "";
-            if (isHighPerf) {
-                fallbackBtnHtml = `
-                  <div style="display: flex; align-items: center; margin: 16px 0; color: var(--text-sub); font-size: 12px; user-select: none;">
-                    <div style="flex: 1; height: 1px; border-top: 1px dashed var(--border); opacity: 0.6;"></div>
-                    <span style="padding: 0 14px; font-weight: bold; opacity: 0.5;">或</span>
-                    <div style="flex: 1; height: 1px; border-top: 1px dashed var(--border); opacity: 0.6;"></div>
-                  </div>
+        // 🌟 1. 极简精准判定：无需任何多余的网络探针！
+        // 底层 playlist.js 遇到 401 时，已经完美抛出了 "AUTH_FAILED"
+        const isAuthFailed = (err.message === "AUTH_FAILED");
 
-                  <button onclick="
-                    try {
-                      let p = JSON.parse(localStorage.getItem('iwebplayer.preferences') || '{}');
-                      p.highPerf = false;
-                      localStorage.setItem('iwebplayer.preferences', JSON.stringify(p));
-                    } catch(e){}
-                    window.location.reload();
-                  " style="width: 100%; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 6px 20px rgba(236, 72, 153, 0.25); transition: all 0.2s ease; outline: none; display: flex; align-items: center; justify-content: center; gap: 6px;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='none'" onmouseleave="this.style.transform='none'">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
-                    低配置兼容模式
-                  </button>
-                `;
-            }
+        // 🌟 2. 探查当前是否为高性能模式
+        let isHighPerf = true;
+        try {
+            const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : JSON.parse(localStorage.getItem('iwebplayer.preferences') || '{}');
+            isHighPerf = prefs.highPerf !== false;
+        } catch(e){}
 
-            // 🌟 3. 原封不动保留你最喜欢的精美向导路径 UI
+        // 🌟 3. 生成容灾降级按钮（仅在高性能模式下提供降级退路）
+        let fallbackBtnHtml = "";
+        if (isHighPerf) {
+            fallbackBtnHtml = `
+              <div style="display: flex; align-items: center; margin: 16px 0; color: var(--text-sub); font-size: 12px; user-select: none;">
+                <div style="flex: 1; height: 1px; border-top: 1px dashed var(--border); opacity: 0.6;"></div>
+                <span style="padding: 0 14px; font-weight: bold; opacity: 0.5;">或</span>
+                <div style="flex: 1; height: 1px; border-top: 1px dashed var(--border); opacity: 0.6;"></div>
+              </div>
+
+              <button onclick="
+                try {
+                  let p = JSON.parse(localStorage.getItem('iwebplayer.preferences') || '{}');
+                  p.highPerf = false;
+                  localStorage.setItem('iwebplayer.preferences', JSON.stringify(p));
+                } catch(e){}
+                window.location.reload();
+              " style="width: 100%; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 6px 20px rgba(236, 72, 153, 0.25); transition: all 0.2s ease; outline: none; display: flex; align-items: center; justify-content: center; gap: 6px;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='none'" onmouseleave="this.style.transform='none'">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+                切换为低配置兼容模式
+              </button>
+            `;
+        }
+
+        // 🌟 4. UI 渲染：彻底分流
+        if (isAuthFailed) {
+            // ==========================================
+            // 🛑 情景 A：Token 确实失效了 (401)
+            // ==========================================
             loadingEl.innerHTML = `
               <div style="margin: 50px auto 0 auto; max-width: 400px; padding: 0 16px; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
                 <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 32px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-bottom: 3px solid var(--primary);">
@@ -3088,6 +3109,29 @@
 
                   <button onclick="window.location.href='/'" style="width: 100%; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 6px 20px rgba(236, 72, 153, 0.25); transition: all 0.2s ease; outline: none; display: flex; align-items: center; justify-content: center; gap: 6px;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='none'" onmouseleave="this.style.transform='none'">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>返回主程序首页
+                  </button>
+                </div>
+              </div>
+            `;
+        } else {
+            // ==========================================
+            // 🌐 情景 B：Token 没问题，纯粹是网络/接口挂了
+            // ==========================================
+            loadingEl.innerHTML = `
+              <div style="margin: 50px auto 0 auto; max-width: 400px; padding: 0 16px; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+                <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 32px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-bottom: 3px solid #f59e0b;">
+                  <div style="position: relative; width: 64px; height: 64px; margin: 0 auto 20px auto; background: rgba(250, 204, 21, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="#f59e0b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                      <line x1="12" y1="9" x2="12" y2="13"></line>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                  </div>
+                  <div style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; letter-spacing: -0.5px;">数据加载失败</div>
+                  <div style="font-size: 13px; color: var(--text-sub); line-height: 1.5; margin-bottom: 24px;">服务器响应超时或接口异常。您的身份验证依然有效，可能只是网络波动或服务器压力过大。</div>
+
+                  <button onclick="window.location.reload()" style="width: 100%; padding: 13px; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.2s ease; outline: none; display: flex; align-items: center; justify-content: center; gap: 6px;" onmousedown="this.style.background='var(--border)'" onmouseup="this.style.background='var(--bg-color)'" onmouseleave="this.style.background='var(--bg-color)'">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>重新尝试加载
                   </button>
 
                   ${fallbackBtnHtml}
