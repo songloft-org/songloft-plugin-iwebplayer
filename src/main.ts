@@ -1,8 +1,24 @@
 /// <reference types="@songloft/plugin-sdk" />
 import { jsonResponse, createRouter } from '@songloft/plugin-sdk';
-import { scrapeCover, scrapeLyric } from './scraper';
 import { setupWebDAVRoutes } from './webdav';
 import { scrapeCover, scrapeLyric, getLastScrapeLog } from './scraper';
+
+// 👇 新增：定义兄弟插件的入口名
+const TWIN_PLUGIN_ID = 'miot-helper';
+
+// 👇 新增：广播偏好配置的函数
+export async function broadcastWebDavConfig(key: string, value: any) {
+    try {
+        await songloft.comm.send(TWIN_PLUGIN_ID, "sync_webdav_data", {
+            type: 'config',
+            key: key,
+            value: value
+        });
+        songloft.log.info(`📡 已向 [${TWIN_PLUGIN_ID}] 广播配置更新: ${key}`);
+    } catch (e) {
+        // 静默失败，说明对方没装或没激活
+    }
+}
 
 const router = createRouter();
 setupWebDAVRoutes(router);
@@ -265,6 +281,11 @@ router.post('/store', async (req) => {
             throw new Error("存储引擎不支持写入");
         }
 
+        // 👇 新增：如果是 WebDAV 相关的配置变化，触发广播
+        if (key.startsWith('webdav_')) {
+            broadcastWebDavConfig(key, value);
+        }
+
         return jsonResponse({ ret: "OK" });
     } catch (error) {
         return jsonResponse({ error: "保存配置失败: " + String(error) });
@@ -379,7 +400,40 @@ router.get('/debug', async (req) => {
 
 
 // ==== 核心生命周期函数 ====
-function onInit(): void { songloft.log.info('iWebPlayer 原生架构已就绪！'); }
+function onInit(): void {
+    songloft.log.info('iWebPlayer 原生架构已就绪！');
+
+    // 👇 新增：注册 P2P 双子星监听器，接收 miot-helper 的数据
+    songloft.comm.onMessage("sync_webdav_data", async (payload, from) => {
+        // 只认自家兄弟，防伪造
+        if (from !== TWIN_PLUGIN_ID) return;
+
+        try {
+            if (payload.type === 'config') {
+                // 同步配置 (如默认节点、根目录)
+                if (typeof songloft.storage.set === 'function') {
+                    await songloft.storage.set(payload.key, payload.value);
+                } else if (typeof songloft.storage.setItem === 'function') {
+                    await songloft.storage.setItem(payload.key, payload.value);
+                }
+                songloft.log.info(`📥 镜像同步配置成功: ${payload.key}`);
+            }
+            else if (payload.type === 'library' && payload.davId) {
+                // 同步扫库结果 (将对象转成字符串存入)
+                const cacheKey = `webdav_lib_${payload.davId}`;
+                const cacheVal = JSON.stringify(payload.library);
+                if (typeof songloft.storage.set === 'function') {
+                    await songloft.storage.set(cacheKey, cacheVal);
+                } else if (typeof songloft.storage.setItem === 'function') {
+                    await songloft.storage.setItem(cacheKey, cacheVal);
+                }
+                songloft.log.info(`📥 镜像同步曲库成功: ${payload.davId}`);
+            }
+        } catch (e) {
+            songloft.log.error(`❌ 同步数据写入失败: ${e}`);
+        }
+    });
+}
 function onDeinit(): void {}
 function onHTTPRequest(req: HTTPRequest): HTTPResponse { return router.handle(req); }
 

@@ -9,6 +9,18 @@ let activeDavId = '';
 
 const AUDIO_EXTS = ['.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg', '.ape', '.wma', '.alac'];
 
+// 👇 新增：直接在这里定义发给兄弟的广播函数
+const TWIN_PLUGIN_ID = 'miot-helper';
+async function broadcastWebDavLibrary(davId: string, library: any) {
+    try {
+        await songloft.comm.send(TWIN_PLUGIN_ID, "sync_webdav_data", {
+            type: 'library',
+            davId: davId,
+            library: library
+        });
+        songloft.log.info(`📡 已向 [${TWIN_PLUGIN_ID}] 广播扫库结果: ${davId}`);
+    } catch (e) {}
+}
 function isAudioFile(filename: string): boolean {
     const lower = filename.toLowerCase();
     return AUDIO_EXTS.some(ext => lower.endsWith(ext));
@@ -81,6 +93,7 @@ async function runScanTask(version: number, hostUrl: string, token: string, davI
 
         if (currentScanVersion === version) {
             await songloft.storage.set(`webdav_lib_${davId}`, JSON.stringify(resultLibrary));
+            broadcastWebDavLibrary(davId, resultLibrary);
             scanStatus = 'completed';
         }
     } catch (fatalErr) {
