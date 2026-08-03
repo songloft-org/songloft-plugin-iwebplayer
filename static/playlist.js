@@ -337,13 +337,23 @@
 
                     if (res.ok) {
                         window.showToast("🗑️ 歌单已删除！");
+
+                        // 🌟 极致乐观更新：直接把内存里的歌单名抹除，瞬间起效！
+                        if (window.customPlaylistNames) window.customPlaylistNames = window.customPlaylistNames.filter(name => name !== k);
+                        if (window.playlistMeta) window.playlistMeta = window.playlistMeta.filter(p => p.name !== k);
+                        if (window.allPlaylists) delete window.allPlaylists[k];
+
                         if (window.currentPlaylist === k) {
                             window.currentPlaylist = "所有歌曲";
                             if (window.updateSearchUI) window.updateSearchUI(window.currentPlaylist);
                         }
-                        if (window.reloadGlobalData) await window.reloadGlobalData();
+
+                        // 🌟 瞬间重绘下拉框和编辑列表
                         if (window.initPlaylistDropdown) window.initPlaylistDropdown();
                         window.renderEditPlaylistItems();
+
+                        // 🌟 留给后台管家自己去静默同步兜底（不再用 await 阻塞 UI）
+                        if (window.reloadGlobalData) window.reloadGlobalData();
                     } else {
                         window.showToast("❌ 删除被拒绝"); window.renderEditPlaylistItems();
                     }

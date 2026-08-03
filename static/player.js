@@ -268,18 +268,32 @@
         }
     };
 
-    // 🚀 核心优化：提取 WebDAV 音频直链的公共方法
+    // 🚀 极简纯同步版：直接从内存读凭证拼接 URL，彻底告别 [object Promise]
     window.getWebDavStreamUrl = function(rawItem) {
-        if (rawItem && rawItem.plugin_entry_path === 'dav' && rawItem.streamUrl) {
-            const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
-            const davMode = localStorage.getItem('iwebplayer.webdav_mode') || 'proxy';
+        if (rawItem && rawItem.plugin_entry_path === 'dav') {
+            let sd = rawItem.source_data;
+            if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
 
-            if (davMode === 'proxy') {
-                // 调用官方高性能代理接口
-                return `/api/v1/proxy?url=${encodeURIComponent(rawItem.streamUrl)}&access_token=${globalToken}`;
-            } else {
-                // 直连模式
-                return rawItem.streamUrl;
+            const serverName = sd.configName || (window.webdavData ? window.webdavData.currentServer : '');
+
+            // 核心：同步从内存中取
+            if (serverName && window.webdavData && window.webdavData.credentials && window.webdavData.credentials[serverName]) {
+                const cred = window.webdavData.credentials[serverName];
+                const encodedPath = sd.path.split('/').map(encodeURIComponent).join('/');
+
+                let targetUrl = cred.baseUrl;
+                if (targetUrl.endsWith('/') && encodedPath.startsWith('/')) targetUrl += encodedPath.substring(1);
+                else if (!targetUrl.endsWith('/') && !encodedPath.startsWith('/')) targetUrl += '/' + encodedPath;
+                else targetUrl += encodedPath;
+
+                try {
+                    const urlObj = new URL(targetUrl);
+                    urlObj.username = cred.username;
+                    if (cred.password) urlObj.password = cred.password;
+                    const finalUrl = urlObj.toString();
+                    const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
+                    return `/api/v1/proxy?url=${encodeURIComponent(finalUrl)}&access_token=${globalToken}`;
+                } catch(e) {}
             }
         }
         return null;

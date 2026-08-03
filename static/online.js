@@ -113,7 +113,7 @@
     // ==========================================
     // 3. 内部私有变量与旧版兼容挂载
     // ==========================================
-    window.webdavData = { library: {}, currentServer: '', cachePool: {} };
+    window.webdavData = { library: {}, currentServer: '', cachePool: {}, credentials: {} };
     window.currentOnlineView = 'song';
 
     let currentSearchPage = 1;
@@ -138,9 +138,19 @@
     window.PluginManager.register('LXMusic', {
         icon: window.SVG_ICONS?.lx_plugin_line || '',
         searchSong: async function(keyword, source, page) {
-            // 🌟 恢复 LXMusic 正确的网络请求逻辑
-            const reqUrl = `/api/v1/jsplugin/lxmusic/api/music/search?source_id=${source}&keyword=${encodeURIComponent(keyword)}&page=${page}&limit=30`;
-            const res = await fetch(reqUrl);
+            // 🌟 适配 LXMusic 新版 POST 搜歌接口
+            const reqUrl = `/api/v1/jsplugin/lxmusic/api/search`;
+            const payload = {
+                keyword: keyword,
+                source_id: source,
+                page: page,
+                page_size: 30
+            };
+            const res = await fetch(reqUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             const resJson = await res.json();
             if (resJson.code !== 0 || !resJson.data || !resJson.data.list) return { list: [], hasMore: false };
             const parsedList = resJson.data.list.map(item => ({
@@ -148,6 +158,7 @@
                 album: item.album || "", duration: item.duration || 0, cover_url: item.img || null,
                 _scrapedCover: item.img || null, _isOnlineObj: true, source_data: item
             }));
+            // 判断是否还有下一页，通常判断返回条数是否达到请求的 page_size，这里保守使用 20
             return { list: parsedList, hasMore: resJson.data.list.length >= 20 };
         },
         searchPlaylist: async function(keyword, source, page) {
@@ -842,6 +853,44 @@
     // ==========================================
     // 9. WebDAV 基础拉取引擎保持不变
     // ==========================================
+    // 🌟 新增：WebDAV 凭证静默预热器
+    window.preloadWebDavCredentials = function(serverName, libraryData) {
+        window.webdavData.credentials = window.webdavData.credentials || {};
+        if (window.webdavData.credentials[serverName]) return; // 内存已有，直接退下
+
+        let firstSong = null;
+        for (const folder in libraryData) {
+            if (libraryData[folder] && libraryData[folder].length > 0) { firstSong = libraryData[folder][0]; break; }
+        }
+        if (!firstSong) return;
+
+        let sd = firstSong.source_data;
+        if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
+        const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
+
+        // 静默发一次探针，抓取账号密码存进内存
+        fetch(`/api/v1/jsplugin/dav/api/music/url?access_token=${globalToken}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source_data: sd })
+        }).then(r => r.json()).then(resData => {
+            const targetUrl = resData.headers ? resData.url : (resData.data?.url || resData.url);
+            const headers = resData.headers || resData.data?.headers || {};
+            const authHeader = headers.Authorization || '';
+            if (targetUrl && authHeader.startsWith('Basic ')) {
+                const decodedAuth = decodeURIComponent(escape(atob(authHeader.replace('Basic ', ''))));
+                const splitIndex = decodedAuth.indexOf(':');
+                const username = splitIndex > -1 ? decodedAuth.substring(0, splitIndex) : decodedAuth;
+                const password = splitIndex > -1 ? decodedAuth.substring(splitIndex + 1) : '';
+
+                const encodedPath = sd.path.split('/').map(encodeURIComponent).join('/');
+                let baseUrl = targetUrl;
+                if (targetUrl.endsWith(encodedPath)) baseUrl = targetUrl.slice(0, -encodedPath.length);
+
+                window.webdavData.credentials[serverName] = { username, password, baseUrl };
+                console.log(`[WebDAV] ⚡ 节点 [${serverName}] 的凭证已极速存入内存！`);
+            }
+        }).catch(()=>{});
+    };
+
     window.loadWebDavRootPath = async function(serverName) {
         if (!serverName) return;
         const wdDirPath = document.getElementById('wd-dir-path');
@@ -867,9 +916,20 @@
 
         if (!forceRefresh && window.webdavData.cachePool[serverName]) {
             window.webdavData.library = window.webdavData.cachePool[serverName];
+            window.preloadWebDavCredentials(serverName, window.webdavData.library);
             window.webdavPlaylistMeta = Object.keys(window.webdavData.library).map(folderName => ({
                 name: folderName, song_count: window.webdavData.library[folderName].length, cover_url: ''
             }));
+            // 🌟 触发凭证预热：在内存里偷偷摸取第一首歌的密码
+            if (window.preloadWebDavCredentials) {
+                let firstSong = null;
+                for (const folder in window.webdavData.library) {
+                    if (window.webdavData.library[folder] && window.webdavData.library[folder].length > 0) {
+                        firstSong = window.webdavData.library[folder][0]; break;
+                    }
+                }
+                window.preloadWebDavCredentials(serverName, firstSong);
+            }
             if (window.currentPlaylist === '在线资源') {
                 const oState = window.getOnlineState();
                 if (oState.view === 'detail' && oState.detail_name && window.webdavData.library[oState.detail_name]) {
@@ -904,9 +964,20 @@
 
             window.webdavData.cachePool[serverName] = data;
             window.webdavData.library = data;
+            window.preloadWebDavCredentials(serverName, data);
             window.webdavPlaylistMeta = Object.keys(data).map(folderName => ({
                 name: folderName, song_count: data[folderName].length, cover_url: ''
             }));
+            // 🌟 触发凭证预热
+            if (window.preloadWebDavCredentials) {
+                let firstSong = null;
+                for (const folder in data) {
+                    if (data[folder] && data[folder].length > 0) {
+                        firstSong = data[folder][0]; break;
+                    }
+                }
+                window.preloadWebDavCredentials(serverName, firstSong);
+            }
 
             if (window.currentPlaylist === '在线资源') {
                 const oState = window.getOnlineState();
