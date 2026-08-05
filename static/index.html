@@ -220,7 +220,9 @@
   .player-bar {
     position: fixed; bottom: 0; left: 0; width: 100%; height: calc(var(--player-height) + env(safe-area-inset-bottom));
     background: var(--card-bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center;
-    padding: 0 15px env(safe-area-inset-bottom) 15px; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); z-index: 100; transform: translateZ(0); -webkit-transform: translateZ(0);
+    padding: 0 15px env(safe-area-inset-bottom) 15px; box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
+    z-index: 170; /* 🌟 提权到 170，确保底部的音量和调速气泡能压住 160 的沉浸页 */
+    transform: translateZ(0); -webkit-transform: translateZ(0);
   }
   .progress-container { position: absolute; top: -15px; left: 16px; width: calc(100% - 32px); height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 101; }
   .progress-bg { width: 100%; height: 4px; background: var(--border); position: relative; border-radius: 4px; }
@@ -258,12 +260,17 @@
   /* ==========================================
      8. 全屏沉浸播放页与滚动歌词
      ========================================== */
+  /* 🌟 沉浸播放页：保留顶部导航栏不遮盖，从 56px 处拉平覆盖下拉框与列表 */
   .full-player {
-    position: fixed; left: 0; width: 100%; height: 65vh; bottom: calc(var(--player-height) + env(safe-area-inset-bottom));
-    background: var(--card-bg); border-radius: 24px 24px 0 0; box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.12), 0 -2px 10px rgba(0, 0, 0, 0.05);
-    z-index: 90; transform: translateY(110%); transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; align-items: center;
+    position: fixed; left: 0; width: 100%;
+    top: 56px; /* 🌟 刚好紧贴顶部导航栏下方，不遮盖头部的 iWebPlayer */
+    bottom: calc(var(--player-height) + env(safe-area-inset-bottom));
+    height: auto;
+    background: var(--card-bg);
+    border-radius: 0; /* 🌟 取消圆角，直接拉平 */
+    z-index: 140; /* 🌟 层级设为 140：低于顶部 Header (150)，高于下拉框 (85) */
+    transform: translateY(110%); transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; align-items: center;
   }
-  @media (prefers-color-scheme: dark) { .full-player { background: #1a2234; border-top: 1px solid var(--border); } }
   .full-player.open { transform: translateY(0); }
   .drawer-handle { width: 100%; height: 30px; display: flex; justify-content: center; align-items: center; cursor: pointer; padding-top: 5px; flex-shrink: 0; }
   .handle-bar { width: 60px; height: 5px; background: var(--text-sub); border-radius: 3px; opacity: 0.4; }
@@ -615,15 +622,198 @@
   .eq-bar-2 { animation-delay: -0.4s; }
   .eq-bar-3 { animation-delay: -0.2s; }
   @keyframes eq-bounce { 0% { transform: scaleY(0.3); } 100% { transform: scaleY(1); } }
+
+
+  /* ==========================================
+     🌟 专属：沉浸式氛围背景引擎 (无模糊原图淡化放大·手机遮挡纯净版)
+     ========================================== */
+
+  /* --- 1. 基础幕布与壁纸渲染 --- */
+  .fp-ambient-bg {
+    position: fixed; left: 0; right: 0; bottom: 0; top: 0;
+    z-index: 135; overflow: hidden; pointer-events: none; opacity: 0;
+    transition: opacity 0.5s ease;
+    background: var(--bg-color); /* 之前加的实体底色 */
+  }
+
+  /* 🌟 核心新增：消除 iOS 状态栏割裂感，制造自上而下的平滑羽化过渡 */
+  .fp-ambient-bg::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 180px; /* 稍微加高，让过渡更平缓 */
+    /* 🌟 终极修复：保持顶部安全区 (刘海/灵动岛) 绝对纯色，越过安全区后再开始渐变 */
+    background: linear-gradient(to bottom,
+      #f3f4f6 0%,
+      #f3f4f6 calc(env(safe-area-inset-top) + 10px),
+      rgba(243, 244, 246, 0) 100%
+    );
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  @media (min-width: 600px) {
+    .fp-ambient-bg { width: 480px !important; left: 50% !important; margin-left: -240px !important; }
+  }
+  @media (min-width: 960px) {
+    body.split-view-active #fp-ambient-bg { width: 960px !important; left: 50% !important; margin-left: -480px !important; }
+  }
+
+  body.ambient-active.player-open #fp-ambient-bg,
+  body.ambient-active.split-view-active #fp-ambient-bg {
+    opacity: 1;
+  }
+
+  .fp-ambient-img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scale(1.05); filter: none !important; opacity: 0.28;
+    transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .fp-ambient-overlay {
+    position: absolute; inset: 0; background: rgba(255, 255, 255, 0.35);
+  }
+
+
+  /* --- 2. 📱 手机端全屏模式 (沉浸光影与磨砂壳) --- */
+  body.ambient-active.player-open .header {
+    background: transparent !important;
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    border: none !important; box-shadow: none !important;
+  }
+  body.ambient-active.player-open .full-player,
+  body.ambient-active.player-open .player-bar {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
+    border: none !important; box-shadow: none !important;
+  }
+  body.ambient-active.player-open .full-player {
+    top: 0 !important; padding-top: 56px !important;
+  }
+  body.ambient-active .fp-cover {
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 0 0 60px rgba(255, 255, 255, 0.15) !important;
+  }
+  body.ambient-active.player-open #device-val,
+  body.ambient-active .fp-corner-btn {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    backdrop-filter: blur(15px) !important; -webkit-backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: var(--text-main) !important;
+  }
+
+
+  /* --- 3. 💻 平板双栏模式 (全透视结界与置顶卡片) --- */
+  @media (min-width: 960px) {
+    /* 彻底剥离原有白底，还原本机画报全透明 */
+    body.ambient-active.split-view-active .full-player,
+    body.ambient-active.split-view-active .header,
+    body.ambient-active.split-view-active .playlist-row,
+    body.ambient-active.split-view-active .player-bar {
+      background: transparent !important;
+      backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+      border: none !important; box-shadow: none !important;
+    }
+
+    /* 头等舱：头部下拉菜单绝对凌驾于一切之上 */
+    body.ambient-active.split-view-active .header { position: sticky !important; z-index: 260 !important; }
+    body.ambient-active.split-view-active .select-options { z-index: 300 !important; }
+
+    /* 商务舱：三大菜单与搜索框分层防遮挡 */
+    body.ambient-active.split-view-active .toolbar-wrapper,
+    body.ambient-active.split-view-active .toolbar-main-box { position: relative !important; z-index: 220 !important; }
+    body.ambient-active.split-view-active #online-toolbar-container,
+    body.ambient-active.split-view-active .search-input-box { position: relative !important; z-index: 210 !important; }
+
+    /* 修正三大菜单统一下拉框错位 */
+    body.ambient-active.split-view-active #playlist-opts { top: 100% !important; margin-top: 6px !important; left: 0 !important; right: 0 !important; }
+
+    /* 经济舱结界：限制列表滑动高度，超出直接隐形，绝不污染头部 */
+    body.ambient-active.split-view-active .playlist,
+    body.ambient-active.split-view-active .playlist-grid {
+      position: relative !important; z-index: 140 !important;
+      max-height: calc(100vh - 112px) !important; overflow-y: auto !important;
+      padding-bottom: 90px !important; -webkit-overflow-scrolling: touch;
+    }
+    body.ambient-active.split-view-active .playlist::-webkit-scrollbar,
+    body.ambient-active.split-view-active .playlist-grid::-webkit-scrollbar { display: none; }
+
+    /* 实体化保护壳：抗背景干扰的高浓度纯净白卡片 */
+    body.ambient-active.split-view-active .song-item,
+    body.ambient-active.split-view-active .pl-card-b,
+    body.ambient-active.split-view-active .toolbar-main-box,
+    body.ambient-active.split-view-active .search-input-box,
+    body.ambient-active.split-view-active #device-val {
+      background-color: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(25px) !important; -webkit-backdrop-filter: blur(25px) !important;
+      border: 1px solid rgba(255, 255, 255, 1) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important; border-radius: 12px !important;
+    }
+
+    /* 列表卡片内部视觉优化 */
+    body.ambient-active.split-view-active .song-item { margin-bottom: 10px !important; }
+    body.ambient-active.split-view-active .song-item .song-name,
+    body.ambient-active.split-view-active .song-item .song-more-btn { color: var(--text-main) !important; font-weight: 600 !important; }
+    body.ambient-active.split-view-active .song-item .song-cover-img { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important; }
+    body.ambient-active.split-view-active .song-item.playing {
+      background-color: rgba(255, 255, 255, 0.95) !important; border: 2px solid var(--primary) !important;
+    }
+  }
+
+
+  /* --- 4. 🌙 全局暗黑模式护眼适配 --- */
+  @media (prefers-color-scheme: dark) {
+    /* 🌟 终极修复暗黑模式漏光：同样为暗黑模式设立纯色死区 */
+    .fp-ambient-bg::after {
+      background: linear-gradient(to bottom,
+        #111827 0%,
+        #111827 calc(env(safe-area-inset-top) + 10px),
+        rgba(17, 24, 39, 0) 100%
+      );
+    }
+
+    /* 压暗全屏画报亮度（下方是你原本的代码，保持不变） */
+    body.ambient-active.player-open #fp-ambient-bg .fp-ambient-overlay,
+    body.ambient-active.split-view-active #fp-ambient-bg .fp-ambient-overlay {
+      background: rgba(17, 24, 39, 0.35) !important;
+    }
+    body.ambient-active.player-open #fp-ambient-bg .fp-ambient-img,
+    body.ambient-active.split-view-active #fp-ambient-bg .fp-ambient-img {
+      opacity: 0.48 !important;
+      filter: saturate(120%) !important; /* 适度提升暗光下的色彩鲜艳度 */
+    }
+
+    /* 手机端磨砂降级 */
+    body.ambient-active.player-open .full-player,
+    body.ambient-active.player-open .player-bar { background: rgba(17, 24, 39, 0.25) !important; }
+    body.ambient-active.player-open #device-val { background-color: rgba(31, 41, 55, 0.35) !important; border-color: rgba(255, 255, 255, 0.1) !important; }
+
+    /* 平板端卡片墨岩化 */
+    @media (min-width: 960px) {
+      body.ambient-active.split-view-active .header,
+      body.ambient-active.split-view-active .playlist-row { background: transparent !important; border: none !important; }
+
+      body.ambient-active.split-view-active .song-item,
+      body.ambient-active.split-view-active .pl-card-b,
+      body.ambient-active.split-view-active .toolbar-main-box,
+      body.ambient-active.split-view-active .search-input-box,
+      body.ambient-active.split-view-active #device-val {
+        background-color: rgba(31, 41, 55, 0.85) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+      }
+      body.ambient-active.split-view-active .song-item.playing { background-color: rgba(31, 41, 55, 0.95) !important; }
+    }
+  }
+
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
-  <script src="./static/utils.js?v1.0.2" defer></script>
+  <script src="./static/utils.js?v1.1.0b" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v1.0.7" defer></script>
-  <script src="./static/online.js?v1.0.7" defer></script>
-  <script src="./static/plugins.js?v1.0.1" defer></script>
-  <script src="./static/player.js?v1.0.7" defer></script>
+  <script src="./static/playlist.js?v1.1.0e" defer></script>
+  <script src="./static/online.js?v1.1.0e" defer></script>
+  <script src="./static/plugins.js?v1.1.0e" defer></script>
+  <script src="./static/player.js?v1.1.0e" defer></script>
   <script src="./static/miot.js?v1.0.6" defer></script>
 
 </head>
@@ -799,11 +989,18 @@
       </div>
 
     </div>
-  </div> <ul class="playlist" id="playlist"></ul>
+  </div>
+  <ul class="playlist" id="playlist"></ul>
 <div class="playlist-grid" id="playlist-grid"></div>
 <div id="loading">正在加载音乐...</div>
 
+<div class="fp-ambient-bg" id="fp-ambient-bg">
+  <img id="fp-ambient-img" class="fp-ambient-img" src="" alt="">
+  <div class="fp-ambient-overlay"></div>
+</div>
+
 <div class="full-player" id="full-player">
+
   <div class="drawer-handle" id="drawer-handle">
     <div class="handle-bar"></div>
   </div>
@@ -865,9 +1062,9 @@
           <svg id="icon-mode-3" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path><text x="10" y="15" stroke="none" fill="currentColor" font-size="10" font-weight="bold" font-family="sans-serif">1</text></svg>
         </button>
         <div class="volume-popup mode-popup" id="mode-popup">
-          <div class="mode-item" data-mode="0"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h10"></path><polyline points="17 16 20 20 23 16"></polyline><line x1="20" y1="4" x2="20" y2="20"></line></svg>跨单顺播</div>
-          <div class="mode-item" data-mode="1"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>本单循环</div>
-          <div class="mode-item" data-mode="2"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>本单随机</div>
+          <div class="mode-item" data-mode="0"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h10"></path><polyline points="17 16 20 20 23 16"></polyline><line x1="20" y1="4" x2="20" y2="20"></line></svg>顺序播放</div>
+          <div class="mode-item" data-mode="1"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>列表循环</div>
+          <div class="mode-item" data-mode="2"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>随机播放</div>
           <div class="mode-item" data-mode="3"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path><text x="10" y="15" stroke="none" fill="currentColor" font-size="10" font-weight="bold" font-family="sans-serif">1</text></svg>单曲循环</div>
         </div>
       </div>
@@ -971,10 +1168,10 @@
       <div class="pref-item">
         <div class="pref-text-wrap">
           <div class="pref-title">沉浸氛围背景</div>
-          <div class="pref-desc">在全屏播放器背景显示基于当前封面的动态高斯模糊效果。(开发中...)</div>
+          <div class="pref-desc">提取当前专辑封面，在全屏播放页生成动态高斯模糊流光效果。</div>
         </div>
         <label class="ios-switch">
-          <input type="checkbox" id="switch-ambient-bg" disabled>
+          <input type="checkbox" id="switch-ambient-bg">
           <span class="slider round"></span>
         </label>
       </div>
@@ -1372,8 +1569,8 @@
 
         <div class="plugin-section-title p-16-flex">
           <div>网盘节点管理</div>
-          <button id="wd-btn-add" class="edit-pl-icon-btn btn-import-js" style="width: 22px; height: 22px; padding:0;" title="新增">
-            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <button id="wd-btn-add" class="edit-pl-icon-btn" style="width: 24px; height: 24px; padding:0; background: var(--primary); color: #fff; box-shadow: 0 2px 6px rgba(236, 72, 153, 0.25);" title="新增">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </button>
         </div>
 
@@ -1438,6 +1635,12 @@
           </div>
 
           <button id="btn-webdav-scan" class="about-primary btn-wd-scan">建立索引 (扫库)</button>
+
+          <div id="wd-scan-info-row" style="display: none; margin-top: 4px; padding: 2px 12px; background: transparent; border: none; font-size: 12px; color: var(--text-sub); justify-content: space-between; align-items: center;">
+            <div>歌单: <span id="wd-info-folders" style="color: var(--text-sub);">0</span></div>
+            <div>歌曲: <span id="wd-info-songs" style="color: var(--text-sub);">0</span></div>
+            <div>时间: <span id="wd-info-time" style="color: var(--text-sub); font-variant-numeric: tabular-nums;">-</span></div>
+          </div>
         </div>
 
         <div class="plugin-section-title p-24">在线播放模式</div>
@@ -1506,7 +1709,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.0.7';
+    window.APP_VERSION = 'v1.1.0';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -1997,12 +2200,21 @@
 
         function jumpToCrossPlaylist(plInfo, playIndex = 0) {
             if (!plInfo || plInfo.songs.length === 0) return;
+
+            // 🌟 护盾开启：给独立 PWA 补丁发免死金牌，绝对禁止切歌时清空 src！
+            window.isPageBtnPause = true;
+
             if (plInfo.type === 'webdav') {
                 window.renderWebDavFolder(plInfo.name, plInfo.songs, false, true);
             } else {
                 window.switchPlaylistSilently(plInfo.name);
             }
-            setTimeout(() => window.playSong(playIndex), 100);
+
+            // 🌟 核心破局：铲除 setTimeout！必须同步、瞬间调用，死死锁住后台播放特权！
+            window.playSong(playIndex);
+
+            // 切歌安全着陆后，撤销护盾
+            setTimeout(() => { window.isPageBtnPause = false; }, 500);
         }
 
         audioEl.addEventListener('timeupdate', () => {
@@ -2012,7 +2224,7 @@
 
           // 🌟 修复 WebDAV 直连断流：缓冲停滞检测与自动重载 (仅限直连模式生效)
           const currentItem = window.songList[window.currentIndex];
-          const isDavDirect = currentItem && currentItem.plugin_entry_path === 'dav' && localStorage.getItem('iwebplayer.webdav_mode') === 'direct';
+          const isDavDirect = currentItem && currentItem.plugin_entry_path === 'dav' && window.ConfigManager.get('webdav', 'settings.mode') === 'direct';
 
           if (isDavDirect && audioEl.buffered.length > 0) {
               const bufferEnd = audioEl.buffered.end(audioEl.buffered.length - 1);
@@ -2040,24 +2252,26 @@
           if (Math.floor(current) % 2 === 0 && Math.floor(current) !== window._lastSavedTime) {
               window._lastSavedTime = Math.floor(current);
               localState.currentTime = current;
-              localStorage.setItem('iwebplayer.local_state', JSON.stringify(localState));
+
+              // 🌟 1. 记忆当前播放现场
+              window.ConfigManager.set('config', 'playback.last_active', localState);
 
               const actualPlayingPl = audioEl.dataset.playingPlaylist || currentPlaylist;
               const actualPlayingSong = audioEl.dataset.playingSongName || currentSongName;
 
-              let plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
-              plTracks[actualPlayingPl] = { name: actualPlayingSong, time: current };
-              localStorage.setItem('iwebplayer.playlist_tracks', JSON.stringify(plTracks));
+              // 🌟 2. 记忆歌单最后断点
+              window.ConfigManager.set('config', `playback.positions.${actualPlayingPl}.currentSong`, actualPlayingSong);
+              window.ConfigManager.set('config', `playback.positions.${actualPlayingPl}.currentTime`, current);
 
               const conf = window.getPlaylistConfig(actualPlayingPl);
               if (conf.resumeLocal !== 'off') {
-                  let history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
-                  let list = history[actualPlayingPl] || [];
+                  // 🌟 3. 维护歌单历史播放队列（取前 5 首）
+                  let list = window.ConfigManager.get('config', `playback.positions.${actualPlayingPl}.history`) || [];
                   list = list.filter(item => item.name !== actualPlayingSong);
                   list.unshift({ name: actualPlayingSong, time: current });
                   if (list.length > 5) list = list.slice(0, 5);
-                  history[actualPlayingPl] = list;
-                  localStorage.setItem('iwebplayer.resume_history', JSON.stringify(history));
+
+                  window.ConfigManager.set('config', `playback.positions.${actualPlayingPl}.history`, list);
                   syncToCloud(actualPlayingPl, actualPlayingSong, current, audioEl.playbackRate, false);
 
                   if (actualPlayingPl === currentPlaylist && actualPlayingSong === currentSongName) {
@@ -2201,7 +2415,7 @@
 
             // 🌟 核心优化：只有在本机模式下，拖动才记忆到本机的缓存和音频标签
             if (!window.MiotManager || window.MiotManager.currentDevice.type !== 'miot') {
-                localStorage.setItem('iwebplayer.player_volume', vol);
+                window.ConfigManager.set('config', 'player_state.volume', parseInt(vol));
                 audioEl.volume = vol / 100;
             }
 
@@ -2737,7 +2951,7 @@
                 if (switchAmbientBg) {
                     switchAmbientBg.addEventListener('change', (e) => {
                         window.savePreferences({ ambientBg: e.target.checked });
-                        // 💡 氛围背景的具体应用逻辑，我们可以在下一步专门写
+                        document.body.classList.toggle('ambient-active', e.target.checked);
                     });
                 }
 
@@ -2952,6 +3166,11 @@
       if (fpCover) fpCover.src = defaultCover;
       if (miniCoverImg) miniCoverImg.src = defaultCover;
 
+      // 🌟 读取偏好设置，决定是否初始化氛围背景
+      const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : JSON.parse(localStorage.getItem('iwebplayer.preferences') || '{}');
+      if (prefs.ambientBg) {
+          document.body.classList.add('ambient-active');
+      }
       try {
           const stored = localStorage.getItem('iwebplayer.local_state');
           if (stored && stored !== "null") localState = JSON.parse(stored) || { playlist: "", songName: "" };

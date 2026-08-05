@@ -342,8 +342,25 @@
             const miniCoverImg = $('mini-cover-img');
 
             // 🌟 修复 Bug 2 (核心)：补上 onerror 兜底，防止链接失效导致白板不刮削！
-            if (fpCover) fpCover.onerror = function() { if (this.src !== window.defaultCover) this.src = window.defaultCover; };
-            if (miniCoverImg) miniCoverImg.onerror = function() { if (this.src !== window.defaultCover) this.src = window.defaultCover; };
+            // 🌟 新增：404 智能抢救机制。如果自带的 cover_url 报 404，立刻呼叫刮削器抢救！
+            const handleCoverError = function() {
+                if (this.src !== window.defaultCover) {
+                    this.src = window.defaultCover;
+                    if (!rawItem._scrapedCover) {
+                        window.fetchScrape(rawItem, 'cover', window.currentSongName).then(hdCover => {
+                            if (hdCover && window.currentSongName === window.getSongNameObj(rawItem)) {
+                                rawItem._scrapedCover = hdCover;
+                                if (fpCover) fpCover.src = hdCover;
+                                if (miniCoverImg) miniCoverImg.src = hdCover;
+                                if (listImg) listImg.src = hdCover;
+                                if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, hdCover, window.favoriteList, window.APP_LOGO);
+                            }
+                        }).catch(()=>{});
+                    }
+                }
+            };
+            if (fpCover) fpCover.onerror = handleCoverError;
+            if (miniCoverImg) miniCoverImg.onerror = handleCoverError;
 
             // 1. 恢复封面解析
             let finalCover = window.defaultCover;
@@ -353,7 +370,6 @@
             } else if (rawItem._scrapedCover) {
                 finalCover = rawItem._scrapedCover;
             } else if (rawItem.cover_url) {
-                // 🌟 修复拼接符号，防止生成死链
                 const sep = rawItem.cover_url.includes('?') ? '&' : '?';
                 finalCover = `${rawItem.cover_url}${sep}access_token=${globalToken}`;
             }
@@ -361,14 +377,18 @@
             const applyCoverUI = (coverSrc) => {
                 if (fpCover) fpCover.src = coverSrc;
                 if (miniCoverImg) miniCoverImg.src = coverSrc;
+                // 🌟 同步氛围背景图
+                const ambientImg = $('fp-ambient-img');
+                if (ambientImg) ambientImg.src = coverSrc;
+
                 if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, coverSrc, window.favoriteList, window.APP_LOGO);
             };
 
             applyCoverUI(finalCover);
 
-            // 刮削器兜底
-            if (finalCover === window.defaultCover && window.Scraper) {
-                window.Scraper.getCover(rawItem).then(hdCover => {
+            // 🌟 修复：抛弃老旧的 Scraper，接入全新的 fetchScrape 引擎
+            if (finalCover === window.defaultCover) {
+                window.fetchScrape(rawItem, 'cover', window.currentSongName).then(hdCover => {
                     if (window.currentSongName === window.getSongNameObj(rawItem) && hdCover) {
                         rawItem._scrapedCover = hdCover;
                         if (listImg) listImg.src = hdCover;
@@ -432,8 +452,25 @@
         const timeDurationEl = $('time-duration');
         const progressBar = $('progress-bar');
 
-        if (fpCover) fpCover.onerror = function() { if (this.src !== window.defaultCover) this.src = window.defaultCover; };
-        if (miniCoverImg) miniCoverImg.onerror = function() { if (this.src !== window.defaultCover) this.src = window.defaultCover; };
+        // 🌟 本地模式 404 智能抢救机制
+        const handleCoverError = function() {
+            if (this.src !== window.defaultCover) {
+                this.src = window.defaultCover;
+                if (!rawItem._scrapedCover) {
+                    window.fetchScrape(rawItem, 'cover', targetSongName).then(hdCover => {
+                        if (targetSongName === window.currentSongName && hdCover) {
+                            rawItem._scrapedCover = hdCover;
+                            finalCover = hdCover;
+                            applyUI();
+                            if (listImg) listImg.src = hdCover;
+                        }
+                    }).catch(()=>{});
+                }
+            }
+        };
+
+        if (fpCover) fpCover.onerror = handleCoverError;
+        if (miniCoverImg) miniCoverImg.onerror = handleCoverError;
 
         const rawItem = window.songList[index];
         const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
@@ -459,6 +496,10 @@
             if (finalCover && finalCover !== currentRenderedCover) {
                 if (fpCover) fpCover.src = finalCover;
                 if (miniCoverImg) miniCoverImg.src = finalCover;
+                // 🌟 同步氛围背景图
+                const ambientImg = $('fp-ambient-img');
+                if (ambientImg) ambientImg.src = finalCover;
+
                 if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, finalCover, window.favoriteList, window.APP_LOGO);
                 currentRenderedCover = finalCover;
             }
@@ -473,17 +514,16 @@
 
         applyUI();
 
+        // 🌟 修复：抛弃老旧的 Scraper，接入全新的 fetchScrape 引擎
         if (finalCover === window.defaultCover) {
-            if(window.Scraper) {
-                window.Scraper.getCover(rawItem).then(hdCover => {
-                    if (targetSongName === window.currentSongName && hdCover) {
-                        finalCover = hdCover;
-                        rawItem._scrapedCover = hdCover;
-                        if (listImg) listImg.src = hdCover;
-                        applyUI();
-                    }
-                }).catch(()=>{});
-            }
+            window.fetchScrape(rawItem, 'cover', targetSongName).then(hdCover => {
+                if (targetSongName === window.currentSongName && hdCover) {
+                    finalCover = hdCover;
+                    rawItem._scrapedCover = hdCover;
+                    if (listImg) listImg.src = hdCover;
+                    applyUI();
+                }
+            }).catch(()=>{});
         }
 
         const plConfig = window.getPlaylistConfig ? window.getPlaylistConfig(window.currentPlaylist) : {};
@@ -570,7 +610,7 @@
 
                     // 🌟 新增：WebDAV 直连模式专属的 8 秒硬超时防卡死
                     if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout);
-                    const isDavDirect = rawItem.plugin_entry_path === 'dav' && localStorage.getItem('iwebplayer.webdav_mode') === 'direct';
+                    const isDavDirect = rawItem.plugin_entry_path === 'dav' && window.ConfigManager.get('webdav', 'settings.mode') === 'direct';
 
                     if (isDavDirect) {
                         const targetIdx = index;
@@ -599,14 +639,13 @@
                 let targetSpeed = plConfig.speedLocal || 1.0;
 
                 if (targetResumeTime === 0) {
-                    const plTracks = JSON.parse(localStorage.getItem('iwebplayer.playlist_tracks') || '{}');
-                    if (plTracks[window.currentPlaylist] && plTracks[window.currentPlaylist].name === window.currentSongName) {
-                        targetResumeTime = plTracks[window.currentPlaylist].time;
+                    const savedSong = window.ConfigManager.get('config', `playback.positions.${window.currentPlaylist}.currentSong`);
+                    if (savedSong === window.currentSongName) {
+                        targetResumeTime = window.ConfigManager.get('config', `playback.positions.${window.currentPlaylist}.currentTime`) || 0;
                     }
                 }
                 if (targetResumeTime === 0 && plConfig.resumeLocal !== 'off') {
-                    const history = JSON.parse(localStorage.getItem('iwebplayer.resume_history') || '{}');
-                    const list = history[window.currentPlaylist] || [];
+                    const list = window.ConfigManager.get('config', `playback.positions.${window.currentPlaylist}.history`) || [];
                     const found = list.find(item => item.name === window.currentSongName);
                     if (found) targetResumeTime = found.time;
                 }

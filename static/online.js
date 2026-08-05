@@ -7,7 +7,8 @@
     // ==========================================
     window.PluginManager = {
         engines: {},
-        currentEngineName: localStorage.getItem('iwebplayer.search_engine') || 'LXMusic',
+        // 🌟 极速读取内存沙盒
+        currentEngineName: (window.ConfigManager ? window.ConfigManager.get('config', 'playback.last_active.engine') : null) || 'LXMusic',
 
         register: function(name, engineConfig) {
             this.engines[name] = engineConfig;
@@ -21,7 +22,8 @@
         switchEngine: function(name) {
             if (!this.engines[name]) return false;
             this.currentEngineName = name;
-            localStorage.setItem('iwebplayer.search_engine', name);
+            // 🌟 存入内存沙盒
+            if (window.ConfigManager) window.ConfigManager.set('config', 'playback.last_active.engine', name);
             window.isWebDAVMode = (name === 'WebDAV');
             return true;
         }
@@ -894,15 +896,27 @@
     window.loadWebDavRootPath = async function(serverName) {
         if (!serverName) return;
         const wdDirPath = document.getElementById('wd-dir-path');
-        try {
-            const res = await fetch(`/api/v1/jsplugin/iwebplayer/store?key=webdav_root_${encodeURIComponent(serverName)}`);
-            const data = await res.json();
-            const savedPath = data.data || '/';
-            if (wdDirPath) wdDirPath.innerText = savedPath;
-            window.currentBrowserPath = savedPath;
-        } catch(e) {
-            if (wdDirPath) wdDirPath.innerText = '/';
-            window.currentBrowserPath = '/';
+        // 🌟 极速读取内存，不再等待 HTTP 网络延迟！
+        const savedPath = window.ConfigManager.get('webdav', `roots.${serverName}`) || '/';
+        if (wdDirPath) wdDirPath.innerText = savedPath;
+        window.currentBrowserPath = savedPath;
+    };
+
+    window.updateWebDavScanInfoUI = function(folders, songs, time) {
+        const infoRow = document.getElementById('wd-scan-info-row');
+        const foldersEl = document.getElementById('wd-info-folders');
+        const songsEl = document.getElementById('wd-info-songs');
+        const timeEl = document.getElementById('wd-info-time');
+
+        if (infoRow && foldersEl && songsEl && timeEl) {
+            if (folders > 0 || songs > 0 || (time && time !== '-')) {
+                foldersEl.textContent = folders || 0;
+                songsEl.textContent = songs || 0;
+                timeEl.textContent = time || '-';
+                infoRow.style.display = 'flex';
+            } else {
+                infoRow.style.display = 'none';
+            }
         }
     };
 
@@ -914,22 +928,18 @@
         const serverName = window.webdavData.currentServer;
         if(!serverName) return;
 
+        window.webdavData.metaCache = window.webdavData.metaCache || {};
+
         if (!forceRefresh && window.webdavData.cachePool[serverName]) {
             window.webdavData.library = window.webdavData.cachePool[serverName];
+            const meta = window.webdavData.metaCache[serverName] || {};
+            window.updateWebDavScanInfoUI(meta.folders, meta.songs, meta.time);
+
             window.preloadWebDavCredentials(serverName, window.webdavData.library);
             window.webdavPlaylistMeta = Object.keys(window.webdavData.library).map(folderName => ({
                 name: folderName, song_count: window.webdavData.library[folderName].length, cover_url: ''
             }));
-            // 🌟 触发凭证预热：在内存里偷偷摸取第一首歌的密码
-            if (window.preloadWebDavCredentials) {
-                let firstSong = null;
-                for (const folder in window.webdavData.library) {
-                    if (window.webdavData.library[folder] && window.webdavData.library[folder].length > 0) {
-                        firstSong = window.webdavData.library[folder][0]; break;
-                    }
-                }
-                window.preloadWebDavCredentials(serverName, firstSong);
-            }
+
             if (window.currentPlaylist === '在线资源') {
                 const oState = window.getOnlineState();
                 if (oState.view === 'detail' && oState.detail_name && window.webdavData.library[oState.detail_name]) {
@@ -938,7 +948,6 @@
                     window.currentOnlineView = 'playlist'; list.style.display = 'none'; grid.style.display = 'grid'; window.renderPlaylist();
                 } else {
                     window.currentOnlineView = 'song';
-                    // 🌟 修复：网盘缓存载入后，如果有关键字，立刻执行静默恢复搜索！
                     if (oState.keyword) window.performSearch('song', false, true);
                     else window.renderPlaylist();
                 }
@@ -953,47 +962,62 @@
 
         try {
             const res = await fetch(`/api/v1/jsplugin/iwebplayer/dav/library?davId=${encodeURIComponent(serverName)}`);
-            const data = await res.json();
+            const rawData = await res.json();
 
-            if (!data || Object.keys(data).length === 0) {
+            let libraryData = {};
+            let metaFolders = 0;
+            let metaSongs = 0;
+            let metaTime = '-';
+
+            // 🌟 智能解包：支持带 metadata 的新格式与老格式
+            if (rawData && rawData.library) {
+                libraryData = rawData.library;
+                metaFolders = rawData.folders || Object.keys(libraryData).length;
+                metaSongs = rawData.songs || 0;
+                metaTime = rawData.time || '-';
+            } else if (rawData) {
+                libraryData = rawData;
+                metaFolders = Object.keys(libraryData).length;
+                for (const k in libraryData) {
+                    if (Array.isArray(libraryData[k])) metaSongs += libraryData[k].length;
+                }
+            }
+
+            if (!libraryData || Object.keys(libraryData).length === 0) {
+                window.updateWebDavScanInfoUI(0, 0, '-');
                 if (window.currentPlaylist === '在线资源') {
                     grid.innerHTML = '<div style="text-align: center; padding: 60px; color: var(--text-sub); grid-column: 1 / -1;">曲库为空，请点击右上角【刷新】进行扫库</div>';
                 }
                 return;
             }
 
-            window.webdavData.cachePool[serverName] = data;
-            window.webdavData.library = data;
-            window.preloadWebDavCredentials(serverName, data);
-            window.webdavPlaylistMeta = Object.keys(data).map(folderName => ({
-                name: folderName, song_count: data[folderName].length, cover_url: ''
+            window.webdavData.cachePool[serverName] = libraryData;
+            window.webdavData.metaCache[serverName] = { folders: metaFolders, songs: metaSongs, time: metaTime };
+            window.webdavData.library = libraryData;
+
+            // 🌟 实时刷新 UI 元数据信息栏
+            window.updateWebDavScanInfoUI(metaFolders, metaSongs, metaTime);
+
+            window.preloadWebDavCredentials(serverName, libraryData);
+            window.webdavPlaylistMeta = Object.keys(libraryData).map(folderName => ({
+                name: folderName, song_count: libraryData[folderName].length, cover_url: ''
             }));
-            // 🌟 触发凭证预热
-            if (window.preloadWebDavCredentials) {
-                let firstSong = null;
-                for (const folder in data) {
-                    if (data[folder] && data[folder].length > 0) {
-                        firstSong = data[folder][0]; break;
-                    }
-                }
-                window.preloadWebDavCredentials(serverName, firstSong);
-            }
 
             if (window.currentPlaylist === '在线资源') {
                 const oState = window.getOnlineState();
-                if (oState.view === 'detail' && oState.detail_name && data[oState.detail_name]) {
-                    window.renderWebDavFolder(oState.detail_name, data[oState.detail_name], false, true);
+                if (oState.view === 'detail' && oState.detail_name && libraryData[oState.detail_name]) {
+                    window.renderWebDavFolder(oState.detail_name, libraryData[oState.detail_name], false, true);
                 } else if (oState.view === 'playlist') {
                     window.currentOnlineView = 'playlist'; list.style.display = 'none'; grid.style.display = 'grid'; window.renderPlaylist();
                 } else {
                     window.currentOnlineView = 'song';
-                    // 🌟 修复：网盘网络数据载入后，如果有关键字，立刻执行静默恢复搜索！
                     if (oState.keyword) window.performSearch('song', false, true);
                     else window.renderPlaylist();
                 }
             }
             if (window.updateWebDavDirectLinkUI) window.updateWebDavDirectLinkUI();
         } catch(e) {
+            window.updateWebDavScanInfoUI(0, 0, '-');
             if (window.currentPlaylist === '在线资源') {
                 grid.innerHTML = '<div style="text-align: center; padding: 60px; color: var(--text-sub); grid-column: 1 / -1;">加载曲库失败</div>';
             }
@@ -1055,7 +1079,8 @@
         const wrap = document.getElementById('wd-direct-test-wrap');
         const authBtn = document.getElementById('wd-btn-direct-auth');
         const hiddenUrl = document.getElementById('wd-direct-url-hidden');
-        const currentMode = localStorage.getItem('iwebplayer.webdav_mode') || 'proxy';
+        // 🌟 从新版配置管家读取
+        const currentMode = window.ConfigManager.get('webdav', 'settings.mode') || 'proxy';
 
         if (wrap && authBtn && hiddenUrl) {
             if (currentMode === 'direct') {
@@ -1120,7 +1145,7 @@
         try {
             const defRes = await fetch('/api/v1/jsplugin/iwebplayer/store?key=webdav_default_server');
             const defJson = await defRes.json();
-            webdavDefaultServerName = defJson.data || "";
+            webdavDefaultServerName = window.ConfigManager.get('webdav', 'settings.default_server') || "";
 
             const res = await fetch('/api/v1/jsplugin/dav/lists');
 
@@ -1239,7 +1264,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('setting-plugin')?.addEventListener('click', () => { if (typeof window.loadWebDavServers === 'function') window.loadWebDavServers(); });
 
-        const savedEngine = localStorage.getItem('iwebplayer.search_engine');
+        const savedEngine = window.ConfigManager ? window.ConfigManager.get('config', 'playback.last_active.engine') : 'LXMusic';
         if (savedEngine === 'WebDAV') {
             window.isWebDAVMode = true;
             const engineOpts = document.getElementById('engine-opts');
@@ -1273,7 +1298,13 @@
         document.getElementById('wd-btn-default')?.addEventListener('click', async (e) => {
             e.stopPropagation(); const curName = wdServerVal.dataset.value; if (!curName || curName === webdavDefaultServerName) return;
             window.showToast("⏳ 正在设定默认节点...");
-            await fetch('/api/v1/jsplugin/iwebplayer/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'webdav_default_server', value: curName }) });
+
+            window.ConfigManager.set('webdav', 'settings.default_server', curName);
+            await fetch('/api/v1/jsplugin/iwebplayer/store', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: 'iwebplayer.webdav', value: JSON.stringify(window.ConfigManager.get('webdav')) })
+            });
+
             window.showToast("✅ 已成功设为默认"); window.loadWebDavServers(true);
         });
 
@@ -1296,7 +1327,11 @@
             const curName = wdServerVal.dataset.value; if (!curName) return;
             window.showToast("⏳ 彻底移出节点...");
             if (curName === webdavDefaultServerName) {
-                await fetch('/api/v1/jsplugin/iwebplayer/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'webdav_default_server', value: '' }) });
+                window.ConfigManager.set('webdav', 'settings.default_server', '');
+                await fetch('/api/v1/jsplugin/iwebplayer/store', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: 'iwebplayer.webdav', value: JSON.stringify(window.ConfigManager.get('webdav')) })
+                });
             }
             await fetch(`/api/v1/jsplugin/dav/lists/${encodeURIComponent(curName)}`, { method: 'DELETE' });
             window.showToast("✅ 已移出");
@@ -1332,7 +1367,7 @@
             window.showToast("⏳ 同步至服务器...");
             try {
                 await fetch('/api/v1/jsplugin/dav/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                window.showToast("🎉 保存成功"); wdServerEdit.style.display = 'none'; wdServerView.style.display = 'flex'; window.loadWebDavServers(true); // 🌟 改为 true 强制刷新
+                window.showToast("🎉 保存成功"); wdServerEdit.style.display = 'none'; wdServerView.style.display = 'flex'; window.loadWebDavServers(true);
             } catch(e) { window.showToast("❌ 节点数据保存失败"); }
         });
 
@@ -1395,7 +1430,12 @@
             const curSrv = wdServerVal.dataset.value;
             if (curSrv) {
                 window.showToast("⏳ 正在存盘账本...");
-                await fetch('/api/v1/jsplugin/iwebplayer/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: `webdav_root_${curSrv}`, value: currentBrowserPath }) });
+                // 🌟 修复：接入沙盒，合并上传！
+                window.ConfigManager.set('webdav', `roots.${curSrv}`, currentBrowserPath);
+                await fetch('/api/v1/jsplugin/iwebplayer/store', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: 'iwebplayer.webdav', value: JSON.stringify(window.ConfigManager.get('webdav')) })
+                });
             }
             wdDirPath.innerText = currentBrowserPath; wdDirBrowser.style.display = 'none'; wdDirView.style.display = 'flex'; wdServerView.style.opacity = '1'; wdServerView.style.pointerEvents = 'auto';
         });
@@ -1406,19 +1446,24 @@
 
         const webdavRadios = document.querySelectorAll('input[name="webdav-mode-radio"]');
         if (webdavRadios.length > 0) {
-            const currentMode = localStorage.getItem('iwebplayer.webdav_mode') || 'proxy';
+            // 🌟 修复：接入内存沙盒，合并上传！
+            const currentMode = window.ConfigManager.get('webdav', 'settings.mode') || 'proxy';
             webdavRadios.forEach(radio => {
                 if (radio.value === currentMode) radio.checked = true;
                 radio.addEventListener('change', (e) => {
                     if (e.target.checked) {
-                        localStorage.setItem('iwebplayer.webdav_mode', e.target.value);
+                        window.ConfigManager.set('webdav', 'settings.mode', e.target.value);
                         if (window.showToast) window.showToast(`✅ 模式已切换为: ${e.target.value === 'proxy' ? '服务端代理' : '直连'}`);
-                        // 🌟 用户切换单选框时，实时展现或隐藏链接框
                         if (window.updateWebDavDirectLinkUI) window.updateWebDavDirectLinkUI();
+
+                        // 顺手推送到云端
+                        fetch('/api/v1/jsplugin/iwebplayer/store', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: 'iwebplayer.webdav', value: JSON.stringify(window.ConfigManager.get('webdav')) })
+                        }).catch(()=>{});
                     }
                 });
             });
-            // 🌟 首次打开弹窗，初始化渲染一次
             if (window.updateWebDavDirectLinkUI) window.updateWebDavDirectLinkUI();
         }
 
@@ -1431,7 +1476,7 @@
                 const targetPane = document.getElementById(tab.dataset.target); if (targetPane) targetPane.style.display = 'block';
             });
         });
-        // 🌟 新增：直连一键授权的“弹开与自动关闭”逻辑
+
         document.getElementById('wd-btn-direct-auth')?.addEventListener('click', (e) => {
             e.preventDefault();
             const hiddenUrlEl = document.getElementById('wd-direct-url-hidden');
@@ -1439,10 +1484,8 @@
             if (!url) return;
 
             window.showToast("⏳ 正在注入凭证，请勿操作...");
-            // 打开一个隐形/极小的新窗口（iPhone上 Safari 可能会开新标签页）
             const authWin = window.open(url, 'WebDAVAuth', 'width=100,height=100,left=-2000,top=-2000');
 
-            // 倒计时 2.5 秒后强行刺杀该窗口
             setTimeout(() => {
                 if (authWin && !authWin.closed) {
                     try { authWin.close(); } catch(err) { console.log(err); }

@@ -418,7 +418,7 @@
 
         let stateObj = window.localState || { playlist: "", songName: "" };
         stateObj.playlist = window.currentPlaylist;
-        localStorage.setItem('iwebplayer.local_state', JSON.stringify(stateObj));
+        window.ConfigManager.set('config', 'playback.last_active', stateObj);
         if (window.localState) window.isLocalState = stateObj;
 
         const playlistVal = document.getElementById('playlist-val');
@@ -516,11 +516,11 @@
 
                 const systemBasics = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
                 if (!systemBasics.includes(key)) {
-                    let recents = JSON.parse(localStorage.getItem('iwebplayer.recent_playlists') || '[]');
+                    let recents = window.ConfigManager.get('config', 'playback.recent_playlists') || [];
                     recents = recents.filter(k => k !== key);
                     recents.unshift(key);
                     if (recents.length > 3) recents = recents.slice(0, 3);
-                    localStorage.setItem('iwebplayer.recent_playlists', JSON.stringify(recents));
+                    window.ConfigManager.set('config', 'playback.recent_playlists', recents);
 
                     setTimeout(() => { if (typeof window.initPlaylistDropdown === 'function') window.initPlaylistDropdown(); }, 300);
                 }
@@ -629,7 +629,7 @@
         stickyGroup.style.cssText = 'position: sticky; top: 0; z-index: 10; padding: 0; margin: 0; border-bottom: 1px solid var(--border); list-style: none; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 8px 8px 0 0; background: var(--card-bg); overflow: hidden;';
 
         // 1. 率先插入最近播放的 3 个歌单 (置顶第一行)
-        let recents = JSON.parse(localStorage.getItem('iwebplayer.recent_playlists') || '[]');
+        let recents = window.ConfigManager.get('config', 'playback.recent_playlists') || [];
         recents = recents.filter(k => allCleanKeys.includes(k)); // 过滤掉被删掉的歌单
 
         if (recents.length > 0) {
@@ -712,6 +712,62 @@
             if(firstOpt) firstOpt.classList.add('active');
             window.songList = window.getMergedSongList(defaultKey);
             playlistContainer.style.display = 'block';
+        }
+    };
+
+    // 🌟 全局挂载：列表图片 404 时的抢救器
+    window.handleListCoverError = function(imgEl, index) {
+        if (imgEl.src !== window.defaultCover) {
+            imgEl.src = window.defaultCover;
+            const rawItem = window.songList[index];
+            if (rawItem && !rawItem._scrapedCover) {
+                window.fetchScrape(rawItem, 'cover').then(hdCover => {
+                    if (hdCover) {
+                        rawItem._scrapedCover = hdCover;
+                        imgEl.src = hdCover;
+                        // 如果刚好是正在播放的歌，顺便把播放器里变空白的封面也更新了
+                        if (window.currentIndex === index && window.updateNpTitleUI) {
+                             const fpCover = document.getElementById('fp-cover');
+                             if (fpCover && fpCover.src.includes('svg+xml')) fpCover.src = hdCover;
+                             const miniCoverImg = document.getElementById('mini-cover-img');
+                             if (miniCoverImg && miniCoverImg.src.includes('svg+xml')) miniCoverImg.src = hdCover;
+                        }
+                    }
+                }).catch(()=>{});
+            }
+        }
+    };
+
+    // 🌟 全局挂载：海报墙歌单封面 404 时的抢救器
+    window.handlePlaylistCoverError = function(imgEl, plName) {
+        if (imgEl.src !== window.defaultCover) {
+            // 先瞬间用默认图兜底，防止浏览器无限闪烁死循环
+            imgEl.src = window.defaultCover;
+
+            const playlistSongs = window.getMergedSongList(plName);
+            if (playlistSongs && playlistSongs.length > 0) {
+                // 开启连环刮削抢救（向后查最多 5 首歌）
+                (async () => {
+                    let foundCover = null;
+                    const maxCheck = Math.min(playlistSongs.length, 5);
+                    for (let i = 0; i < maxCheck; i++) {
+                        const checkSong = playlistSongs[i];
+                        if (checkSong._scrapedCover === window.defaultCover) continue;
+
+                        const hdCover = await window.fetchScrape(checkSong, 'cover');
+                        if (hdCover) {
+                            foundCover = hdCover;
+                            if (typeof checkSong === 'object') checkSong._scrapedCover = hdCover;
+                            break; // 💡 抢救到一张高清图，立刻停止！
+                        } else {
+                            if (typeof checkSong === 'object') checkSong._scrapedCover = window.defaultCover;
+                        }
+                    }
+                    if (foundCover && imgEl) {
+                        imgEl.src = foundCover; // 强行贴上救回来的高清封面！
+                    }
+                })();
+            }
         }
     };
 
@@ -877,9 +933,9 @@
                 if (conf.speedLocal && conf.speedLocal !== 1.0) subText += ` · ${window.formatSpeed(conf.speedLocal)}`;
                 if (conf.resumeLocal && conf.resumeLocal !== 'off') subText += ` · 续播`;
 
-                // 🌟 核心布局调整：改为 flex-start 顶部对齐，文字用 flex:1 独立容器包裹，实现图标永远在第一行最前方顶格、字数再多也绝不变小的苹果级精致排版！
+                // 🌟 核心布局调整：改为 flex-start 顶部对齐...
                 card.innerHTML = `
-                  <img class="pl-cover-img" src="${window.defaultCover}" alt="cover">
+                  <img class="pl-cover-img" src="${window.defaultCover}" onerror="if(window.handlePlaylistCoverError) window.handlePlaylistCoverError(this, decodeURIComponent('${encodeURIComponent(pl.name)}'))" alt="cover">
                   <div class="pl-overlay">
                     <div class="pl-name" style="display: flex; align-items: flex-start;">${nameIconHtml}<span style="flex: 1; min-width: 0; word-break: break-all;">${pl.name}</span></div>
                     <div class="pl-time">${subText}</div> </div>
@@ -1007,7 +1063,7 @@
             }
 
             const imgId = `list-cover-${index}`;
-            const coverHtml = `<img id="${imgId}" class="song-cover-img" src="${window.defaultCover}" ${coverUrl ? `data-src="${coverUrl}"` : ''} ${needsScrape ? `data-scrape="true"` : ''} onerror="this.src='${window.defaultCover}'" alt="cover">`;
+            const coverHtml = `<img id="${imgId}" class="song-cover-img" src="${window.defaultCover}" ${coverUrl ? `data-src="${coverUrl}"` : ''} ${needsScrape ? `data-scrape="true"` : ''} onerror="if(window.handleListCoverError) window.handleListCoverError(this, ${index})" alt="cover">`;
 
             const li = document.createElement('li');
             li.className = 'song-item';
@@ -1433,6 +1489,26 @@
                     // 4. 🔄 覆写内存，激活界面
                     const tempOnline = window.allPlaylists["在线资源"] || [];
                     const tempSearch = window.allPlaylists["曲库搜索"] || [];
+
+                    // 🌟 极简状态继承：把旧数据里刚才已经抓到的封面，原封不动贴到新数据上！
+                    if (window.allPlaylists) {
+                        for (const [plName, oldSongs] of Object.entries(window.allPlaylists)) {
+                            const newSongs = syncReconstructed[plName];
+                            if (oldSongs && newSongs) {
+                                // 建立一个极简字典，只收集刚才屏幕上已经抓到封面的歌曲
+                                const coverMap = {};
+                                oldSongs.forEach(s => {
+                                    const sName = window.getSongNameObj(s);
+                                    if (sName && s._scrapedCover) coverMap[sName] = s._scrapedCover;
+                                });
+                                // 给新拉回来的歌曲贴上旧封面
+                                newSongs.forEach(s => {
+                                    const sName = window.getSongNameObj(s);
+                                    if (sName && coverMap[sName]) s._scrapedCover = coverMap[sName];
+                                });
+                            }
+                        }
+                    }
 
                     window.allPlaylists = syncReconstructed;
                     // 🌟 顺手把这里可能清空首页数据的垃圾代码删除了

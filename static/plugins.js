@@ -105,10 +105,17 @@
         window.renderMainPlatformDropdown();
 
         try {
-            await fetch('./store', {
+            // 🌟 1. 写入本地内存沙盒
+            window.ConfigManager.set('lxmusic', 'settings.platform_sort', window.currentPlatformSort);
+
+            // 🌟 2. 将整个沙盒打包上传给后端保存（小爱音箱也能同步收到！）
+            await fetch('/api/v1/jsplugin/iwebplayer/store', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key: 'lxmusic_platform_sort', value: JSON.stringify(window.currentPlatformSort) })
+                body: JSON.stringify({
+                    key: 'iwebplayer.lxmusic',
+                    value: JSON.stringify(window.ConfigManager.get('lxmusic'))
+                })
             });
         } catch (e) {
             console.error("保存排序失败", e);
