@@ -26,6 +26,13 @@ function isAudioFile(filename: string): boolean {
     return AUDIO_EXTS.some(ext => lower.endsWith(ext));
 }
 
+// 辅助时间格式化函数
+function formatScanTime(): string {
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
 // 🌐 异步递归扫描核心
 async function runScanTask(version: number, hostUrl: string, token: string, davId: string, rootPath: string) {
     const queue: string[] = [rootPath];
@@ -34,7 +41,6 @@ async function runScanTask(version: number, hostUrl: string, token: string, davI
 
     try {
         while (queue.length > 0) {
-            // 🛡️ 版本锁拦截：触发新扫描时，旧扫描自动退出
             if (currentScanVersion !== version) return;
 
             const currentPath = queue.shift()!;
@@ -56,20 +62,18 @@ async function runScanTask(version: number, hostUrl: string, token: string, davI
                         const nextPath = currentPath === '/' ? '/' + item.name : `${currentPath}/${item.name}`;
                         queue.push(nextPath);
                     } else if (item.type === 'file' && isAudioFile(item.name)) {
-
-                        // 🚀 核心：100% 匹配官方标准 Remote Payload 格式，去扩展名保留原汁原味歌名
                         audioItems.push({
-                            id: item.id || `dav_temp_${Date.now()}_${Math.random()}`, // 临时前端展示 ID
-                            title: item.name.replace(/\.[^/.]+$/, ""),                 // 只切后缀，不洗歌名
+                            id: item.id || `dav_temp_${Date.now()}_${Math.random()}`,
+                            title: item.name.replace(/\.[^/.]+$/, ""),
                             artist: "未知歌手",
                             album: "",
                             duration: item.duration || 0,
                             cover_url: "",
-                            plugin_entry_path: "dav",                                   // 声明属于 dav 插件
-                            source_data: JSON.stringify({ configName: davId, path: item.id }), // 你的抓包核心数据
-                            dedup_key: `dav_${davId}_${item.id}`,                       // 官方唯一防重排键
-                            streamUrl: item.streamUrl,                                  // 附带直链，供前端 0 延迟秒播
-                            _isOnlineObj: true                                          // 标记为在线资源
+                            plugin_entry_path: "dav",
+                            source_data: JSON.stringify({ configName: davId, path: item.id }),
+                            dedup_key: `dav_${davId}_${item.id}`,
+                            streamUrl: item.streamUrl,
+                            _isOnlineObj: true
                         });
                     }
                 }
@@ -80,9 +84,18 @@ async function runScanTask(version: number, hostUrl: string, token: string, davI
                     scannedFoldersCount++;
                 }
 
-                // ⏱️ 3秒心跳批处理写入：减轻 QuickJS 存盘磁盘 I/O 压力
+                // ⏱️ 3秒心跳批处理写入：加上 folders, songs, time 元数据
                 if (Date.now() - lastWriteTime > 3000) {
-                    await songloft.storage.set(`webdav_lib_${davId}`, JSON.stringify(resultLibrary));
+                    let totalSongs = 0;
+                    for (const list of Object.values(resultLibrary)) totalSongs += list.length;
+
+                    const libData = {
+                        folders: Object.keys(resultLibrary).length,
+                        songs: totalSongs,
+                        time: formatScanTime(),
+                        library: resultLibrary
+                    };
+                    await songloft.storage.set(`webdav_lib_${davId}`, JSON.stringify(libData));
                     lastWriteTime = Date.now();
                 }
 
@@ -92,8 +105,17 @@ async function runScanTask(version: number, hostUrl: string, token: string, davI
         }
 
         if (currentScanVersion === version) {
-            await songloft.storage.set(`webdav_lib_${davId}`, JSON.stringify(resultLibrary));
-            broadcastWebDavLibrary(davId, resultLibrary);
+            let totalSongs = 0;
+            for (const list of Object.values(resultLibrary)) totalSongs += list.length;
+
+            const libData = {
+                folders: Object.keys(resultLibrary).length,
+                songs: totalSongs,
+                time: formatScanTime(),
+                library: resultLibrary
+            };
+            await songloft.storage.set(`webdav_lib_${davId}`, JSON.stringify(libData));
+            broadcastWebDavLibrary(davId, libData);
             scanStatus = 'completed';
         }
     } catch (fatalErr) {

@@ -8,13 +8,22 @@ const TWIN_PLUGIN_ID = 'miot-helper';
 
 // 👇 新增：广播偏好配置的函数
 export async function broadcastWebDavConfig(key: string, value: any) {
+    // 🌟 海关安检与别名映射
+    let exportKey = key;
+
+    if (key === 'iwebplayer.webdav') {
+        exportKey = 'webdav_config'; // 转换对外别名
+    } else if (!key.startsWith('webdav_lib_')) {
+        return; // 拦截 iwebplayer.config, iwebplayer.lxmusic 等私密数据
+    }
+
     try {
         await songloft.comm.send(TWIN_PLUGIN_ID, "sync_webdav_data", {
             type: 'config',
-            key: key,
+            key: exportKey,
             value: value
         });
-        songloft.log.info(`📡 已向 [${TWIN_PLUGIN_ID}] 广播配置更新: ${key}`);
+        songloft.log.info(`📡 已向 [${TWIN_PLUGIN_ID}] 广播配置更新: ${exportKey}`);
     } catch (e) {
         // 静默失败，说明对方没装或没激活
     }
@@ -281,8 +290,8 @@ router.post('/store', async (req) => {
             throw new Error("存储引擎不支持写入");
         }
 
-        // 👇 新增：如果是 WebDAV 相关的配置变化，触发广播
-        if (key.startsWith('webdav_')) {
+        // 🌟 核心升级：无论是老版的 webdav_ 还是新版的 iwp_webdav，统统广播给小爱音箱插件！
+        if (key.startsWith('webdav_') || key === 'iwebplayer.webdav' || key.startsWith('iwebplayer.')) {
             broadcastWebDavConfig(key, value);
         }
 
