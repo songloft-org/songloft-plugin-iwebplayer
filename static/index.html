@@ -224,10 +224,19 @@
     z-index: 170; /* 🌟 提权到 170，确保底部的音量和调速气泡能压住 160 的沉浸页 */
     transform: translateZ(0); -webkit-transform: translateZ(0);
   }
-  .progress-container { position: absolute; top: -15px; left: 16px; width: calc(100% - 32px); height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 101; }
+  /* 🌟 1. 扩大容器感应高度：从 30px 提升到 44px 黄金触控尺寸，并锁定 touch-action 防止拖拽时误触页面滚动 */
+  .progress-container { position: absolute; top: -22px; left: 16px; width: calc(100% - 32px); height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 101; touch-action: none; }
   .progress-bg { width: 100%; height: 4px; background: var(--border); position: relative; border-radius: 4px; }
   .progress-bar { height: 100%; background: var(--primary); width: 0%; position: absolute; top: 0; left: 0; border-radius: 4px; }
   .progress-thumb { position: absolute; right: -7px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; border-radius: 50%; background: #ffffff; border: 3px solid var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+
+  /* 🌟 2. 核心魔法：为小圆点撑开一个 44x44 的隐形抓取罩，就算手指点偏一点也能瞬间吸附抓住 */
+  .progress-thumb::after {
+    content: '';
+    position: absolute;
+    top: -15px; bottom: -15px; left: -15px; right: -15px;
+    background: transparent;
+  }
 
   /* 🌟 新增：小爱音箱模式下进度条置灰并彻底禁用拖拽 */
   body.miot-mode .progress-container { pointer-events: none; }
@@ -805,15 +814,219 @@
     }
   }
 
+  /* ==========================================
+     🌟 沉浸式播放页 UI 引擎 (100% 完整精简合并版)
+     针对手机端 (:not(.split-view-active)) 沉浸模式重构
+     ========================================== */
+
+  /* ------------------------------------------
+     1. 封面 1:1 满宽撑满 (原专属补丁 1)
+     ------------------------------------------ */
+  body.ambient-active.player-open:not(.split-view-active) .fp-cover-wrapper {
+    position: relative !important;
+    padding: 18px 0 0 0 !important; /* 保持顶部 18px 距离，干掉左右和下方留白 */
+  }
+
+  body.ambient-active.player-open:not(.split-view-active) .fp-cover {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important; /* 强制 1:1 等比 */
+    max-width: none !important;     /* 解除原有的 85vw 宽度限制 */
+    border-radius: 0 !important;    /* 取消圆角 */
+    border: none !important;
+    box-shadow: none !important;
+    animation: none !important;     /* 停止呼吸动画 */
+  }
+
+  /* ------------------------------------------
+     2. 动态双色背景 & iPhone 状态栏过渡 (原专属补丁 2)
+     ------------------------------------------ */
+  /* 扒掉播放器主面板与控制条底色/毛玻璃 */
+  body.ambient-active.player-open:not(.split-view-active) .full-player,
+  body.ambient-active.player-open:not(.split-view-active) .player-bar {
+    background: transparent !important;
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    border: none !important; box-shadow: none !important;
+  }
+
+  /* 关掉干扰的遮罩与旧底层 */
+  body.ambient-active.player-open:not(.split-view-active) #fp-ambient-bg::after,
+  body.ambient-active.player-open:not(.split-view-active) #fp-ambient-img,
+  body.ambient-active.player-open:not(.split-view-active) #fp-ambient-bg .fp-ambient-overlay {
+    display: none !important;
+  }
+
+  /* 通用电脑/普通浏览器 50/50 双纯色背景 */
+  body.ambient-active.player-open:not(.split-view-active) #fp-ambient-bg {
+    background: linear-gradient(to bottom,
+      var(--top-color, var(--bg-color)) 0%,
+      var(--top-color, var(--bg-color)) 50%,
+      var(--bottom-color, var(--bg-color)) 50%,
+      var(--bottom-color, var(--bg-color)) 100%
+    ) !important;
+    opacity: 1 !important;
+    transition: background 0.6s ease !important;
+  }
+
+  /* iPhone 专属：状态栏 104px 无缝渐变过渡 */
+  @supports (-webkit-touch-callout: none) {
+    body.ambient-active.player-open:not(.split-view-active) #fp-ambient-bg {
+      background: linear-gradient(to bottom,
+        var(--bg-color) 0%,
+        var(--bg-color) env(safe-area-inset-top),
+        var(--top-color, var(--bg-color)) 104px,
+        var(--top-color, var(--bg-color)) 50%,
+        var(--bottom-color, var(--bg-color)) 50%,
+        var(--bottom-color, var(--bg-color)) 100%
+      ) !important;
+    }
+  }
+
+  /* 封面上下边缘 18px 色彩渗透伪元素 */
+  body.ambient-active.player-open:not(.split-view-active) .fp-cover-wrapper::before {
+    content: ''; position: absolute; top: 18px; left: 0; right: 0; height: 18px;
+    background: linear-gradient(to bottom, var(--top-color) 0%, transparent 100%);
+    z-index: 10; pointer-events: none; transition: background 0.6s ease;
+  }
+
+  body.ambient-active.player-open:not(.split-view-active) .fp-cover-wrapper::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 18px;
+    background: linear-gradient(to top, var(--bottom-color) 0%, transparent 100%);
+    z-index: 10; pointer-events: none; transition: background 0.6s ease;
+  }
+
+  /* ------------------------------------------
+     3. 歌词向上侵入封面 & 阴影护盾 (原专属补丁 4)
+     ------------------------------------------ */
+  body.ambient-active.player-open:not(.split-view-active) .fp-lyrics-wrapper {
+    background: transparent !important;
+    margin-top: -55px !important; /* 向上侵入封面，硬扩展出歌词空间 */
+    z-index: 20 !important;       /* 浮于封面图上方 */
+    mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%) !important;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%) !important;
+  }
+
+  body.ambient-active.player-open:not(.split-view-active) .lyric-line {
+    color: rgba(255, 255, 255, 0.75) !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8), 0 3px 8px rgba(0,0,0,0.5) !important;
+  }
+
+  body.ambient-active.player-open:not(.split-view-active) .lyric-line.active {
+    color: #ffffff !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 3px 10px rgba(0,0,0,0.7), 0 0 16px var(--primary) !important;
+  }
+
+  body.ambient-active.player-open:not(.split-view-active) .no-lyrics {
+    color: rgba(255, 255, 255, 0.75) !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important;
+  }
+
+  /* ------------------------------------------
+     4. 小屏手机 (高度 <= 680px) 深度侵入补丁
+     ------------------------------------------ */
+  @media screen and (max-height: 800px) {
+    body.ambient-active.player-open:not(.split-view-active) .fp-lyrics-wrapper {
+      margin-top: -105px !important; /* 小屏向上侵入更深，稳定挤出至少 5 行歌词 */
+    }
+    body.ambient-active.player-open:not(.split-view-active) .lyric-line {
+      padding: 3px 16px !important;
+      min-height: 28px !important;
+    }
+  }
+
+  /* ------------------------------------------
+     5. 智能底部分区对比度自适应 (原专属补丁 6)
+     ------------------------------------------ */
+  /* 🌙 封面底部偏黑 (ambient-dark-bg) -> 控件/文字变白 */
+  body.ambient-active.player-open:not(.split-view-active).ambient-dark-bg .now-playing-title,
+  body.ambient-active.player-open:not(.split-view-active).ambient-dark-bg .now-playing-title *,
+  body.ambient-active.player-open:not(.split-view-active).ambient-dark-bg .time-current,
+  body.ambient-active.player-open:not(.split-view-active).ambient-dark-bg .time-duration,
+  body.ambient-active.player-open:not(.split-view-active).ambient-dark-bg .up-arrow,
+  body.ambient-active.player-open:not(.split-view-active).ambient-dark-bg .controls .iwp-btn:not(.play-btn),
+  body.ambient-active.player-open:not(.split-view-active).ambient-dark-bg .fp-corner-btn {
+    color: #ffffff !important;
+  }
+  body.ambient-active.player-open:not(.split-view-active).ambient-dark-bg .fp-corner-btn {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+  }
+
+  /* ☀️ 封面底部偏亮 (ambient-light-bg) -> 控件/文字变深 */
+  body.ambient-active.player-open:not(.split-view-active).ambient-light-bg .now-playing-title,
+  body.ambient-active.player-open:not(.split-view-active).ambient-light-bg .now-playing-title *,
+  body.ambient-active.player-open:not(.split-view-active).ambient-light-bg .time-current,
+  body.ambient-active.player-open:not(.split-view-active).ambient-light-bg .time-duration,
+  body.ambient-active.player-open:not(.split-view-active).ambient-light-bg .up-arrow,
+  body.ambient-active.player-open:not(.split-view-active).ambient-light-bg .controls .iwp-btn:not(.play-btn),
+  body.ambient-active.player-open:not(.split-view-active).ambient-light-bg .fp-corner-btn {
+    color: #1f2937 !important;
+  }
+  body.ambient-active.player-open:not(.split-view-active).ambient-light-bg .fp-corner-btn {
+    background-color: rgba(0, 0, 0, 0.08) !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* ------------------------------------------
+     6. 智能头部分区对比度自适应 (仅针对非 iPhone / 电脑端)
+     ------------------------------------------ */
+  @supports not (-webkit-touch-callout: none) {
+    /* 🌙 1. 封面顶部偏黑 (ambient-top-dark-bg) -> 精细化主副层级 + 恢复箭头反白 */
+
+    /* 左侧 3 条横线菜单：柔和白 */
+    body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .settings-btn {
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    /* 主标题 (iWebPlayer)：纯白高亮 */
+    body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .title-main {
+      color: #ffffff !important;
+    }
+
+    /* 副标题 (SongLoft播放器)：恢复优雅灰白，拉开主次视感，不再死白 */
+    body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .title-sub {
+      color: rgba(255, 255, 255, 0.65) !important;
+    }
+
+    /* 右侧“本机”下拉框：文字灰白 + SVG 描边反白为白色箭头 */
+    body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header #device-val {
+      color: rgba(255, 255, 255, 0.9) !important;
+      background-color: rgba(255, 255, 255, 0.15) !important;
+      border-color: rgba(255, 255, 255, 0.22) !important;
+      /* 替换背景 SVG 中的 stroke=%23ffffff，让下拉小箭头清晰可见 */
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    }
+
+    /* ☀️ 2. 封面顶部偏亮 (ambient-top-light-bg) -> 对应深色文字与深色箭头 */
+
+    body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .settings-btn {
+      color: #1f2937 !important;
+    }
+
+    body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .title-main {
+      color: #1f2937 !important;
+    }
+
+    body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .title-sub {
+      color: #6b7280 !important;
+    }
+
+    body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header #device-val {
+      color: #1f2937 !important;
+      background-color: rgba(0, 0, 0, 0.08) !important;
+      border-color: rgba(0, 0, 0, 0.15) !important;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    }
+  }
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
-  <script src="./static/utils.js?v1.1.0b" defer></script>
+  <script src="./static/utils.js?v1.1.1" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v1.1.0e" defer></script>
-  <script src="./static/online.js?v1.1.0e" defer></script>
-  <script src="./static/plugins.js?v1.1.0e" defer></script>
-  <script src="./static/player.js?v1.1.0e" defer></script>
+  <script src="./static/playlist.js?v1.1.1" defer></script>
+  <script src="./static/online.js?v1.1.1" defer></script>
+  <script src="./static/plugins.js?v1.1.1" defer></script>
+  <script src="./static/player.js?v1.1.1" defer></script>
   <script src="./static/miot.js?v1.0.6" defer></script>
 
 </head>
@@ -1005,7 +1218,7 @@
     <div class="handle-bar"></div>
   </div>
   <div class="fp-cover-wrapper">
-    <img id="fp-cover" class="fp-cover" src="" alt="...">
+    <img id="fp-cover" class="fp-cover" src="" alt="..." crossorigin="anonymous">
   </div>
   <div class="fp-lyrics-wrapper" id="fp-lyrics-wrapper">
     <div class="fp-lyrics-container" id="fp-lyrics-container">
@@ -1709,7 +1922,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.1.0';
+    window.APP_VERSION = 'v1.1.1';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2863,7 +3076,7 @@
                     // 每次打开前，读取最新配置并渲染开关状态
                     const currentPrefs = window.getPreferences();
                     if (switchLockLyric) switchLockLyric.checked = currentPrefs.lockLyric;
-                    if (switchAmbientBg) switchAmbientBg.checked = currentPrefs.ambientBg;
+                    if (switchAmbientBg) switchAmbientBg.checked = currentPrefs.ambientBg !== false;
                     if (switchHighPerf) switchHighPerf.checked = currentPrefs.highPerf !== false;
 
                     // 🌟 动态渲染自定义下拉框选项
@@ -3168,7 +3381,7 @@
 
       // 🌟 读取偏好设置，决定是否初始化氛围背景
       const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : JSON.parse(localStorage.getItem('iwebplayer.preferences') || '{}');
-      if (prefs.ambientBg) {
+      if (prefs.ambientBg !== false) {
           document.body.classList.add('ambient-active');
       }
       try {
@@ -3258,6 +3471,73 @@
               }
           }
         }, 500);
+        setTimeout(() => {
+            const isNested = window.self !== window.top;
+            if (!isNested) return; // 如果不是嵌套在 iframe 里，直接跳过
+
+            let openCount = parseInt(localStorage.getItem('iwebplayer.env_open_count') || '0');
+            openCount++;
+            localStorage.setItem('iwebplayer.env_open_count', openCount);
+
+            // 只有在第 3 次，或者之后的次数里才做后续的时间校验
+            if (openCount < 3) return;
+
+            const lastPromptTime = parseInt(localStorage.getItem('iwebplayer.env_last_prompt') || '0');
+            const now = Date.now();
+            const oneMonth = 30 * 24 * 60 * 60 * 1000; // 一个月的毫秒数
+
+            // 如果是第 3 次打开，或者距离上次提醒已经过去了一个月
+            if (openCount === 3 || (lastPromptTime > 0 && now - lastPromptTime >= oneMonth)) {
+                localStorage.setItem('iwebplayer.env_last_prompt', now.toString());
+
+                // 动态创建并插入复用样式的弹窗
+                const backdrop = document.createElement('div');
+                backdrop.className = 'about-modal-backdrop show';
+                backdrop.style.zIndex = '999999';
+
+                if (window.isIOS) {
+                    // 📱 iPhone 用户的 PWA 引导
+                    backdrop.innerHTML = `
+                      <div class="about-modal" style="transform: translateY(0); opacity: 1;">
+                        <div class="about-header"><div class="about-title-wrap"><h2 class="song-modal-title">✨ 获取原生独立体验</h2></div></div>
+                        <div class="about-body">
+                          <p style="font-size: 15px; font-weight: 500; margin-bottom: 10px;">检测到您正在网页嵌套中运行</p>
+                          <p style="font-size: 13px; color: var(--text-sub); line-height: 1.5;">建议启用 <b>PWA 模式</b> 将其添加到桌面。体验将无限接近独立 APP，且后台播放更稳定！</p>
+                        </div>
+                        <div class="about-footer">
+                          <button class="about-secondary" id="env-prompt-cancel">稍后再说</button>
+                          <button class="about-primary" id="env-prompt-confirm" style="font-weight: bold;">查看安装教程</button>
+                        </div>
+                      </div>
+                    `;
+                    document.body.appendChild(backdrop);
+                    backdrop.querySelector('#env-prompt-cancel').onclick = () => backdrop.remove();
+                    backdrop.querySelector('#env-prompt-confirm').onclick = () => {
+                        backdrop.remove();
+                        // 直接拉起现有的 PWA 引导界面
+                        if (typeof window.startIosGuide === 'function') {
+                            window.startIosGuide(null, 'pwa');
+                        }
+                    };
+                } else {
+                    // 💻 非 iPhone 用户的独立窗口引导
+                    backdrop.innerHTML = `
+                      <div class="about-modal" style="transform: translateY(0); opacity: 1;">
+                        <div class="about-header"><div class="about-title-wrap"><h2 class="song-modal-title">💡 体验优化建议</h2></div></div>
+                        <div class="about-body">
+                          <p style="font-size: 15px; font-weight: 500; margin-bottom: 10px;">检测到您正在网页嵌套中运行</p>
+                          <p style="font-size: 13px; color: var(--text-sub); line-height: 1.6;">点击右上角的 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin: 0 3px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> <b>图标</b>，即可在独立窗口中运行，获得更宽阔、更完整的播放器体验！</p>
+                        </div>
+                        <div class="about-footer">
+                          <button class="about-primary" id="env-prompt-cancel" style="font-weight: bold;">我知道了</button>
+                        </div>
+                      </div>
+                    `;
+                    document.body.appendChild(backdrop);
+                    backdrop.querySelector('#env-prompt-cancel').onclick = () => backdrop.remove();
+                }
+            }
+        }, 1500); // 延迟 1.5 秒弹出，避免和首屏加载动画冲突
       } catch (err) {
         console.error("引擎启动失败:", err);
         if (window.location.protocol === 'file:') {
@@ -3361,7 +3641,120 @@
       }
     }
 
+    /* ==========================================
+     * 🌟 专属补丁 3：边缘主色提取 & 智能亮度计算 (自适应对比度)
+     * ========================================== */
+
+    function initThemeColor() {
+        let metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (!metaTheme) {
+            metaTheme = document.createElement('meta');
+            metaTheme.name = 'theme-color';
+            document.head.appendChild(metaTheme);
+        }
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        metaTheme.content = isDark ? '#111827' : '#f3f4f6';
+        return metaTheme;
+    }
+    const metaThemeEl = initThemeColor();
+
+    document.getElementById('fp-cover').addEventListener('load', function() {
+        if (!document.body.classList.contains('ambient-active')) return;
+        try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            canvas.width = this.naturalWidth;
+            canvas.height = this.naturalHeight;
+            ctx.drawImage(this, 0, 0);
+
+            function getDominantColor(startY, height) {
+                const data = ctx.getImageData(0, startY, canvas.width, height).data;
+                const colorCounts = {};
+                let maxCount = 0;
+                let dominantColorObj = null;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    if (data[i+3] < 128) continue;
+
+                    const r = Math.round(data[i] / 10) * 10;
+                    const g = Math.round(data[i+1] / 10) * 10;
+                    const b = Math.round(data[i+2] / 10) * 10;
+                    const key = `${r},${g},${b}`;
+
+                    colorCounts[key] = (colorCounts[key] || 0) + 1;
+                    if (colorCounts[key] > maxCount) {
+                        maxCount = colorCounts[key];
+                        // 🌟 升级：同时保留 RGB 具体数值，用于后续的数学计算
+                        dominantColorObj = { r: data[i], g: data[i+1], b: data[i+2], rgbString: `rgb(${data[i]}, ${data[i+1]}, ${data[i+2]})` };
+                    }
+                }
+                return dominantColorObj;
+            }
+
+            // 避开 5px 白边，提取上下主色
+            const topColor = getDominantColor(5, 5);
+            const bottomColor = getDominantColor(this.naturalHeight - 10, 5);
+
+            if (topColor) {
+                document.body.style.setProperty('--top-color', topColor.rgbString);
+                if (document.body.classList.contains('player-open')) metaThemeEl.content = topColor.rgbString;
+
+                // 🌟 核心新增：计算顶部颜色的相对亮度 (WCAG 标准公式)
+                const topLuma = (topColor.r * 299 + topColor.g * 587 + topColor.b * 114) / 1000;
+
+                document.body.classList.remove('ambient-top-dark-bg', 'ambient-top-light-bg');
+                if (topLuma < 128) {
+                    document.body.classList.add('ambient-top-dark-bg');
+                } else {
+                    document.body.classList.add('ambient-top-light-bg');
+                }
+            }
+
+            if (bottomColor) {
+                document.body.style.setProperty('--bottom-color', bottomColor.rgbString);
+
+                // 🌟 核心算法：计算底部颜色的相对亮度 (WCAG 标准公式)
+                const luma = (bottomColor.r * 299 + bottomColor.g * 587 + bottomColor.b * 114) / 1000;
+
+                // 移除旧状态
+                document.body.classList.remove('ambient-dark-bg', 'ambient-light-bg');
+
+                // 阈值 128：小于说明偏黑，大于说明偏白
+                if (luma < 128) {
+                    document.body.classList.add('ambient-dark-bg');
+                } else {
+                    document.body.classList.add('ambient-light-bg');
+                }
+            }
+        } catch (e) {
+            console.warn("⚠️ 边缘主色提取跳过:", e);
+        }
+    });
+
+    const bodyClassObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.attributeName === 'class') {
+                const isOpen = document.body.classList.contains('player-open');
+                if (!isOpen) {
+                    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    metaThemeEl.content = isDark ? '#111827' : '#f3f4f6';
+                } else if (document.body.classList.contains('ambient-active')) {
+                    const topColor = document.body.style.getPropertyValue('--top-color');
+                    if (topColor) metaThemeEl.content = topColor;
+                }
+            }
+        });
+    });
+    bodyClassObserver.observe(document.body, { attributes: true });
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (!document.body.classList.contains('player-open')) {
+            metaThemeEl.content = e.matches ? '#111827' : '#f3f4f6';
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', init);
   </script>
+
 </body>
 </html>
