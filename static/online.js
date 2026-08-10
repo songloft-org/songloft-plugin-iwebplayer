@@ -868,7 +868,7 @@
 
         let sd = firstSong.source_data;
         if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
-        const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
+        const globalToken = window.getAccessToken ? window.getAccessToken() : "";
 
         // 静默发一次探针，抓取账号密码存进内存
         fetch(`/api/v1/jsplugin/dav/api/music/url?access_token=${globalToken}`, {

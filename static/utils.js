@@ -8,7 +8,7 @@
     // ==========================================
     const defaultConfig = {
         config: {
-            preferences: { lockLyric: true, ambientBg: false, highPerf: true, defaultDevice: 'last' },
+            preferences: { lockLyric: true, ambientBg: true, highPerf: true, defaultDevice: 'last' },
             player_state: { volume: 100, playMode: 1, splitMode: true },
             playlist_configs: {},
             playback: { last_active: {}, positions: {}, recent_playlists: [] }

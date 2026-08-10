@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta id="app-logo" content="./static/logo.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta id="theme-color-meta" name="theme-color" content="#f3f4f6">
   <title>iWebPlayer</title>
 
   <style>
@@ -645,21 +648,6 @@
     background: var(--bg-color); /* 之前加的实体底色 */
   }
 
-  /* 🌟 核心新增：消除 iOS 状态栏割裂感，制造自上而下的平滑羽化过渡 */
-  .fp-ambient-bg::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 180px; /* 稍微加高，让过渡更平缓 */
-    /* 🌟 终极修复：保持顶部安全区 (刘海/灵动岛) 绝对纯色，越过安全区后再开始渐变 */
-    background: linear-gradient(to bottom,
-      #f3f4f6 0%,
-      #f3f4f6 calc(env(safe-area-inset-top) + 10px),
-      rgba(243, 244, 246, 0) 100%
-    );
-    z-index: 5;
-    pointer-events: none;
-  }
 
   @media (min-width: 600px) {
     .fp-ambient-bg { width: 480px !important; left: 50% !important; margin-left: -240px !important; }
@@ -683,11 +671,12 @@
   }
 
 
-  /* --- 2. 📱 手机端全屏模式 (沉浸光影与磨砂壳) --- */
+  /* --- 2. 📱 手机端全屏模式 (沉浸光影与实体化纯色 Header) --- */
   body.ambient-active.player-open .header {
-    background: transparent !important;
+    background: var(--top-color, var(--bg-color)) !important;
     backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
     border: none !important; box-shadow: none !important;
+    transition: none !important; /* 🌟 彻底干掉动画，0秒瞬间同步 iOS 状态栏 */
   }
   body.ambient-active.player-open .full-player,
   body.ambient-active.player-open .player-bar {
@@ -771,14 +760,6 @@
 
   /* --- 4. 🌙 全局暗黑模式护眼适配 --- */
   @media (prefers-color-scheme: dark) {
-    /* 🌟 终极修复暗黑模式漏光：同样为暗黑模式设立纯色死区 */
-    .fp-ambient-bg::after {
-      background: linear-gradient(to bottom,
-        #111827 0%,
-        #111827 calc(env(safe-area-inset-top) + 10px),
-        rgba(17, 24, 39, 0) 100%
-      );
-    }
 
     /* 压暗全屏画报亮度（下方是你原本的代码，保持不变） */
     body.ambient-active.player-open #fp-ambient-bg .fp-ambient-overlay,
@@ -868,31 +849,15 @@
     transition: background 0.6s ease !important;
   }
 
-  /* iPhone 专属：状态栏 104px 无缝渐变过渡 */
-  @supports (-webkit-touch-callout: none) {
-    body.ambient-active.player-open:not(.split-view-active) #fp-ambient-bg {
-      background: linear-gradient(to bottom,
-        var(--bg-color) 0%,
-        var(--bg-color) env(safe-area-inset-top),
-        var(--top-color, var(--bg-color)) 104px,
-        var(--top-color, var(--bg-color)) 50%,
-        var(--bottom-color, var(--bg-color)) 50%,
-        var(--bottom-color, var(--bg-color)) 100%
-      ) !important;
-    }
-  }
-
-  /* 封面上下边缘 18px 色彩渗透伪元素 */
-  body.ambient-active.player-open:not(.split-view-active) .fp-cover-wrapper::before {
-    content: ''; position: absolute; top: 18px; left: 0; right: 0; height: 18px;
-    background: linear-gradient(to bottom, var(--top-color) 0%, transparent 100%);
-    z-index: 10; pointer-events: none; transition: background 0.6s ease;
-  }
-
+  /* 🌟 方案 2：隐藏旧伪元素，给封面图片本身应用 Mask 蒙版羽化 */
+  body.ambient-active.player-open:not(.split-view-active) .fp-cover-wrapper::before,
   body.ambient-active.player-open:not(.split-view-active) .fp-cover-wrapper::after {
-    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 18px;
-    background: linear-gradient(to top, var(--bottom-color) 0%, transparent 100%);
-    z-index: 10; pointer-events: none; transition: background 0.6s ease;
+    display: none !important;
+  }
+
+  body.ambient-active.player-open:not(.split-view-active) #fp-cover {
+    -webkit-mask-image: linear-gradient(to bottom,transparent 0px,black 20px,black calc(100% - 20px),transparent 100%) !important;
+    mask-image: linear-gradient(to bottom,transparent 0px,black 20px,black calc(100% - 20px),transparent 100%) !important;
   }
 
   /* ------------------------------------------
@@ -968,65 +933,79 @@
   }
 
   /* ------------------------------------------
-     6. 智能头部分区对比度自适应 (仅针对非 iPhone / 电脑端)
-     ------------------------------------------ */
-  @supports not (-webkit-touch-callout: none) {
-    /* 🌙 1. 封面顶部偏黑 (ambient-top-dark-bg) -> 精细化主副层级 + 恢复箭头反白 */
+   6. 智能头部分区对比度自适应 (全端统一生效)
+   ------------------------------------------ */
 
-    /* 左侧 3 条横线菜单：柔和白 */
-    body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .settings-btn {
-      color: rgba(255, 255, 255, 0.85) !important;
-    }
+  /* 🌙 1. 封面顶部偏黑 (ambient-top-dark-bg) -> 文字/按钮高亮反白 */
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .settings-btn {
+    color: rgba(255, 255, 255, 0.85) !important;
+  }
 
-    /* 主标题 (iWebPlayer)：纯白高亮 */
-    body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .title-main {
-      color: #ffffff !important;
-    }
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .title-main {
+    color: #ffffff !important;
+  }
 
-    /* 副标题 (SongLoft播放器)：恢复优雅灰白，拉开主次视感，不再死白 */
-    body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .title-sub {
-      color: rgba(255, 255, 255, 0.65) !important;
-    }
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .title-sub {
+    color: rgba(255, 255, 255, 0.65) !important;
+  }
 
-    /* 右侧“本机”下拉框：文字灰白 + SVG 描边反白为白色箭头 */
-    body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header #device-val {
-      color: rgba(255, 255, 255, 0.9) !important;
-      background-color: rgba(255, 255, 255, 0.15) !important;
-      border-color: rgba(255, 255, 255, 0.22) !important;
-      /* 替换背景 SVG 中的 stroke=%23ffffff，让下拉小箭头清晰可见 */
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
-    }
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header #device-val {
+    color: rgba(255, 255, 255, 0.9) !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  }
 
-    /* ☀️ 2. 封面顶部偏亮 (ambient-top-light-bg) -> 对应深色文字与深色箭头 */
+  /* ☀️ 2. 封面顶部偏亮 (ambient-top-light-bg) -> 文字/按钮切换深色 */
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .settings-btn {
+    color: #1f2937 !important;
+  }
 
-    body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .settings-btn {
-      color: #1f2937 !important;
-    }
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .title-main {
+    color: #1f2937 !important;
+  }
 
-    body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .title-main {
-      color: #1f2937 !important;
-    }
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .title-sub {
+    color: #6b7280 !important;
+  }
 
-    body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .title-sub {
-      color: #6b7280 !important;
-    }
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header #device-val {
+    color: #1f2937 !important;
+    background-color: rgba(0, 0, 0, 0.08) !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  }
 
-    body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header #device-val {
-      color: #1f2937 !important;
-      background-color: rgba(0, 0, 0, 0.08) !important;
-      border-color: rgba(0, 0, 0, 0.15) !important;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
-    }
+
+  /* ==========================================
+     📐 精准校对：修复 PWA 模式下的安全区 (刘海) 塌陷重叠
+     ========================================== */
+
+  /* 1. 顶部导航栏：动态注入刘海高度避让 */
+  .header {
+    padding-top: env(safe-area-inset-top) !important;
+    height: calc(56px + env(safe-area-inset-top)) !important;
+  }
+
+  /* 2. 横杆 (工具栏)：必须跟着导航栏一起往下挪，防止被压在底下！ */
+  .playlist-row {
+    top: calc(56px + env(safe-area-inset-top)) !important;
+  }
+
+  /* 3. 沉浸播放页：顶部拉出同样的距离，避免歌词和返回按钮撞在灵动岛上 */
+  body.ambient-active.player-open .full-player {
+    top: 0 !important;
+    padding-top: calc(56px + env(safe-area-inset-top)) !important;
   }
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
-  <script src="./static/utils.js?v1.1.1" defer></script>
+  <script src="./static/utils.js?v1.1.2" defer></script>
   <script src="./static/lyrics.js?v0.7.1" defer></script>
-  <script src="./static/playlist.js?v1.1.1" defer></script>
-  <script src="./static/online.js?v1.1.1" defer></script>
+  <script src="./static/playlist.js?v1.1.2" defer></script>
+  <script src="./static/online.js?v1.1.2" defer></script>
   <script src="./static/plugins.js?v1.1.1" defer></script>
-  <script src="./static/player.js?v1.1.1" defer></script>
+  <script src="./static/player.js?v1.1.2" defer></script>
   <script src="./static/miot.js?v1.0.6" defer></script>
 
 </head>
@@ -1922,7 +1901,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.1.1';
+    window.APP_VERSION = 'v1.1.2';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2973,7 +2952,11 @@
 
                 // 🌟 核心突破：如果检测到被 iframe 嵌套 (Songloft 嵌套模式)，则强制跳出到新标签页！
                 if (window.self !== window.top) {
-                    const url = window.location.origin + window.location.pathname + '?ios_guide=' + (mode || 'shortcut');
+                    const token = window.getAccessToken ? window.getAccessToken() : "";
+                    let url = window.location.origin + window.location.pathname + '?ios_guide=' + (mode || 'shortcut');
+                    if (token) {
+                        url += '&access_token=' + encodeURIComponent(token);
+                    }
                     window.open(url, '_blank');
                     return;
                 }
@@ -3003,8 +2986,11 @@
                         window.startIosGuide(null, guideMode);
                     }
 
-                    // 4. 用 History API 抹除 URL 上的 ?ios_guide 参数，确保保存的桌面网址 100% 纯净！
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // 4. 用 History API 抹除 ios_guide 引导参数，但【保留 access_token】！
+                    // 这样用户在此页面点击 Safari“添加到主屏幕”时，生成的桌面 PWA 网址就会永久自带 Token！
+                    const token = window.getAccessToken ? window.getAccessToken() : '';
+                    const cleanUrl = window.location.pathname + (token ? '?access_token=' + encodeURIComponent(token) : '');
+                    window.history.replaceState({}, document.title, cleanUrl);
                 }, 300);
             }
 
@@ -3013,8 +2999,15 @@
                 btnDownloadProfile.addEventListener('click', async () => {
                     const iosInputUrl = document.getElementById('ios-desktop-url');
                     const iosInputName = document.getElementById('ios-desktop-name');
-                    const targetUrl = iosInputUrl.value.trim();
+                    let targetUrl = iosInputUrl.value.trim();
                     if (!targetUrl) { window.showToast("请输入绑定的服务地址"); return; }
+
+                    // 🌟 核心补丁：自动拼接 Token 到配置直装的 URL 中，实现免登直达！
+                    const token = window.getAccessToken ? window.getAccessToken() : '';
+                    if (token && !targetUrl.includes('access_token=')) {
+                        targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(token);
+                    }
+
                     window.showToast("⏳ 正在生成配置...", true);
 
                     let hostIdentifier = "";
@@ -3479,63 +3472,73 @@
             openCount++;
             localStorage.setItem('iwebplayer.env_open_count', openCount);
 
-            // 只有在第 3 次，或者之后的次数里才做后续的时间校验
-            if (openCount < 3) return;
+            let shouldPrompt = false;
 
-            const lastPromptTime = parseInt(localStorage.getItem('iwebplayer.env_last_prompt') || '0');
-            const now = Date.now();
-            const oneMonth = 30 * 24 * 60 * 60 * 1000; // 一个月的毫秒数
-
-            // 如果是第 3 次打开，或者距离上次提醒已经过去了一个月
-            if (openCount === 3 || (lastPromptTime > 0 && now - lastPromptTime >= oneMonth)) {
-                localStorage.setItem('iwebplayer.env_last_prompt', now.toString());
-
-                // 动态创建并插入复用样式的弹窗
-                const backdrop = document.createElement('div');
-                backdrop.className = 'about-modal-backdrop show';
-                backdrop.style.zIndex = '999999';
-
-                if (window.isIOS) {
-                    // 📱 iPhone 用户的 PWA 引导
-                    backdrop.innerHTML = `
-                      <div class="about-modal" style="transform: translateY(0); opacity: 1;">
-                        <div class="about-header"><div class="about-title-wrap"><h2 class="song-modal-title">✨ 获取原生独立体验</h2></div></div>
-                        <div class="about-body">
-                          <p style="font-size: 15px; font-weight: 500; margin-bottom: 10px;">检测到您正在网页嵌套中运行</p>
-                          <p style="font-size: 13px; color: var(--text-sub); line-height: 1.5;">建议启用 <b>PWA 模式</b> 将其添加到桌面。体验将无限接近独立 APP，且后台播放更稳定！</p>
-                        </div>
-                        <div class="about-footer">
-                          <button class="about-secondary" id="env-prompt-cancel">稍后再说</button>
-                          <button class="about-primary" id="env-prompt-confirm" style="font-weight: bold;">查看安装教程</button>
-                        </div>
-                      </div>
-                    `;
-                    document.body.appendChild(backdrop);
-                    backdrop.querySelector('#env-prompt-cancel').onclick = () => backdrop.remove();
-                    backdrop.querySelector('#env-prompt-confirm').onclick = () => {
-                        backdrop.remove();
-                        // 直接拉起现有的 PWA 引导界面
-                        if (typeof window.startIosGuide === 'function') {
-                            window.startIosGuide(null, 'pwa');
-                        }
-                    };
-                } else {
-                    // 💻 非 iPhone 用户的独立窗口引导
-                    backdrop.innerHTML = `
-                      <div class="about-modal" style="transform: translateY(0); opacity: 1;">
-                        <div class="about-header"><div class="about-title-wrap"><h2 class="song-modal-title">💡 体验优化建议</h2></div></div>
-                        <div class="about-body">
-                          <p style="font-size: 15px; font-weight: 500; margin-bottom: 10px;">检测到您正在网页嵌套中运行</p>
-                          <p style="font-size: 13px; color: var(--text-sub); line-height: 1.6;">点击右上角的 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin: 0 3px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> <b>图标</b>，即可在独立窗口中运行，获得更宽阔、更完整的播放器体验！</p>
-                        </div>
-                        <div class="about-footer">
-                          <button class="about-primary" id="env-prompt-cancel" style="font-weight: bold;">我知道了</button>
-                        </div>
-                      </div>
-                    `;
-                    document.body.appendChild(backdrop);
-                    backdrop.querySelector('#env-prompt-cancel').onclick = () => backdrop.remove();
+            if (window.isIOS) {
+                // 📱 iPhone 专属激进策略：只要是双数次打开 (2, 4, 6, 8...)，必定弹窗提醒加桌面！
+                if (openCount % 2 === 0) {
+                    shouldPrompt = true;
                 }
+            } else {
+                // 💻 非 iPhone 佛系策略 (保持原样)：第 3 次弹，之后每个月只弹 1 次
+                const lastPromptTime = parseInt(localStorage.getItem('iwebplayer.env_last_prompt') || '0');
+                const now = Date.now();
+                const oneMonth = 30 * 24 * 60 * 60 * 1000; // 一个月的毫秒数
+
+                if (openCount === 3 || (lastPromptTime > 0 && now - lastPromptTime >= oneMonth)) {
+                    shouldPrompt = true;
+                    localStorage.setItem('iwebplayer.env_last_prompt', now.toString());
+                }
+            }
+
+            // 如果不满足上面的任何提醒条件，直接终止退出
+            if (!shouldPrompt) return;
+
+            // 动态创建并插入复用样式的弹窗
+            const backdrop = document.createElement('div');
+            backdrop.className = 'about-modal-backdrop show';
+            backdrop.style.zIndex = '999999';
+
+            if (window.isIOS) {
+                // 📱 iPhone 用户的 PWA 引导
+                backdrop.innerHTML = `
+                  <div class="about-modal" style="transform: translateY(0); opacity: 1;">
+                    <div class="about-header"><div class="about-title-wrap"><h2 class="song-modal-title">✨ 获取原生独立体验</h2></div></div>
+                    <div class="about-body">
+                      <p style="font-size: 15px; font-weight: 500; margin-bottom: 10px;">检测到您正在网页嵌套中运行</p>
+                      <p style="font-size: 13px; color: var(--text-sub); line-height: 1.5;">建议启用 <b>PWA 模式</b> 将其添加到桌面。体验将无限接近独立 APP，且后台播放更稳定！</p>
+                    </div>
+                    <div class="about-footer">
+                      <button class="about-secondary" id="env-prompt-cancel">稍后再说</button>
+                      <button class="about-primary" id="env-prompt-confirm" style="font-weight: bold;">查看安装教程</button>
+                    </div>
+                  </div>
+                `;
+                document.body.appendChild(backdrop);
+                backdrop.querySelector('#env-prompt-cancel').onclick = () => backdrop.remove();
+                backdrop.querySelector('#env-prompt-confirm').onclick = () => {
+                    backdrop.remove();
+                    // 直接拉起现有的 PWA 引导界面
+                    if (typeof window.startIosGuide === 'function') {
+                        window.startIosGuide(null, 'pwa');
+                    }
+                };
+            } else {
+                // 💻 非 iPhone 用户的独立窗口引导
+                backdrop.innerHTML = `
+                  <div class="about-modal" style="transform: translateY(0); opacity: 1;">
+                    <div class="about-header"><div class="about-title-wrap"><h2 class="song-modal-title">💡 体验优化建议</h2></div></div>
+                    <div class="about-body">
+                      <p style="font-size: 15px; font-weight: 500; margin-bottom: 10px;">检测到您正在网页嵌套中运行</p>
+                      <p style="font-size: 13px; color: var(--text-sub); line-height: 1.6;">点击右上角的 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin: 0 3px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> <b>图标</b>，即可在独立窗口中运行，获得更宽阔、更完整的播放器体验！</p>
+                    </div>
+                    <div class="about-footer">
+                      <button class="about-primary" id="env-prompt-cancel" style="font-weight: bold;">我知道了</button>
+                    </div>
+                  </div>
+                `;
+                document.body.appendChild(backdrop);
+                backdrop.querySelector('#env-prompt-cancel').onclick = () => backdrop.remove();
             }
         }, 1500); // 延迟 1.5 秒弹出，避免和首屏加载动画冲突
       } catch (err) {
@@ -3692,8 +3695,8 @@
             }
 
             // 避开 5px 白边，提取上下主色
-            const topColor = getDominantColor(5, 5);
-            const bottomColor = getDominantColor(this.naturalHeight - 10, 5);
+            const topColor = getDominantColor(0, 5);
+            const bottomColor = getDominantColor(this.naturalHeight - 5, 5);
 
             if (topColor) {
                 document.body.style.setProperty('--top-color', topColor.rgbString);

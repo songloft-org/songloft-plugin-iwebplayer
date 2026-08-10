@@ -291,7 +291,7 @@
                     urlObj.username = cred.username;
                     if (cred.password) urlObj.password = cred.password;
                     const finalUrl = urlObj.toString();
-                    const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
+                    const globalToken = window.getAccessToken ? window.getAccessToken() : "";
                     return `/api/v1/proxy?url=${encodeURIComponent(finalUrl)}&access_token=${globalToken}`;
                 } catch(e) {}
             }
@@ -336,7 +336,7 @@
 
             // 🌟 恢复：独立获取封面与歌词
             const rawItem = window.songList[index];
-            const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
+            const globalToken = window.getAccessToken ? window.getAccessToken() : "";
 
             const fpCover = $('fp-cover');
             const miniCoverImg = $('mini-cover-img');
@@ -473,7 +473,7 @@
         if (miniCoverImg) miniCoverImg.onerror = handleCoverError;
 
         const rawItem = window.songList[index];
-        const globalToken = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
+        const globalToken = window.getAccessToken ? window.getAccessToken() : "";
 
         let finalCover = window.defaultCover;
         const listImg = $(`list-cover-${index}`);

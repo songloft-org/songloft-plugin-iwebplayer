@@ -790,8 +790,7 @@
             window.playlistObserver.disconnect();
         }
 
-        const authData = JSON.parse(localStorage.getItem('songloft-auth') || "{}");
-        const globalToken = authData.accessToken || "";
+        const globalToken = window.getAccessToken ? window.getAccessToken() : "";
 
         // 🌟 新增：确保在 DOM 结构里，海报墙永远稳稳压在歌曲列表的上方！
         if (grid && list && list.parentNode && grid.nextElementSibling !== list) {
