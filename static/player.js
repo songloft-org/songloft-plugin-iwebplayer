@@ -2,8 +2,59 @@
 (function(window) {
     'use strict';
 
-    // 内部微型 DOM 获取器，确保代码脱离 HTML 也能随时精准抓取元素
+    // 内部微型 DOM 获取器
     const $ = (id) => document.getElementById(id);
+
+    // 🌟 终极融合：全局统一的歌词获取中枢 (三级瀑布流)
+    window.fetchSongLyric = async function(rawItem, targetSongName) {
+        let finalLrc = null;
+        try {
+            // 1. SongLoft 官方数据库 (最高优先级，含网盘和被入库的在线歌)
+            if (rawItem && rawItem.id) {
+                try {
+                    const slRes = await fetch(`/api/v1/songs/${rawItem.id}/lyric`);
+                    if (slRes.ok) {
+                        const slData = await slRes.json();
+                        if (slData && slData.lyric) {
+                            console.log(`[歌词] 命中 SongLoft 官方数据库`);
+                            return slData.lyric;
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // 2. LXMusic 原生接口 (仅在线歌曲)
+            if (rawItem && rawItem._isOnlineObj && rawItem.plugin_entry_path !== 'dav') {
+                let sd = rawItem.source_data;
+                if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
+                const engineValEl = document.getElementById('engine-val');
+                const currentEngine = engineValEl ? engineValEl.dataset.value : 'LXMusic';
+                if (currentEngine === 'LXMusic') {
+                    try {
+                        const lrcUrl = `/api/v1/jsplugin/lxmusic/api/direct/lyric?source=${sd.source}&songmid=${sd.songmid || sd.musicId}&musicId=${sd.musicId}&duration=${sd.duration}`;
+                        const lrcRes = await fetch(lrcUrl);
+                        const lrcData = await lrcRes.json();
+                        if (lrcData.code === 0 && lrcData.data && lrcData.data.lyric) {
+                            console.log(`[歌词] 命中 LXMusic 插件原生接口`);
+                            return lrcData.data.lyric;
+                        }
+                    } catch(e) {}
+                }
+            }
+
+            // 3. iWebPlayer 自研刮削兜底
+            finalLrc = await window.fetchScrape(rawItem, 'lyric', targetSongName);
+            if (finalLrc) {
+                console.log(`[歌词] 命中 iWebPlayer 自定义刮削`);
+                return finalLrc;
+            }
+
+            console.log(`[歌词] 最终未找到任何歌词`);
+        } catch(e) {
+            console.error("统一歌词获取流水线崩溃:", e);
+        }
+        return null;
+    };
 
     window.markSongAsDead = function(playlistName, songIndex) {
         if (!window.deadSongIndexes[playlistName]) {
@@ -39,7 +90,6 @@
         let extension = '';
         let isVisible = false;
 
-        // 🌟 常见合法音频后缀白名单，防止 PHP 等伪装者混入
         const validExts = ['MP3', 'FLAC', 'WAV', 'M4A', 'AAC', 'OGG', 'APE', 'WMA'];
 
         if (formatReady && text !== "暂无播放") {
@@ -49,7 +99,6 @@
                 if (currentName === text) rawItem = window.songList[window.currentIndex];
             }
 
-            // 策略 1：优先从真实的 file_path 中提取后缀 (针对本地音乐)
             if (rawItem && rawItem.file_path) {
                 const match = String(rawItem.file_path).match(/\.([a-zA-Z0-9]+)$/);
                 if (match) {
@@ -61,7 +110,6 @@
                 }
             }
 
-            // 策略 2：只认物理路径，安全移除了 type=mp3 的瞎猜逻辑
             if (!isVisible && audioEl && audioEl.src) {
                 try {
                     let urlToParse = audioEl.src;
@@ -70,7 +118,6 @@
                         try { urlToParse = decodeURIComponent(escape(window.atob(b64))); } catch(e) { urlToParse = window.atob(b64); }
                     }
 
-                    // 🌟 剥离问号和井号，只看干净的 URL 末尾有没有真正的后缀
                     let cleanUrl = urlToParse.split('?')[0].split('#')[0];
                     const match = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
                     if (match) {
@@ -113,6 +160,7 @@
             }
         }, 50);
     };
+
     window.highlightSongUI = function(index) {
         if (window.currentIndex !== -1) {
             $('song-' + window.currentIndex)?.classList.remove('playing');
@@ -135,11 +183,9 @@
         const isMiot = window.MiotManager && window.MiotManager.currentDevice.type === 'miot';
 
         if (timeCurrentEl) {
-            // 🌟 核心 1：小爱模式切歌时显示 --:-- 等待真实推送，本机模式则正常显示 00:00
             timeCurrentEl.innerText = isMiot ? "--:--" : "00:00";
         }
         if (timeDurationEl) {
-            // 🌟 核心 2：提取当前歌曲的真实时长，如果有，保留显示；没有才显示 --:--
             const dur = window.songList[window.currentIndex]?.duration;
             timeDurationEl.innerText = dur ? window.formatTime(dur) : "--:--";
         }
@@ -210,7 +256,6 @@
             if (searchWrap) searchWrap.classList.remove('show');
             if (mfPluginRow) mfPluginRow.classList.add('show');
             if (onlineToolbar) onlineToolbar.classList.add('show');
-            // 交由 online.js 的路由中枢分配右侧菜单的宿主
             if (typeof window.refreshOnlineUI === 'function') window.refreshOnlineUI();
         } else {
             if (searchWrap) searchWrap.classList.remove('show');
@@ -254,7 +299,7 @@
 
             if (songName === window.currentSongName) {
                 window.updateNpTitleUI(window.currentSongName);
-                const coverSrc = $('fp-cover') ? $('fp-cover').src : window.defaultCover;
+                const coverSrc = $('fp-cover') ?$('fp-cover').src : window.defaultCover;
                 if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, coverSrc, window.favoriteList, window.APP_LOGO);
 
                 const cornerFav = $('fp-corner-fav');
@@ -268,7 +313,6 @@
         }
     };
 
-    // 🚀 极简纯同步版：直接从内存读凭证拼接 URL，彻底告别 [object Promise]
     window.getWebDavStreamUrl = function(rawItem) {
         if (rawItem && rawItem.plugin_entry_path === 'dav') {
             let sd = rawItem.source_data;
@@ -276,7 +320,6 @@
 
             const serverName = sd.configName || (window.webdavData ? window.webdavData.currentServer : '');
 
-            // 核心：同步从内存中取
             if (serverName && window.webdavData && window.webdavData.credentials && window.webdavData.credentials[serverName]) {
                 const cred = window.webdavData.credentials[serverName];
                 const encodedPath = sd.path.split('/').map(encodeURIComponent).join('/');
@@ -299,30 +342,33 @@
         return null;
     };
 
+    // =========================================================================
+    // 🌟 核心引擎重构：播放请求流转
+    // =========================================================================
     window.playSong = async function(index, autoPlay = true, resumeTime = 0) {
-        if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout); // 🌟 核心：每次切歌，第一时间杀掉上首歌的定时器
+        if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout);
         if (index < 0 || index >= window.songList.length) return;
 
+        const rawItem = window.songList[index];
+        const targetSongName = window.getSongNameObj(rawItem);
+        const globalToken = window.getAccessToken ? window.getAccessToken() : "";
+
         // =========================================================
-        // 🌟 MIoT 小爱音箱播放流劫持 (第一道岔)
+        // 🌟 分叉 1：小爱音箱播放流
         // =========================================================
         if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
             const audioEl = $('audio');
-            if (audioEl && !audioEl.paused) audioEl.pause(); // 强行掐断本机可能正在播放的声音
+            if (audioEl && !audioEl.paused) audioEl.pause();
 
             const pl = window.playlistMeta ? window.playlistMeta.find(p => p.name === window.currentPlaylist) : null;
             let targetPlId = pl ? pl.id : null;
 
-            // 🌟 核心拦截：如果没有查到当前列表的真实 ID (说明身处在线资源或曲库搜索等虚拟列表)
             if (!targetPlId) {
                 if (window.showToast) window.showToast("⏳ 正在将列表打包推送到音箱...", true);
-
-                // 呼叫 MIoT 管家，把当前的虚拟列表动态灌入专属歌单
                 targetPlId = await window.MiotManager.syncListToPushPlaylist(window.songList);
-
                 if (!targetPlId) {
                     if (window.showToast) window.showToast("❌ 打包推送失败，请重试");
-                    return; // 打包失败，阻断播放
+                    return;
                 }
             }
 
@@ -330,19 +376,12 @@
             window.updateNpTitleUI(window.currentSongName, true, false);
 
             if (autoPlay) {
-                // 🌟 注意：这里把原本写死的 pl.id 换成了智能获取到的 targetPlId
                 window.MiotManager.playPlaylist(targetPlId, index);
             }
-
-            // 🌟 恢复：独立获取封面与歌词
-            const rawItem = window.songList[index];
-            const globalToken = window.getAccessToken ? window.getAccessToken() : "";
 
             const fpCover = $('fp-cover');
             const miniCoverImg = $('mini-cover-img');
 
-            // 🌟 修复 Bug 2 (核心)：补上 onerror 兜底，防止链接失效导致白板不刮削！
-            // 🌟 新增：404 智能抢救机制。如果自带的 cover_url 报 404，立刻呼叫刮削器抢救！
             const handleCoverError = function() {
                 if (this.src !== window.defaultCover) {
                     this.src = window.defaultCover;
@@ -352,6 +391,7 @@
                                 rawItem._scrapedCover = hdCover;
                                 if (fpCover) fpCover.src = hdCover;
                                 if (miniCoverImg) miniCoverImg.src = hdCover;
+                                const listImg = $('list-cover-' + index);
                                 if (listImg) listImg.src = hdCover;
                                 if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, hdCover, window.favoriteList, window.APP_LOGO);
                             }
@@ -362,7 +402,6 @@
             if (fpCover) fpCover.onerror = handleCoverError;
             if (miniCoverImg) miniCoverImg.onerror = handleCoverError;
 
-            // 1. 恢复封面解析
             let finalCover = window.defaultCover;
             const listImg = $('list-cover-' + index);
             if (listImg && listImg.src && !listImg.src.includes('undefined') && listImg.src !== window.location.href && !listImg.src.startsWith('data:image/svg+xml')) {
@@ -377,16 +416,13 @@
             const applyCoverUI = (coverSrc) => {
                 if (fpCover) fpCover.src = coverSrc;
                 if (miniCoverImg) miniCoverImg.src = coverSrc;
-                // 🌟 同步氛围背景图
                 const ambientImg = $('fp-ambient-img');
                 if (ambientImg) ambientImg.src = coverSrc;
-
                 if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, coverSrc, window.favoriteList, window.APP_LOGO);
             };
 
             applyCoverUI(finalCover);
 
-            // 🌟 修复：抛弃老旧的 Scraper，接入全新的 fetchScrape 引擎
             if (finalCover === window.defaultCover) {
                 window.fetchScrape(rawItem, 'cover', window.currentSongName).then(hdCover => {
                     if (window.currentSongName === window.getSongNameObj(rawItem) && hdCover) {
@@ -397,42 +433,21 @@
                 }).catch(()=>{});
             }
 
-            // 2. 恢复歌词解析
-            if (window.LyricsEngine) window.LyricsEngine.parse(null); // 先清空上一首
+            // 🌟 触发统一歌词获取
+            if (window.LyricsEngine) window.LyricsEngine.parse(null);
+            window.fetchSongLyric(rawItem, targetSongName).then(lrc => {
+                if (targetSongName === window.currentSongName && window.LyricsEngine) {
+                    window.LyricsEngine.parse(lrc || null);
+                }
+            });
 
-            const loadLyric = async () => {
-                let finalLrc = null;
-                try {
-                    if (rawItem._isOnlineObj && rawItem.plugin_entry_path !== 'dav') {
-                        let sd = rawItem.source_data;
-                        if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
-                        const engineValEl = $('engine-val');
-                        const currentEngine = engineValEl ? engineValEl.dataset.value : 'LXMusic';
-                        if (currentEngine === 'LXMusic') {
-                            const lrcUrl = `/api/v1/jsplugin/lxmusic/api/direct/lyric?source=${sd.source}&songmid=${sd.songmid || sd.musicId}&musicId=${sd.musicId}&duration=${sd.duration}`;
-                            const lrcRes = await fetch(lrcUrl);
-                            const lrcData = await lrcRes.json();
-                            if (lrcData.code === 0 && lrcData.data && lrcData.data.lyric) {
-                                finalLrc = lrcData.data.lyric;
-                            }
-                        }
-                    }
-                    if (!finalLrc) {
-                        finalLrc = await window.fetchScrape(rawItem, 'lyric', window.currentSongName);
-                    }
-
-                    if (finalLrc && window.currentSongName === window.getSongNameObj(rawItem) && window.LyricsEngine) {
-                        window.LyricsEngine.parse(finalLrc);
-                    }
-                } catch(e) {}
-            };
-            loadLyric();
-
-            return; // 无论成功与否，彻底阻断本机 <audio>！
+            return; // 彻底阻断本机 <audio>！
         }
         // =========================================================
 
-        // 以下是原本本机 <audio> 播放的防卡死检测逻辑，保持不动
+        // =========================================================
+        // 🌟 分叉 2：本机设备播放流
+        // =========================================================
         if (window.consecutiveFailures >= 5) {
             window.showToast(`🛑 连续获取失败，已暂停`);
             const audioEl = $('audio');
@@ -443,7 +458,6 @@
         }
 
         window.highlightSongUI(index);
-        const targetSongName = window.currentSongName;
 
         const fpCover = $('fp-cover');
         const miniCoverImg = $('mini-cover-img');
@@ -452,7 +466,6 @@
         const timeDurationEl = $('time-duration');
         const progressBar = $('progress-bar');
 
-        // 🌟 本地模式 404 智能抢救机制
         const handleCoverError = function() {
             if (this.src !== window.defaultCover) {
                 this.src = window.defaultCover;
@@ -462,6 +475,7 @@
                             rawItem._scrapedCover = hdCover;
                             finalCover = hdCover;
                             applyUI();
+                            const listImg = $(`list-cover-${index}`);
                             if (listImg) listImg.src = hdCover;
                         }
                     }).catch(()=>{});
@@ -472,9 +486,6 @@
         if (fpCover) fpCover.onerror = handleCoverError;
         if (miniCoverImg) miniCoverImg.onerror = handleCoverError;
 
-        const rawItem = window.songList[index];
-        const globalToken = window.getAccessToken ? window.getAccessToken() : "";
-
         let finalCover = window.defaultCover;
         const listImg = $(`list-cover-${index}`);
         if (listImg && listImg.src && !listImg.src.includes('undefined') && listImg.src !== window.location.href && !listImg.src.startsWith('data:image/svg+xml')) {
@@ -482,39 +493,26 @@
         } else if (rawItem._scrapedCover) {
             finalCover = rawItem._scrapedCover;
         } else if (rawItem.cover_url) {
-            // 🌟 同样修复本机的死链拼接问题
             const sep = rawItem.cover_url.includes('?') ? '&' : '?';
             finalCover = `${rawItem.cover_url}${sep}access_token=${globalToken}`;
         }
 
         let currentRenderedCover = null;
-        let currentRenderedLrc = null;
-        let finalLrc = null;
 
         const applyUI = () => {
             if (targetSongName !== window.currentSongName) return;
             if (finalCover && finalCover !== currentRenderedCover) {
                 if (fpCover) fpCover.src = finalCover;
                 if (miniCoverImg) miniCoverImg.src = finalCover;
-                // 🌟 同步氛围背景图
                 const ambientImg = $('fp-ambient-img');
                 if (ambientImg) ambientImg.src = finalCover;
-
                 if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, finalCover, window.favoriteList, window.APP_LOGO);
                 currentRenderedCover = finalCover;
-            }
-            if (typeof finalLrc !== 'undefined' && finalLrc !== null && finalLrc !== currentRenderedLrc) {
-                if(window.LyricsEngine) {
-                    window.LyricsEngine.parse(finalLrc);
-                    if (audioEl && !audioEl.paused) window.LyricsEngine.sync(audioEl.currentTime);
-                }
-                currentRenderedLrc = finalLrc;
             }
         };
 
         applyUI();
 
-        // 🌟 修复：抛弃老旧的 Scraper，接入全新的 fetchScrape 引擎
         if (finalCover === window.defaultCover) {
             window.fetchScrape(rawItem, 'cover', targetSongName).then(hdCover => {
                 if (targetSongName === window.currentSongName && hdCover) {
@@ -525,6 +523,15 @@
                 }
             }).catch(()=>{});
         }
+
+        // 🌟 触发统一歌词获取 (纯异步并轨，不阻塞下面的音频流提取)
+        if (window.LyricsEngine) window.LyricsEngine.parse(null);
+        window.fetchSongLyric(rawItem, targetSongName).then(lrc => {
+            if (targetSongName === window.currentSongName && window.LyricsEngine) {
+                window.LyricsEngine.parse(lrc || null);
+                if (audioEl && !audioEl.paused) window.LyricsEngine.sync(audioEl.currentTime);
+            }
+        });
 
         const plConfig = window.getPlaylistConfig ? window.getPlaylistConfig(window.currentPlaylist) : {};
         if (typeof window.updateFpSpeedUI === 'function') window.updateFpSpeedUI(plConfig.speedLocal || 1.0);
@@ -540,32 +547,14 @@
             let info = null;
 
             if (window.preloadCache && (window.preloadCache.index === index || (window.preloadCache.isCross && window.preloadCache.playlist === window.currentPlaylist && index === 0))) {
-                console.log("⚡ [极速切歌] 命中预读缓存！");
+                console.log("⚡ [极速切歌] 命中音频流预读缓存！");
                 info = window.preloadCache.data;
-
-                if (rawItem._isOnlineObj && rawItem.plugin_entry_path !== 'dav') {
-                    let sd = rawItem.source_data;
-                    if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
-                    const engineValEl = $('engine-val');
-                    const currentEngine = engineValEl ? engineValEl.dataset.value : 'LXMusic';
-                    if (currentEngine === 'LXMusic') {
-                        const lrcUrl = `/api/v1/jsplugin/lxmusic/api/direct/lyric?source=${sd.source}&songmid=${sd.songmid || sd.musicId}&musicId=${sd.musicId}&duration=${sd.duration}`;
-                        fetch(lrcUrl).then(r => r.json()).then(lrcData => {
-                            if (lrcData.code === 0 && lrcData.data && lrcData.data.lyric) {
-                                finalLrc = lrcData.data.lyric;
-                                applyUI();
-                            }
-                        }).catch(()=>{});
-                    }
-                }
             } else {
-                // 🌟 1. WebDAV 模式分流：公共函数一行搞定！
                 const davUrl = window.getWebDavStreamUrl(rawItem);
 
                 if (davUrl) {
                     info = { url: davUrl };
                 }
-                // 🌐 2. 原有的 LXMusic 解析流程
                 else if (rawItem._isOnlineObj && rawItem.plugin_entry_path !== 'dav') {
                     let sd = rawItem.source_data;
                     if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
@@ -578,16 +567,8 @@
 
                         if (urlData && urlData.url) info = { url: urlData.url };
                         else if (urlData && urlData.data) info = { url: typeof urlData.data === 'string' ? urlData.data : urlData.data.url };
-
-                        const lrcUrl = `/api/v1/jsplugin/lxmusic/api/direct/lyric?source=${sd.source}&songmid=${sd.songmid || sd.musicId}&musicId=${sd.musicId}&duration=${sd.duration}`;
-                        const lrcRes = await fetch(lrcUrl);
-                        const lrcData = await lrcRes.json();
-                        if (lrcData.code === 0 && lrcData.data && lrcData.data.lyric) {
-                            finalLrc = lrcData.data.lyric;
-                        }
                     }
                 }
-                // 📁 3. 本地歌曲流程 (包括已经被加入到"我的歌单"的网盘歌曲)
                 else {
                     const res = await fetch((window.API ? window.API.info : './musicinfo?id=') + rawItem.id);
                     info = await res.json();
@@ -599,43 +580,42 @@
             if (!info || !info.url) throw new Error("接口未返回有效的播放直链");
 
             if (info && info.url && audioEl) {
-                    window.localState.playlist = window.currentPlaylist;
-                    window.localState.songName = window.currentSongName;
-                    localStorage.setItem('iwebplayer.local_state', JSON.stringify(window.localState));
+                window.localState.playlist = window.currentPlaylist;
+                window.localState.songName = window.currentSongName;
+                localStorage.setItem('iwebplayer.local_state', JSON.stringify(window.localState));
 
-                    audioEl.dataset.playingPlaylist = window.currentPlaylist;
-                    audioEl.dataset.playingSongName = targetSongName;
-                    audioEl.dataset.hasStarted = "0";
-                    audioEl.src = info.url;
+                audioEl.dataset.playingPlaylist = window.currentPlaylist;
+                audioEl.dataset.playingSongName = targetSongName;
+                audioEl.dataset.hasStarted = "0";
+                audioEl.src = info.url;
 
-                    // 🌟 新增：WebDAV 直连模式专属的 8 秒硬超时防卡死
-                    if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout);
-                    const isDavDirect = rawItem.plugin_entry_path === 'dav' && window.ConfigManager.get('webdav', 'settings.mode') === 'direct';
+                // 🌟 新增：WebDAV 直连模式专属的 8 秒硬超时防卡死
+                if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout);
+                const isDavDirect = rawItem.plugin_entry_path === 'dav' && window.ConfigManager.get('webdav', 'settings.mode') === 'direct';
 
-                    if (isDavDirect) {
-                        const targetIdx = index;
-                        window._davDirectTimeout = setTimeout(() => {
-                            // 8秒后还在尝试播这首歌，且依然没拉到哪怕一点点媒体元数据 (readyState === 0)
-                            if (window.currentIndex === targetIdx && audioEl.readyState === 0) {
-                                console.warn("[超时] WebDAV 直连无响应，强行斩断");
-                                audioEl.src = ''; // 强行重置音频源，打断浏览器的无尽等待
-                                window.showToast("⚠️ 直连节点无响应，自动跳过...");
+                if (isDavDirect) {
+                    const targetIdx = index;
+                    window._davDirectTimeout = setTimeout(() => {
+                        if (window.currentIndex === targetIdx && audioEl.readyState === 0) {
+                            console.warn("[超时] WebDAV 直连无响应，强行斩断");
+                            audioEl.src = '';
+                            window.showToast("⚠️ 直连节点无响应，自动跳过...");
 
-                                window.consecutiveFailures++;
-                                window.markSongAsDead(window.currentPlaylist, targetIdx);
-                                if (window.updatePlayButtonUI) window.updatePlayButtonUI(false);
+                            window.consecutiveFailures++;
+                            window.markSongAsDead(window.currentPlaylist, targetIdx);
+                            if (window.updatePlayButtonUI) window.updatePlayButtonUI(false);
 
-                                if (window.consecutiveFailures >= 5) {
-                                    window.showToast(`🛑 连续 5 首失效，已暂停播放`);
-                                    window.consecutiveFailures = 0;
-                                } else {
-                                    if (typeof window.playNextSong === 'function') window.playNextSong(true);
-                                }
+                            if (window.consecutiveFailures >= 5) {
+                                window.showToast(`🛑 连续 5 首失效，已暂停播放`);
+                                window.consecutiveFailures = 0;
+                            } else {
+                                if (typeof window.playNextSong === 'function') window.playNextSong(true);
                             }
-                        }, 8000);
-                    }
+                        }
+                    }, 8000);
+                }
 
-                    let targetResumeTime = resumeTime > 0 ? resumeTime : 0;
+                let targetResumeTime = resumeTime > 0 ? resumeTime : 0;
                 let targetSpeed = plConfig.speedLocal || 1.0;
 
                 if (targetResumeTime === 0) {
@@ -689,17 +669,8 @@
                     if (playPromise !== undefined) playPromise.catch(error => {});
                 }
             }
-
-            if (!finalLrc || finalLrc.trim() === '') {
-                finalLrc = await window.fetchScrape(rawItem, 'lyric', window.currentSongName);
-            }
-            if (finalLrc) applyUI();
-            if (!finalLrc && targetSongName === window.currentSongName && window.LyricsEngine) {
-                window.LyricsEngine.parse(null);
-            }
-
         } catch (err) {
-            if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout); // 🌟 核心：解析异常时，也要杀掉定时器
+            if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout);
             console.error("播放请求失败:", err);
             window.showToast("⚠️ 获取链接失败，自动跳过...");
 
