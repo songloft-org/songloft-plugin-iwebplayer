@@ -312,6 +312,97 @@
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
+  /* ==========================================
+     🌟 KTV 逐字歌词双轨渲染引擎
+     ========================================== */
+  .ktv-word {
+    display: inline-block;
+    white-space: pre;
+    --progress: 0%;
+  }
+
+  /* 轨 1：常规/平板沉浸模式 (渐变扫光) */
+  .lyric-line.active .ktv-word {
+    background-image: linear-gradient(
+      to right,
+      var(--primary) 0%,
+      var(--primary) var(--progress),
+      var(--text-sub) var(--progress),
+      var(--text-sub) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* 轨 1 的暗黑模式微调（防止黑底上原生深灰看不清） */
+  @media (prefers-color-scheme: dark) {
+    .lyric-line.active .ktv-word {
+      background-image: linear-gradient(
+        to right,
+        var(--primary) 0%,
+        var(--primary) var(--progress),
+        rgba(255, 255, 255, 0.4) var(--progress),
+        rgba(255, 255, 255, 0.4) 100%
+      );
+    }
+  }
+
+  /* ==========================================
+     轨 2：手机沉浸模式 (精准定点扫光：仅变大的字扫色，落回即白)
+     ========================================== */
+
+  /* 基础动画：关闭全局背景裁切，仅保留形变 */
+  body.ambient-active.player-open:not(.split-view-active) .ktv-word {
+    background-image: none !important;
+    -webkit-text-fill-color: initial !important;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* 1. 还没唱的字：【纯净常亮白】 */
+  body.ambient-active.player-open:not(.split-view-active) .lyric-line.active .ktv-word {
+    color: #ffffff !important;
+  }
+
+  /* 2. 🎤 正在唱的字：变大跳起，开启【镭射流光】效果 */
+  body.ambient-active.player-open:not(.split-view-active) .lyric-line.active .ktv-word.singing {
+    /* transform: scale(1.25) translateY(-3px); */
+    transform: scale(1.1) translateY(-2px);
+
+    /* 光斑渐变：白 ➔ 紫红 ➔ 白，只有进度点处有颜色 */
+    background-image: linear-gradient(
+      120deg,
+      #ffffff 0%,
+      #ffffff calc(var(--progress) - 20%),
+      var(--primary) var(--progress),
+      #ffffff calc(var(--progress) + 20%),
+      #ffffff 100%
+    ) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+
+    text-shadow: none !important;
+    /* 外圈加上淡淡的紫光，增加立体感 */
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)) drop-shadow(0 0 10px rgba(236, 72, 153, 0.4));
+  }
+
+  /* 3. ✅ 已经唱完的字：回落，洗回常亮纯白 */
+  body.ambient-active.player-open:not(.split-view-active) .lyric-line.active .ktv-word.sung {
+    transform: scale(1) translateY(0);
+
+    background-image: none !important;
+    -webkit-text-fill-color: initial !important;
+    color: #ffffff !important;
+
+    /* 撤销滤镜，让它自然继承回原来的行阴影 */
+    filter: none;
+  }
+
+
+
   /* 沉浸页左下角收藏与右下角调速控制枢纽 (破除 iOS 挤压塌陷) */
   .fp-corner-tools { position: absolute; bottom: 20px; left: 0; right: 0; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; pointer-events: none; }
   .fp-corner-btn { pointer-events: auto; width: 40px; height: 40px; border-radius: 50%; background: var(--bg-color); border: 1px solid var(--border); display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.2s; color: var(--text-main); font-weight: bold; font-size: 13px; }
@@ -997,11 +1088,16 @@
     top: 0 !important;
     padding-top: calc(56px + env(safe-area-inset-top)) !important;
   }
+
+  /* 🌟 新增 4. 非沉浸播放页 (手机端)：顶部起跑线必须加上刘海高度，防止钻进系统状态栏！ */
+  body:not(.ambient-active):not(.split-view-active) .full-player {
+    top: calc(56px + env(safe-area-inset-top)) !important;
+  }
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
   <script src="./static/utils.js?v1.1.2" defer></script>
-  <script src="./static/lyrics.js?v0.7.1" defer></script>
+  <script src="./static/lyrics.js?v1.1.6" defer></script>
   <script src="./static/playlist.js?v1.1.2" defer></script>
   <script src="./static/online.js?v1.1.2" defer></script>
   <script src="./static/plugins.js?v1.1.1" defer></script>
@@ -1713,7 +1809,7 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 导入脚本文件(.js)
               </button>
-              <input type="file" id="plugin-upload-input" accept=".js" class="hidden">
+              <input type="file" id="plugin-upload-input" accept=".js, application/javascript, text/javascript" class="hidden">
             </div>
             <ul id="plugin-list-ul" class="plugin-list-box">
               <div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">正在加载源脚本...</div>
@@ -1901,7 +1997,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.1.5';
+    window.APP_VERSION = 'v1.1.6';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
