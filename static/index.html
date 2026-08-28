@@ -717,6 +717,61 @@
 
     .about-modal-backdrop { width: 100% !important; left: 0 !important; margin-left: 0 !important; }
     body.split-view-active .toast-message { left: 50% !important; transform: translateX(calc(-50% + 240px)) !important; }
+
+    /* ==========================================
+       🌟 终极修复：统一内部滚动条，动态物理防穿模
+       ========================================== */
+
+    /* 1. 锁死平板模式的全局滚动，彻底杀死浏览器自带的主滚动条 */
+    body.split-view-active {
+      height: 100vh !important;
+      overflow: hidden !important;
+      position: relative !important;
+    }
+
+    /* 2. 让外衣接管所有滚动权，并严格裁切在透明工具栏之下 (恢复右侧原生滚动条) */
+    body.split-view-active #scroll-wrapper {
+      position: absolute !important;
+      top: 108px !important; /* 🎯 精确物理裁切线：单行搜索栏高度 (56+40+11+1) */
+      bottom: 0 !important;
+      left: 0 !important;
+      width: 479px !important;
+      margin-left: 479px !important; /* 占据右半屏 */
+      overflow-y: auto !important; /* 开启内部统一滚动，右侧原生滚动条显现！ */
+      padding-bottom: calc(var(--player-height) + env(safe-area-inset-bottom) + 20px) !important;
+      -webkit-overflow-scrolling: touch;
+      z-index: 140 !important;
+    }
+
+    /* 🎯 动态追踪：当第二行 (在线高级搜索栏) 出现时，裁切线自动下移！ */
+    body.split-view-active:has(#online-toolbar-container.show) #scroll-wrapper,
+    body.split-view-active:has(#online-toolbar-container[style*="display: flex"]) #scroll-wrapper {
+      top: 154px !important; /* (108 + 38 + 8) 完美衔接双行底部！ */
+    }
+
+    /* 3. 剥夺内部歌单和歌曲列表的独立滚动权，让它们在外衣里平铺融合 */
+    body.split-view-active #scroll-wrapper .playlist,
+    body.split-view-active #scroll-wrapper .playlist-grid,
+    body.split-view-active #scroll-wrapper #loading {
+      margin-left: 0 !important;
+      width: 100% !important;
+      max-height: none !important;
+      overflow-y: visible !important;
+      padding-bottom: 0 !important;
+    }
+
+    /* 4. 1:1 精确还原你之前满意的上下贴合间距 */
+    body.split-view-active .plugin-section-title {
+      padding-top: 10px !important;
+      padding-bottom: 4px !important;
+    }
+    body.split-view-active #scroll-wrapper .playlist-grid:has(+ .playlist:not([style*="display: none"])) {
+      padding-bottom: 20px !important;
+      margin-bottom: 0 !important;
+    }
+    body.split-view-active #scroll-wrapper .playlist-grid:not([style*="display: none"]) + .playlist:not([style*="display: none"]) {
+      padding-top: 10px !important;
+    }
   }
 
   /* 🌟 小爱音箱动态播放波浪图标 */
@@ -1278,9 +1333,11 @@
 
     </div>
   </div>
+  <div id="scroll-wrapper">
   <ul class="playlist" id="playlist"></ul>
-<div class="playlist-grid" id="playlist-grid"></div>
-<div id="loading">正在加载音乐...</div>
+  <div class="playlist-grid" id="playlist-grid"></div>
+  <div id="loading">正在加载音乐...</div>
+</div>
 
 <div class="fp-ambient-bg" id="fp-ambient-bg">
   <img id="fp-ambient-img" class="fp-ambient-img" src="" alt="">
@@ -2371,12 +2428,11 @@
             window.open('/#/settings', '_blank');
         });
 
-        // 🌟 新增：点击“配置引擎”后，弹窗并自动跳转到对应Tab
         const menuConfigEngine = document.getElementById('menu-config-engine');
         if (menuConfigEngine) {
             menuConfigEngine.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // 🌟 修正：现在点击的是菜单 1 里的选项，所以点完收起菜单 1
+
                 document.getElementById('global-menu-1-opts')?.classList.remove('show');
 
                 const pluginModal = document.getElementById('plugin-modal-backdrop');
@@ -2385,7 +2441,6 @@
                     pluginModal.setAttribute('aria-hidden', 'false');
                     document.body.style.overflow = 'hidden';
 
-                    // 侦测当前引擎，决定跳去哪个面板
                     const engineName = window.PluginManager ? window.PluginManager.currentEngineName : 'LXMusic';
                     const targetId = engineName === 'WebDAV' ? 'plugin-webdav-pane' : 'plugin-lx-pane';
 
@@ -2408,6 +2463,10 @@
                     document.querySelectorAll('.plugin-pane').forEach(p => p.style.display = 'none');
                     const targetPane = document.getElementById(targetId);
                     if (targetPane) targetPane.style.display = 'block';
+
+                    if (typeof window.loadLxPlugins === 'function') window.loadLxPlugins();
+                    if (typeof window.renderPlatformSortList === 'function') window.renderPlatformSortList();
+                    if (typeof window.loadWebDavServers === 'function') window.loadWebDavServers();
                 }
             });
         }
