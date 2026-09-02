@@ -32,6 +32,19 @@ export async function broadcastWebDavConfig(key: string, value: any) {
 const router = createRouter();
 setupWebDAVRoutes(router);
 
+// 👇 新增 1：保活计时器句柄
+let keepAliveTimer: any = null;
+
+// 👇 新增 2：给前端专门提供的鲜活 Token 接口
+router.get('/token', async () => {
+    try {
+        const token = await songloft.plugin.getToken();
+        return jsonResponse({ token });
+    } catch (e) {
+        return jsonResponse({ token: "" }, 500);
+    }
+});
+
 // 🌟 全局临时沙盒：只在前端拉歌的短短几秒内存在，超时必死，绝不长驻内存！
 let flashSongsCache: any[] | null = null;
 let flashTimeout: any = null;
@@ -301,6 +314,33 @@ router.post('/store', async (req) => {
     }
 });
 
+// 👇 新增：真正的物理删除接口
+router.delete('/store', async (req) => {
+    try {
+        const urlParams = new URLSearchParams(String(req.query));
+        const key = urlParams.get('key');
+        if (!key) return jsonResponse({ error: "Missing key" }, 400);
+
+        // 兼容底层各种版本的删除指令
+        if (typeof songloft.storage.removeItem === 'function') {
+            await songloft.storage.removeItem(key);
+        } else if (typeof (songloft.storage as any).remove === 'function') {
+            await (songloft.storage as any).remove(key);
+        } else if (typeof (songloft.storage as any).delete === 'function') {
+            await (songloft.storage as any).delete(key);
+        }
+
+        // 顺手给语音助手发个广播，让它也把对应的 Key 覆盖为空（或者在助手端自行处理删除）
+        if (key.startsWith('webdav_') || key === 'iwebplayer.webdav' || key.startsWith('iwebplayer.')) {
+            broadcastWebDavConfig(key, "{}");
+        }
+
+        return jsonResponse({ ret: "OK" });
+    } catch (error) {
+        return jsonResponse({ error: "删除配置失败: " + String(error) });
+    }
+});
+
 // ==========================================
 // 🕷️ 刮削网关：统一处理封面与歌词请求
 // ==========================================
@@ -407,12 +447,39 @@ router.get('/debug', async (req) => {
 });
 
 
+// ==========================================
+// ⏰ 后台定时保活机制（每 1 天自动打卡）
+// ==========================================
+function startKeepAlive() {
+    if (keepAliveTimer) clearInterval(keepAliveTimer);
+
+    // 设置为每 24 小时执行一次
+    keepAliveTimer = setInterval(async () => {
+        try {
+            const token = await songloft.plugin.getToken();
+            if (token) {
+                // 兼容不同版本的存储引擎写入，保持活跃
+                if (typeof songloft.storage.set === 'function') {
+                    await songloft.storage.set('last_keep_alive', new Date().toISOString());
+                } else if (typeof songloft.storage.setItem === 'function') {
+                    await songloft.storage.setItem('last_keep_alive', new Date().toISOString());
+                }
+                songloft.log.info('[保活机制] iWebPlayer 每日定时保活成功，Token已续期');
+            }
+        } catch (e) {
+            songloft.log.warn('[保活机制] 插件保活异常: ' + String(e));
+        }
+    }, 24 * 60 * 60 * 1000);
+}
 
 // ==== 核心生命周期函数 ====
 function onInit(): void {
     songloft.log.info('iWebPlayer 原生架构已就绪！');
 
-    // 👇 新增：注册 P2P 双子星监听器，接收 miot-helper 的数据
+    // 🌟 启动保活引擎！
+    startKeepAlive();
+
+    // 👇 注册 P2P 双子星监听器，接收 miot-helper 的数据
     songloft.comm.onMessage("sync_webdav_data", async (payload, from) => {
         // 只认自家兄弟，防伪造
         if (from !== TWIN_PLUGIN_ID) return;
@@ -443,7 +510,12 @@ function onInit(): void {
         }
     });
 }
-function onDeinit(): void {}
+function onDeinit(): void {
+    if (keepAliveTimer) {
+        clearInterval(keepAliveTimer);
+        keepAliveTimer = null;
+    }
+}
 function onHTTPRequest(req: HTTPRequest): HTTPResponse { return router.handle(req); }
 
 // @ts-expect-error
