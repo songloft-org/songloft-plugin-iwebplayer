@@ -4,14 +4,14 @@
     'use strict';
 
     // ==========================================
-    // 🏛️ 极简纯净版四象限沙盒存储引擎 (ConfigManager)
+    // 🏛️ 第一象限：低频配置沙盒 (ConfigManager)
     // ==========================================
     const defaultConfig = {
         config: {
             preferences: { lockLyric: true, ambientBg: true, highPerf: true, defaultDevice: 'last' },
             player_state: { volume: 100, playMode: 1, splitMode: true },
             playlist_configs: {},
-            playback: { last_active: {}, positions: {}, recent_playlists: [] }
+            recent_playlists: [] // 👈 收编到根目录
         },
         lxmusic: {
             settings: { quality: '320k', platform_sort: ['wy', 'tx', 'kw', 'kg', 'mg'] },
@@ -27,10 +27,7 @@
     const cachePool = {};
 
     window.ConfigManager = {
-        getKeyName(ns) {
-            return 'iwebplayer.' + ns;
-        },
-
+        getKeyName(ns) { return 'iwebplayer.' + ns; },
         load(ns) {
             if (cachePool[ns]) return cachePool[ns];
             try {
@@ -41,19 +38,16 @@
             }
             return cachePool[ns];
         },
-
         save(ns) {
             if (cachePool[ns]) {
                 localStorage.setItem(this.getKeyName(ns), JSON.stringify(cachePool[ns]));
             }
         },
-
         get(ns, path) {
             const data = this.load(ns);
             if (!path) return data;
             return path.split('.').reduce((acc, part) => (acc && acc[part] !== undefined) ? acc[part] : undefined, data);
         },
-
         set(ns, path, value) {
             const data = this.load(ns);
             const parts = path.split('.');
@@ -65,6 +59,62 @@
             });
             curr[last] = value;
             this.save(ns);
+        }
+    };
+
+    // ==========================================
+    // 🚀 第二象限：高频微型进度中心 (ProgressManager)
+    // ==========================================
+    window.ProgressManager = {
+        // 1. 全局最后活动现场 (极轻量，每2秒写)
+        setActive: function(playlist, songName, time) {
+            localStorage.setItem('iwebplayer.active', JSON.stringify({ playlist, songName, time }));
+        },
+        getActive: function() {
+            try { return JSON.parse(localStorage.getItem('iwebplayer.active')) || {}; }
+            catch(e) { return {}; }
+        },
+
+        // 2. 歌单单曲书签库 (非续播歌单使用)
+        setPlLast: function(playlist, songName, time) {
+            try {
+                const data = JSON.parse(localStorage.getItem('iwebplayer.pl_last')) || {};
+                data[playlist] = { name: songName, time: time };
+                localStorage.setItem('iwebplayer.pl_last', JSON.stringify(data));
+            } catch(e) {}
+        },
+        getPlLast: function(playlist) {
+            try {
+                const data = JSON.parse(localStorage.getItem('iwebplayer.pl_last')) || {};
+                return data[playlist] || null;
+            } catch(e) { return null; }
+        },
+
+        // 3. 歌单多曲历史库 (续播歌单使用，存5首)
+        setPlHistory: function(playlist, songName, time) {
+            try {
+                const data = JSON.parse(localStorage.getItem('iwebplayer.pl_history')) || {};
+                let list = data[playlist] || [];
+                list = list.filter(item => item.name !== songName); // 去重
+                list.unshift({ name: songName, time: time });       // 压入首位
+                if (list.length > 5) list = list.slice(0, 5);       // 截断
+                data[playlist] = list;
+                localStorage.setItem('iwebplayer.pl_history', JSON.stringify(data));
+            } catch(e) {}
+        },
+        getPlHistory: function(playlist) {
+            try {
+                const data = JSON.parse(localStorage.getItem('iwebplayer.pl_history')) || {};
+                return data[playlist] || [];
+            } catch(e) { return []; }
+        },
+
+        // 4. PWA 防杀抢救点
+        setStandaloneTime: function(time) {
+            localStorage.setItem('iwebplayer.standalone_time', time);
+        },
+        getStandaloneTime: function() {
+            return parseFloat(localStorage.getItem('iwebplayer.standalone_time')) || 0;
         }
     };
 
@@ -232,7 +282,8 @@
                     audioEl.src = "";
                     audioEl.load();
                     if (typeof updatePlayButtonUICb === 'function') updatePlayButtonUICb(false);
-                    window.ConfigManager.set('config', 'playback.last_active.standaloneTime', currentTime);
+                    // 🌟 已替换为最新的 ProgressManager 独立键写入
+                    window.ProgressManager.setStandaloneTime(currentTime);
                 }
             });
         }

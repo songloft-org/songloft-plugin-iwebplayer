@@ -902,11 +902,42 @@
         window.currentBrowserPath = savedPath;
     };
 
+    window.updateWebDavIntervalUI = function(serverName) {
+        const intervalVal = document.getElementById('wd-interval-val');
+        const intervalOpts = document.getElementById('wd-interval-opts');
+        if (intervalVal && intervalOpts && serverName) {
+            const currentVal = window.ConfigManager.get('webdav', `settings.auto_scan_interval_${serverName}`) || "0";
+
+            intervalOpts.querySelectorAll('.select-option').forEach(el => {
+                el.classList.remove('active');
+                if (el.dataset.value === currentVal) {
+                    el.classList.add('active');
+                    intervalVal.innerText = el.innerText;
+                    intervalVal.dataset.value = currentVal;
+                }
+            });
+        }
+    };
+
     window.updateWebDavScanInfoUI = function(folders, songs, time) {
         const infoRow = document.getElementById('wd-scan-info-row');
         const foldersEl = document.getElementById('wd-info-folders');
         const songsEl = document.getElementById('wd-info-songs');
         const timeEl = document.getElementById('wd-info-time');
+
+        // 🌟 新增：动态在“选择目录”上方注入紫红色新手指引
+        let emptyHint = document.getElementById('wd-empty-hint');
+        if (!emptyHint) {
+            const dirView = document.getElementById('wd-dir-view');
+            if (dirView && dirView.parentNode) {
+                emptyHint = document.createElement('div');
+                emptyHint.id = 'wd-empty-hint';
+                // 增加一点浅紫色背景和虚线边框，让它在配置面板里看起来像一个精美的 Tip
+                emptyHint.style.cssText = 'color: #c026d3; font-size: 13px; font-weight: bold; margin-bottom: 12px; padding: 10px; background: rgba(192, 38, 211, 0.08); border-radius: 8px; text-align: center; border: 1px dashed rgba(192, 38, 211, 0.4);';
+                emptyHint.innerHTML = '💡 请选择下方根目录并点击【建立索引】';
+                dirView.parentNode.insertBefore(emptyHint, dirView);
+            }
+        }
 
         if (infoRow && foldersEl && songsEl && timeEl) {
             if (folders > 0 || songs > 0 || (time && time !== '-')) {
@@ -914,8 +945,10 @@
                 songsEl.textContent = songs || 0;
                 timeEl.textContent = time || '-';
                 infoRow.style.display = 'flex';
+                if (emptyHint) emptyHint.style.display = 'none'; // 扫库成功有数据了，自动隐藏提示
             } else {
                 infoRow.style.display = 'none';
+                if (emptyHint) emptyHint.style.display = 'block'; // 空数据时，亮起提示
             }
         }
     };
@@ -1143,8 +1176,7 @@
         if (mainOptsEl && window.isWebDAVMode) mainOptsEl.innerHTML = '<li class="select-option">拉取中...</li>';
 
         try {
-            const defRes = await fetch('/api/v1/jsplugin/iwebplayer/store?key=webdav_default_server');
-            const defJson = await defRes.json();
+            // 直接从刚才同步好的沙盒中极速读取默认节点
             webdavDefaultServerName = window.ConfigManager.get('webdav', 'settings.default_server') || "";
 
             const res = await fetch('/api/v1/jsplugin/dav/lists');
@@ -1211,7 +1243,7 @@
                     optsEl.querySelectorAll('.select-option').forEach(el => el.classList.remove('active'));
                     li.classList.add('active');
                     valEl.dataset.value = srv.name; valEl.innerText = displayName; optsEl.classList.remove('show');
-                    window.webdavData.currentServer = srv.name; window.updateDefaultBtnUI(srv.name); window.loadWebDavRootPath(srv.name); window.fetchWebDavLibrary();
+                    window.webdavData.currentServer = srv.name; window.updateDefaultBtnUI(srv.name); window.loadWebDavRootPath(srv.name); window.updateWebDavIntervalUI(srv.name); window.fetchWebDavLibrary();
                     if (mainOptsEl && mainValEl && window.isWebDAVMode) {
                         mainOptsEl.querySelectorAll('.select-option').forEach(el => el.classList.remove('active'));
                         const targetMainLi = mainOptsEl.querySelector(`[data-value="${srv.name}"]`);
@@ -1237,7 +1269,7 @@
                         const targetModalLi = optsEl.querySelector(`[data-value="${srv.name}"]`);
                         if (targetModalLi) targetModalLi.classList.add('active');
                         valEl.innerText = displayName; valEl.dataset.value = srv.name;
-                        window.updateDefaultBtnUI(srv.name); window.loadWebDavRootPath(srv.name);
+                        window.updateDefaultBtnUI(srv.name); window.loadWebDavRootPath(srv.name); window.updateWebDavIntervalUI(srv.name);
                     });
                     mainOptsEl.appendChild(mainLi);
                 }
@@ -1245,7 +1277,7 @@
                 if (isActive) {
                     valEl.dataset.value = srv.name; valEl.innerText = displayName;
                     if (mainValEl && window.isWebDAVMode) { mainValEl.dataset.value = srv.name; mainValEl.innerText = srv.name; }
-                    window.webdavData.currentServer = srv.name; window.updateDefaultBtnUI(srv.name); window.loadWebDavRootPath(srv.name);
+                    window.webdavData.currentServer = srv.name; window.updateDefaultBtnUI(srv.name); window.loadWebDavRootPath(srv.name); window.updateWebDavIntervalUI(srv.name);
                 }
             });
         }
@@ -1258,6 +1290,77 @@
             btnDefault.style.background = 'var(--primary)'; btnDefault.style.color = '#fff'; btnDefault.title = "当前节点已是默认节点";
         } else {
             btnDefault.style.background = '#6b7280'; btnDefault.style.color = '#fff'; btnDefault.title = "设为默认节点";
+        }
+    };
+
+    // 🌟 新增：WebDAV 代理私网白名单智能修补引擎
+    window.isPrivateIP = function(hostname) {
+        if (hostname === 'localhost') return true;
+        const parts = hostname.split('.');
+        if (parts.length !== 4) return false;
+        const p1 = parseInt(parts[0], 10);
+        const p2 = parseInt(parts[1], 10);
+        // 判断是否为 A类(10.x.x.x)、本地回环(127.x.x.x)、C类(192.168.x.x)、B类(172.16~31.x.x)
+        if (p1 === 10 || p1 === 127 || (p1 === 192 && p2 === 168) || (p1 === 172 && p2 >= 16 && p2 <= 31)) {
+            return true;
+        }
+        return false;
+    };
+
+    window.checkAndPatchProxyAllowlist = async function() {
+        try {
+            // 1. 判断是否为服务端代理模式
+            const currentMode = window.ConfigManager ? window.ConfigManager.get('webdav', 'settings.mode') || 'proxy' : 'proxy';
+            if (currentMode !== 'proxy') return;
+
+            // 2. 拉取所有配置好的 WebDAV 节点
+            const res = await fetch('/api/v1/jsplugin/dav/lists');
+            if (!res.ok) return;
+            const servers = await res.json();
+            if (!Array.isArray(servers) || servers.length === 0) return;
+
+            const privateIps = new Set();
+            servers.forEach(srv => {
+                if (!srv.url) return;
+                try {
+                    const hostname = new URL(srv.url).hostname;
+                    if (window.isPrivateIP(hostname)) privateIps.add(hostname);
+                } catch(e) {
+                    // 兼容没有 http:// 头的情况
+                    const hostMatch = srv.url.replace(/^https?:\/\//, '').split(/[:\/]/)[0];
+                    if (hostMatch && window.isPrivateIP(hostMatch)) privateIps.add(hostMatch);
+                }
+            });
+
+            if (privateIps.size === 0) return; // 没有私网 IP，直接退出
+
+            // 3. 拉取现有的代理白名单
+            const allowRes = await fetch('/api/v1/settings/proxy-private-allowlist');
+            if (!allowRes.ok) return;
+            const allowData = await allowRes.json();
+            const currentList = Array.isArray(allowData.allowlist) ? allowData.allowlist : [];
+
+            // 4. 融合列表并去重
+            let needUpdate = false;
+            const newList = [...currentList];
+            privateIps.forEach(ip => {
+                if (!newList.includes(ip)) {
+                    newList.push(ip);
+                    needUpdate = true;
+                }
+            });
+
+            // 5. 如果有新增的内网 IP，则发送 PUT 请求静默保存
+            if (needUpdate) {
+                await fetch('/api/v1/settings/proxy-private-allowlist', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ allowlist: newList })
+                });
+                console.log(`[WebDAV] 已自动将内网 IP 加入代理白名单:`, Array.from(privateIps));
+            }
+        } catch (e) {
+            console.error("[WebDAV] 自动处理代理白名单失败", e);
         }
     };
 
@@ -1326,14 +1429,63 @@
         document.getElementById('wd-btn-del-confirm')?.addEventListener('click', async () => {
             const curName = wdServerVal.dataset.value; if (!curName) return;
             window.showToast("⏳ 彻底移出节点...");
-            if (curName === webdavDefaultServerName) {
-                window.ConfigManager.set('webdav', 'settings.default_server', '');
+
+            try {
+                // 1. 获取当前的大一统配置（极限容错处理）
+                let wdConfig = window.ConfigManager ? window.ConfigManager.get('webdav') : null;
+                if (!wdConfig || typeof wdConfig !== 'object') {
+                    try { wdConfig = JSON.parse(localStorage.getItem('iwebplayer.webdav') || "{}"); } catch(e) { wdConfig = {}; }
+                }
+                if (!wdConfig.settings) wdConfig.settings = {};
+                if (!wdConfig.roots) wdConfig.roots = {};
+
+                // 2. 无情抹除该节点的所有痕迹
+                if (curName === webdavDefaultServerName) {
+                    wdConfig.settings.default_server = '';
+                    webdavDefaultServerName = ''; // 同步更新局部变量
+                }
+                delete wdConfig.settings[`auto_scan_interval_${curName}`];
+                delete wdConfig.settings[`last_scan_time_${curName}`];
+                delete wdConfig.roots[curName];
+
+                // 3. 重新塞回内存并提交云端
+                if (window.ConfigManager && window.ConfigManager.configs) {
+                    window.ConfigManager.configs['webdav'] = wdConfig;
+                }
+                localStorage.setItem('iwebplayer.webdav', JSON.stringify(wdConfig));
+
                 await fetch('/api/v1/jsplugin/iwebplayer/store', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: 'iwebplayer.webdav', value: JSON.stringify(window.ConfigManager.get('webdav')) })
+                    body: JSON.stringify({ key: 'iwebplayer.webdav', value: JSON.stringify(wdConfig) })
                 });
+            } catch (e) {
+                console.error("清理配置缓存失败:", e);
             }
-            await fetch(`/api/v1/jsplugin/dav/lists/${encodeURIComponent(curName)}`, { method: 'DELETE' });
+
+            // 4. 最后执行底层接口删除账号密码
+            try {
+                await fetch(`/api/v1/jsplugin/dav/lists/${encodeURIComponent(curName)}`, { method: 'DELETE' });
+            } catch (e) {}
+
+            // 5. 🌟 新增：调用全新的 DELETE 接口，真正的物理抹除后端的该节点曲库文件
+            try {
+                await fetch(`/api/v1/jsplugin/iwebplayer/store?key=webdav_lib_${encodeURIComponent(curName)}`, {
+                    method: 'DELETE'
+                });
+            } catch (e) {}
+
+            // 6. 清理前端运行内存中的残留
+            if (window.webdavData) {
+                if (window.webdavData.cachePool) delete window.webdavData.cachePool[curName];
+                if (window.webdavData.metaCache) delete window.webdavData.metaCache[curName];
+                if (window.webdavData.credentials) delete window.webdavData.credentials[curName];
+
+                // 如果删掉的正好是当前选中的节点，必须把指针清空，让引擎重新自动选取下一个！
+                if (window.webdavData.currentServer === curName) {
+                    window.webdavData.currentServer = '';
+                }
+            }
+
             window.showToast("✅ 已移出");
             wdServerView.style.transform = 'translateX(0)'; wdServerDelView.style.transform = 'translateX(100%)';
             document.getElementById('wd-server-view').parentElement.parentElement.style.background = 'var(--card-bg)';
@@ -1367,7 +1519,19 @@
             window.showToast("⏳ 同步至服务器...");
             try {
                 await fetch('/api/v1/jsplugin/dav/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                window.showToast("🎉 保存成功"); wdServerEdit.style.display = 'none'; wdServerView.style.display = 'flex'; window.loadWebDavServers(true);
+                window.showToast("🎉 保存成功");
+                wdServerEdit.style.display = 'none';
+                wdServerView.style.display = 'flex';
+
+                // 🌟 核心细节优化：把指针强制指向刚刚保存的这个新节点
+                window.webdavData.currentServer = payload.name;
+
+                // 重新渲染时，引擎会自动发现指针已经改变，并瞬间切换过去！
+                window.loadWebDavServers(true);
+
+                // 保存新节点后，顺手检查一下要不要把它加进代理白名单
+                if (typeof window.checkAndPatchProxyAllowlist === 'function') window.checkAndPatchProxyAllowlist();
+
             } catch(e) { window.showToast("❌ 节点数据保存失败"); }
         });
 
@@ -1398,11 +1562,14 @@
                 if (dirs.length === 0) { listEl.innerHTML = '<li style="padding: 10px; text-align: center; color: var(--text-sub); font-size: 13px;">该目录下无文件夹子集</li>'; }
                 else {
                     dirs.forEach(d => {
+                        // 🌟 智能兜底：如果 name 为空，就从 id（路径）中提取最后一段作为名字
+                        const dName = d.name || (d.id ? d.id.split('/').filter(Boolean).pop() : '') || '未知目录';
+
                         const li = document.createElement('li');
                         li.style.cssText = 'padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s;';
                         li.onmousedown = () => li.style.background = 'var(--bg-color)'; li.onmouseup = () => li.style.background = 'transparent';
-                        li.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="#FACC15"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${d.name}</span>`;
-                        li.addEventListener('click', () => { const nextPath = path === '/' ? '/' + d.name : path + '/' + d.name; currentBrowserPath = nextPath; renderDirBrowser(nextPath); });
+                        li.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="#FACC15"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dName}</span>`;
+                        li.addEventListener('click', () => { const nextPath = path === '/' ? '/' + dName : path + '/' + dName; currentBrowserPath = nextPath; renderDirBrowser(nextPath); });
                         listEl.appendChild(li);
                     });
                 }
@@ -1444,6 +1611,50 @@
             window._tempScanRootPath = wdDirPath.innerText; window.triggerWebDavScan();
         });
 
+        // 🌟 新增：后台扫库频率 Custom Select 交互与广播保存
+        const wdIntervalVal = document.getElementById('wd-interval-val');
+        const wdIntervalOpts = document.getElementById('wd-interval-opts');
+
+        // 点空白处关闭下拉框
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#wd-interval-container')) wdIntervalOpts?.classList.remove('show');
+        });
+
+        // 点击展开下拉框
+        wdIntervalVal?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            wdIntervalOpts?.classList.toggle('show');
+        });
+
+        // 点击选项：修改 UI、存盘、广播
+        wdIntervalOpts?.querySelectorAll('.select-option').forEach(li => {
+            li.addEventListener('click', async (e) => {
+                e.stopPropagation();
+
+                const curSrv = document.getElementById('wd-server-val')?.dataset.value;
+                if (!curSrv) return;
+
+                // 1. UI 更新
+                wdIntervalOpts.querySelectorAll('.select-option').forEach(el => el.classList.remove('active'));
+                li.classList.add('active');
+                const newValue = li.dataset.value;
+                wdIntervalVal.innerText = li.innerText;
+                wdIntervalVal.dataset.value = newValue;
+                wdIntervalOpts.classList.remove('show');
+
+                // 2. 存盘
+                window.ConfigManager.set('webdav', `settings.auto_scan_interval_${curSrv}`, newValue);
+
+                // 3. 瞬间同步并广播给语音助手
+                await fetch('/api/v1/jsplugin/iwebplayer/store', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: 'iwebplayer.webdav', value: JSON.stringify(window.ConfigManager.get('webdav')) })
+                });
+
+                if (window.showToast) window.showToast(`✅ 已更新 [${curSrv}] 的静默扫库频率`);
+            });
+        });
+
         const webdavRadios = document.querySelectorAll('input[name="webdav-mode-radio"]');
         if (webdavRadios.length > 0) {
             // 🌟 修复：接入内存沙盒，合并上传！
@@ -1474,6 +1685,13 @@
                 tab.classList.add('active'); tab.style.fontWeight = 'bold'; tab.style.color = 'var(--primary)'; tab.style.borderBottomColor = 'var(--primary)';
                 document.querySelectorAll('.plugin-pane').forEach(p => p.style.display = 'none');
                 const targetPane = document.getElementById(tab.dataset.target); if (targetPane) targetPane.style.display = 'block';
+
+                // 切换到 WebDAV 标签页时，自动探测并修复内网代理白名单
+                if (tab.dataset.target === 'plugin-webdav-pane') {
+                    if (typeof window.checkAndPatchProxyAllowlist === 'function') {
+                        window.checkAndPatchProxyAllowlist();
+                    }
+                }
             });
         });
 
