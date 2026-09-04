@@ -853,7 +853,9 @@
                         const coverUrl = card.dataset.coverUrl;
 
                         if (coverUrl && coverUrl !== 'null' && coverUrl !== 'undefined' && coverUrl.trim() !== '') {
-                            img.src = `${coverUrl}?access_token=${globalToken}`;
+                            // 🌟 修复：智能判断原 URL 是否已有参数
+                            const sep = coverUrl.includes('?') ? '&' : '?';
+                            img.src = `${coverUrl}${sep}access_token=${globalToken}`;
                             window.playlistObserver.unobserve(card);
                         } else {
                             const playlistSongs = window.getMergedSongList(plName);
@@ -869,7 +871,9 @@
                                         img.src = validSong._scrapedCover;
                                         window.playlistObserver.unobserve(card);
                                     } else {
-                                        img.src = `${validSong.cover_url}&access_token=${globalToken}`;
+                                        // 🌟修复单曲封面回退的连接符
+                                        const sep2 = validSong.cover_url.includes('?') ? '&' : '?';
+                                        img.src = `${validSong.cover_url}${sep2}access_token=${globalToken}`;
                                         window.playlistObserver.unobserve(card);
                                     }
                                 } else {

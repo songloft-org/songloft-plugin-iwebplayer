@@ -234,28 +234,85 @@
             const currentQ = typeof window.getLxQuality === 'function' ? window.getLxQuality() : '320k';
             qualityRadios.forEach(radio => {
                 if (radio.value === currentQ) radio.checked = true;
-                // 🌟 改为 async 函数以等待版本检测
+
                 radio.addEventListener('change', async (e) => {
                     if (e.target.checked) {
-                        localStorage.setItem('iwebplayer.lx_quality', e.target.value);
+                        const selectedQuality = e.target.value;
+                        const qualityText = e.target.nextElementSibling.innerText;
 
-                        // 🌟 核心：检测插件版本，如果不支持，直接展现红底警告框
+                        // 1. 修复 Bug：统一写入最新的大一统沙盒，抛弃零散的 localStorage
+                        if (window.ConfigManager) {
+                            window.ConfigManager.set('lxmusic', 'settings.quality', selectedQuality);
+                        } else {
+                            localStorage.setItem('iwebplayer.lx_quality', selectedQuality);
+                        }
+
                         if (typeof window.getLxPluginInfo === 'function') {
                             const pInfo = await window.getLxPluginInfo();
                             const warningEl = document.getElementById('lx-quality-warning');
 
-                            // 类型 3：非 2026 开头 且 非 2.x 开头
+                            // 2. 三路分流判定
                             if (pInfo.type === 3) {
-                                if (warningEl) warningEl.style.display = 'block';
+                                // 提取洛雪的具体版本号进行数学比对
+                                const isSupported = window.compareVersion && window.compareVersion(pInfo.version, '3.7.8') >= 0;
+
+                                if (!isSupported) {
+                                    // 🛤️ 分支 B：3.x 版本，但低于 3.7.8 (不支持音质设置)
+                                    if (warningEl) warningEl.style.display = 'block';
+                                    return; // 拦截，不再发请求
+                                } else {
+                                    // 🛤️ 分支 C：3.x 版本，且 >= 3.7.8 (支持，走全量拉取+局部修改+全量回写)
+                                    if (warningEl) warningEl.style.display = 'none';
+                                    window.showToast("⏳ 正在应用音质设置...", true);
+
+                                    try {
+                                        // 步骤 1：拉取全量配置
+                                        const res = await fetch('/api/v1/jsplugin/lxmusic/api/settings');
+                                        if (res.ok) {
+                                            const resJson = await res.json();
+                                            if (resJson.code === 0 && resJson.data) {
+                                                const settingsData = resJson.data;
+
+                                                // 步骤 2：局部精确修改
+                                                settingsData.enablePlayQuality = true;
+                                                settingsData.playQuality = selectedQuality;
+                                                settingsData.enableHostQuality = true;
+                                                settingsData.hostQuality = selectedQuality;
+
+                                                // 步骤 3：全量写回
+                                                const postRes = await fetch('/api/v1/jsplugin/lxmusic/api/settings', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify(settingsData)
+                                                });
+
+                                                if (postRes.ok) {
+                                                    window.showToast(`✅ 优先音质已设为: ${qualityText}`);
+                                                } else {
+                                                    window.showToast("❌ 音质设置同步失败");
+                                                }
+                                            } else {
+                                                window.showToast("❌ 无法读取洛雪配置");
+                                            }
+                                        } else {
+                                            window.showToast("❌ 洛雪配置接口异常");
+                                        }
+                                    } catch (err) {
+                                        window.showToast("❌ 网络异常，配置未同步");
+                                    }
+                                }
                             } else {
+                                // 🛤️ 分支 A：2026.x 或 2.x 版本
+                                // 旧版本会在播放时才发旧版 POST，所以在这里只需隐藏警告框并提示成功
                                 if (warningEl) warningEl.style.display = 'none';
-                                window.showToast(`✅ 优先音质已设为: ${e.target.nextElementSibling.innerText}`);
+                                window.showToast(`✅ 优先音质已设为: ${qualityText}`);
                             }
                         }
                     }
                 });
             });
         }
+
         // 导入脚本本地文件
         const importBtn = document.getElementById('btn-import-plugin');
         const importInput = document.getElementById('plugin-upload-input');

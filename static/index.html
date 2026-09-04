@@ -1197,11 +1197,11 @@
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
-  <script src="./static/utils.js?v1.1.8" defer></script>
+  <script src="./static/utils.js?v1.2.0" defer></script>
   <script src="./static/lyrics.js?v1.1.6" defer></script>
-  <script src="./static/playlist.js?v1.1.8" defer></script>
+  <script src="./static/playlist.js?v1.2.0" defer></script>
   <script src="./static/online.js?v1.1.8" defer></script>
-  <script src="./static/plugins.js?v1.1.1" defer></script>
+  <script src="./static/plugins.js?v1.2.0" defer></script>
   <script src="./static/player.js?v1.1.8" defer></script>
   <script src="./static/miot.js?v1.0.6" defer></script>
 
@@ -1499,6 +1499,44 @@
 </div>
 
 <audio id="audio" preload="auto"></audio>
+
+<div class="about-modal-backdrop" id="set-cover-modal-backdrop" aria-hidden="true">
+  <div class="about-modal modal-tall" role="dialog" aria-modal="true">
+    <button class="about-close" id="set-cover-close" aria-label="关闭">×</button>
+    <div class="about-header modal-header-col">
+      <div class="modal-title-group mb-12">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        <h2 class="modal-title-h2">设置歌单封面</h2>
+      </div>
+    </div>
+    <div class="about-body modal-scroll-body" style="padding-top: 10px; display: flex; flex-direction: column; align-items: center;">
+      <!-- 实时预览区 -->
+      <div style="width: 140px; height: 140px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid var(--border); margin-bottom: 8px; flex-shrink: 0; background: var(--bg-color);">
+        <img id="set-cover-preview-img" src="" style="width: 100%; height: 100%; object-fit: cover;" alt="preview">
+      </div>
+      <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 20px;">效果预览</div>
+
+      <!-- 📸 本地上传触发器 -->
+      <button id="set-cover-upload-btn" class="about-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; border: 1px dashed var(--primary); color: var(--primary);">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        上传图片
+      </button>
+      <input type="file" id="set-cover-file-input" accept="image/*" style="display: none;">
+
+      <!-- 🎵 歌曲纵向拾取区 -->
+      <div style="width: 100%; text-align: left;">
+        <div class="modal-sec-title">或从当前曲目中选择</div>
+        <ul id="set-cover-songs-list" style="list-style: none; padding: 0; margin: 0; max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg);">
+          <!-- 动态注入的选项 -->
+        </ul>
+      </div>
+    </div>
+    <div class="about-footer">
+      <button class="about-secondary" id="set-cover-cancel">取消</button>
+      <button class="about-primary" id="set-cover-confirm" style="font-weight: bold;">保存设置</button>
+    </div>
+  </div>
+</div>
 
 <div class="about-modal-backdrop" id="about-backdrop" aria-hidden="true">
   <div class="about-modal" role="dialog" aria-modal="true">
@@ -2116,7 +2154,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.1.8';
+    window.APP_VERSION = 'v1.2.0';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2418,6 +2456,14 @@
                 const configBtn = document.querySelector('.global-dev-btn');
                 if (configBtn) configBtn.classList.toggle('disabled-text', currentPlaylist === '我的歌单');
 
+                // 🌟 修复：动态判断“设置封面”按钮是否置灰
+                const coverBtn = document.querySelector('.global-cover-btn');
+                if (coverBtn) {
+                    // 只要不是虚拟汇总视图，不管是内置还是自建，统统允许！
+                    const isVirtual = ['我的歌单', '曲库搜索', '在线资源'].includes(window.currentPlaylist);
+                    coverBtn.classList.toggle('disabled-text', isVirtual);
+                }
+
                 const isOnline = currentPlaylist === '在线资源';
                 const isWebDAV = window.PluginManager && window.PluginManager.currentEngineName === 'WebDAV';
 
@@ -2658,8 +2704,18 @@
 
         document.querySelector('.global-cover-btn')?.addEventListener('click', (e) => {
             e.stopPropagation(); document.getElementById('global-menu-1-opts')?.classList.remove('show');
-            if (currentPlaylist === '我的歌单' || currentPlaylist === '曲库搜索') { window.showToast("💡 请先进入具体的歌单进行设置"); return; }
-            document.getElementById('dev-modal-feature-name').textContent = '设置歌单封面'; document.getElementById('dev-backdrop').classList.add('show');
+            // 过滤系统歌单和汇总页
+            if (currentPlaylist === '我的歌单' || currentPlaylist === '曲库搜索' || currentPlaylist === '在线资源') {
+                window.showToast("💡 请先进入您自建的本地歌单进行设置");
+                return;
+            }
+            const pl = window.playlistMeta?.find(p => p.name === window.currentPlaylist);
+            if (!pl || (pl.labels && pl.labels.includes('built_in'))) {
+                window.showToast("💡 系统内置歌单无法修改封面");
+                return;
+            }
+            // 呼叫弹窗中枢
+            if (typeof window.openSetCoverModal === 'function') window.openSetCoverModal(pl);
         });
 
         if (searchInput && searchClear) {
@@ -3657,6 +3713,274 @@
             metaThemeEl.content = e.matches ? '#111827' : '#f3f4f6';
         }
     });
+
+    /* ==========================================
+     * 🌟 自定义歌单封面设置中枢 (Hybrid Upload Engine)
+     * ========================================== */
+    window.openSetCoverModal = function(pl) {
+        const modal = document.getElementById('set-cover-modal-backdrop');
+        const previewImg = document.getElementById('set-cover-preview-img');
+        const ul = document.getElementById('set-cover-songs-list');
+        const fileInput = document.getElementById('set-cover-file-input');
+        const uploadBtn = document.getElementById('set-cover-upload-btn');
+
+        window._pendingCover = null; // 重置沙盒
+        const globalToken = window.getAccessToken ? window.getAccessToken() : "";
+
+        // 1. 还原当前真实封面 (自动修复分隔符 bug)
+        let currentCover = window.defaultCover;
+        if (pl.cover_url) {
+            const sep = pl.cover_url.includes('?') ? '&' : '?';
+            currentCover = pl.cover_url + sep + 'access_token=' + globalToken;
+        }
+        previewImg.src = currentCover;
+
+        // 2. 清理旧数据并初始化弹窗专属的可视区域观察器
+        ul.innerHTML = '';
+        if (window.modalListObserver) {
+            window.modalListObserver.disconnect();
+        }
+
+        window.modalListObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const li = entry.target;
+                if (!entry.isIntersecting) {
+                    li._inView = false;
+                    if (li._scrapeTimer) { clearTimeout(li._scrapeTimer); li._scrapeTimer = null; }
+                    return;
+                }
+
+                li._inView = true;
+                const img = li.querySelector('img');
+                const index = li.dataset.index;
+                const song = window.songList[index];
+
+                // 如果有现成原生图，直接懒加载
+                if (img.dataset.src) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                }
+                // 如果标记了需要刮削
+                else if (img.dataset.scrape === "true") {
+                    if (li._scrapeTimer) clearTimeout(li._scrapeTimer);
+                    li._scrapeTimer = setTimeout(async () => {
+                        if (!li._inView) return;
+                        img.removeAttribute('data-scrape');
+
+                        const hdCover = await window.fetchScrape(song, 'cover');
+                        if (!li._inView) return;
+
+                        if (hdCover) {
+                            img.src = hdCover;
+                            song._scrapedCover = hdCover; // 存入全局内存
+
+                            // 🌟 动态同步：如果这张图刚好已经被用户点击选中了，立马更新上方的大预览图！
+                            if (li.dataset.selected === 'true') {
+                                previewImg.src = hdCover;
+                                window._pendingCover = { type: 'scraped', data: hdCover };
+                            }
+                        } else {
+                            song._scrapedCover = window.defaultCover; // 刮削失败，死心兜底
+                        }
+                    }, 300); // 弹窗里响应速度稍微调快一点
+                }
+            });
+        }, { root: ul, rootMargin: '100px 0px', threshold: 0.1 });
+
+        // 🌟 全局挂载弹窗专属的死链抢救器
+        window.handleModalCoverError = function(imgEl, index) {
+            if (imgEl.src !== window.defaultCover) {
+                imgEl.src = window.defaultCover; // 先用默认图兜底防碎图
+                imgEl.dataset.scrape = "true";   // 标记需要抢救刮削
+                imgEl.removeAttribute('data-src');
+
+                // 重新触发观察器逻辑
+                const li = imgEl.closest('li');
+                if (li && li._inView) {
+                    window.modalListObserver.unobserve(li);
+                    window.modalListObserver.observe(li);
+                }
+            }
+        };
+
+        // 3. 遍历当前曲目（不去重），生成骨架并挂载观察器
+        if (window.songList.length === 0) {
+            ul.innerHTML = '<li style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">当前曲目为空</li>';
+        } else {
+            const fragment = document.createDocumentFragment();
+            window.songList.forEach((song, index) => {
+                let coverUrl = null;
+                let needsScrape = false;
+
+                // 优先用已有的刮削图或原生图
+                if (song._scrapedCover && song._scrapedCover !== window.defaultCover && !song._scrapedCover.startsWith('data:image/svg')) {
+                    coverUrl = song._scrapedCover;
+                } else if (song.cover_url && song.cover_url.trim() !== '') {
+                    const sep = song.cover_url.includes('?') ? '&' : '?';
+                    coverUrl = `${song.cover_url}${sep}access_token=${globalToken}`;
+                } else {
+                    needsScrape = true; // 啥都没有，必须打上刮削标记
+                }
+
+                const li = document.createElement('li');
+                li.dataset.index = index;
+                li.dataset.selected = 'false';
+                li.style.cssText = 'padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.2s;';
+
+                // 初始统一显示骨架默认图，真实的 URL 藏在 data-src 里由 Observer 触发
+                li.innerHTML = `
+                  <img src="${window.defaultCover}"
+                       ${coverUrl ? `data-src="${coverUrl}"` : ''}
+                       ${needsScrape ? `data-scrape="true"` : ''}
+                       onerror="if(window.handleModalCoverError) window.handleModalCoverError(this, ${index})"
+                       style="width: 42px; height: 42px; border-radius: 6px; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.05);">
+                  <span style="font-size: 14px; color: var(--text-main); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.getSongNameObj(song)}</span>
+                `;
+
+                // 样式交互交互
+                li.onmousedown = () => { if (li.dataset.selected !== 'true') li.style.background = 'var(--bg-color)'; };
+                li.onmouseup = () => { if (li.dataset.selected !== 'true') li.style.background = 'transparent'; };
+                li.onmouseleave = () => { if (li.dataset.selected !== 'true') li.style.background = 'transparent'; };
+
+                // 核心点击：判定当前图的状态
+                li.onclick = () => {
+                    ul.querySelectorAll('li').forEach(el => {
+                        el.style.background = 'transparent';
+                        el.dataset.selected = 'false';
+                    });
+                    li.style.background = 'var(--bg-color)';
+                    li.dataset.selected = 'true';
+
+                    const img = li.querySelector('img');
+                    const currentSrc = img.src;
+                    previewImg.src = currentSrc;
+
+                    // 判断当前图是否已经加载出真图
+                    if (currentSrc !== window.defaultCover && !currentSrc.startsWith('data:image/svg')) {
+                        // 是真实的图（原生或刮削来的）
+                        const isScraped = currentSrc === song._scrapedCover;
+                        window._pendingCover = { type: isScraped ? 'scraped' : 'native', data: isScraped ? currentSrc : song.id };
+                    } else {
+                        // 如果还在刮削中，先存着歌曲 ID 当原生图兜底
+                        window._pendingCover = { type: 'native', data: song.id };
+                    }
+                };
+
+                fragment.appendChild(li);
+                window.modalListObserver.observe(li);
+            });
+            ul.appendChild(fragment);
+        }
+
+        // 4. 本地上传与 Canvas 1:1 终极压缩裁剪
+        uploadBtn.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const size = 500; // 锁定 500x500 高清缩略
+                    canvas.width = size; canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+
+                    // 完美中心正方形裁剪算法
+                    const minDim = Math.min(img.width, img.height);
+                    const sx = (img.width - minDim) / 2;
+                    const sy = (img.height - minDim) / 2;
+                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+
+                    // 压缩并压入 Blob 缓存池
+                    canvas.toBlob((blob) => {
+                        window._pendingCover = { type: 'upload', data: blob };
+                        previewImg.src = URL.createObjectURL(blob);
+                        ul.querySelectorAll('li').forEach(el => {
+                            el.style.background = 'transparent';
+                            el.dataset.selected = 'false';
+                        });
+                    }, 'image/jpeg', 0.8);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+            e.target.value = ''; // 释放句柄允许重复传同文件
+        };
+
+        // 5. 事件清理与弹窗关闭
+        const closeModal = () => {
+            if (window.modalListObserver) {
+                window.modalListObserver.disconnect();
+                window.modalListObserver = null;
+            }
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        };
+
+        document.getElementById('set-cover-close').onclick = closeModal;
+        document.getElementById('set-cover-cancel').onclick = closeModal;
+
+        // 6. 核心保存路由：将数据异构抹平
+        document.getElementById('set-cover-confirm').onclick = async () => {
+            if (!window._pendingCover) {
+                closeModal(); return;
+            }
+
+            const { type, data } = window._pendingCover;
+            window.showToast("⏳ 正在保存封面...", true);
+
+            try {
+                if (type === 'native') {
+                    // 走原生捷径：发送 song ID
+                    const res = await fetch(`/api/v1/playlists/${pl.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: pl.name, cover_song_id: data })
+                    });
+                    if (!res.ok) throw new Error("Native update failed");
+                } else {
+                    // 走流上传通道：(包含本地图与刮削图)
+                    let blob = data;
+                    if (type === 'scraped') {
+                        // 狸猫换太子：瞬间后台下载外链图片伪装成 Blob
+                        const proxyUrl = `/api/v1/proxy?url=${encodeURIComponent(data)}&access_token=${globalToken}`;
+                        const resBlob = await fetch(proxyUrl);
+                        if (!resBlob.ok) throw new Error("Scrape fetch failed");
+                        blob = await resBlob.blob();
+                    }
+
+                    // 🌟 核心修复：用 FormData 包装，字段名必须严格使用后端要求的 'file'
+                    const formData = new FormData();
+                    formData.append('file', blob, 'cover.jpg');
+
+                    const res = await fetch(`/api/v1/playlists/${pl.id}/cover`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!res.ok) throw new Error("FormData upload failed");
+                }
+
+                window.showToast("🎉 封面设置成功！");
+                closeModal();
+
+                // 全网重绘更新：同步后台 -> 重刷瀑布流
+                if (window.reloadGlobalData) await window.reloadGlobalData();
+                if (window.renderPlaylist) window.renderPlaylist();
+                if (window.initPlaylistDropdown) window.initPlaylistDropdown();
+
+            } catch (err) {
+                console.error(err);
+                window.showToast("❌ 封面保存失败，请检查网络");
+            }
+        };
+
+        // 亮出弹窗
+        modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    };
 
     document.addEventListener('DOMContentLoaded', init);
 
