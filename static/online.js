@@ -328,30 +328,32 @@
     // ==========================================
     // 6. 统一调度中心：搜索、详情与恢复
     // ==========================================
-    // 🌟 终极解耦：智能分发三个物理隔离的外壳，动态宿主 ... 菜单
     window.refreshOnlineUI = function() {
+       const targetView = window.currentOnlineView === 'detail' ? 'detail' : window.PluginManager.currentEngineName;
+       console.log("【调度】刷新在线 UI, 当前视图:", window.currentOnlineView, "目标路由:", targetView);
+
+       // 🌟 核心修复：无论是切引擎还是切页面，先重置所有过滤框状态
+       if (window.FilterManager) window.FilterManager.resetUI();
+
        const menuWrapper = document.getElementById('global-menu-1-wrapper');
        const lxRow = document.getElementById('lx-search-row');
        const wdRow = document.getElementById('wd-search-row');
        const detailRow = document.getElementById('detail-title-row');
 
-       const targetView = window.currentOnlineView === 'detail' ? 'detail' : window.PluginManager.currentEngineName;
+       // 暴力清除模式：先把三行全部隐藏，彻底杜绝任何残留！
+       if (lxRow) lxRow.style.display = 'none';
+       if (wdRow) wdRow.style.display = 'none';
+       if (detailRow) detailRow.style.display = 'none';
 
-       // 🌟 核心修复：只有在目标与当前不一致时，才去改变 display，绝不无脑隐藏导致焦点丢失和输入法中断！
        if (targetView === 'detail') {
-           if (lxRow && lxRow.style.display !== 'none') lxRow.style.display = 'none';
-           if (wdRow && wdRow.style.display !== 'none') wdRow.style.display = 'none';
-           if (detailRow && detailRow.style.display !== 'flex') detailRow.style.display = 'flex';
+           if (detailRow) detailRow.style.display = 'flex';
            if (menuWrapper) document.getElementById('menu-dropzone-detail')?.appendChild(menuWrapper);
        } else if (targetView === 'WebDAV') {
-           if (lxRow && lxRow.style.display !== 'none') lxRow.style.display = 'none';
-           if (detailRow && detailRow.style.display !== 'none') detailRow.style.display = 'none';
-           if (wdRow && wdRow.style.display !== 'flex') wdRow.style.display = 'flex';
+           if (wdRow) wdRow.style.display = 'flex';
            if (menuWrapper) document.getElementById('menu-dropzone-wd')?.appendChild(menuWrapper);
        } else {
-           if (wdRow && wdRow.style.display !== 'none') wdRow.style.display = 'none';
-           if (detailRow && detailRow.style.display !== 'none') detailRow.style.display = 'none';
-           if (lxRow && lxRow.style.display !== 'flex') lxRow.style.display = 'flex';
+           // LXMusic 兜底
+           if (lxRow) lxRow.style.display = 'flex';
            if (menuWrapper) document.getElementById('menu-dropzone-lx')?.appendChild(menuWrapper);
        }
     };
@@ -615,6 +617,7 @@
                     if (typeof window.formatPlaylistTextWithTags === 'function') plVal.innerHTML = window.formatPlaylistTextWithTags('在线资源', window.songList.length);
                     else plVal.innerHTML = `在线资源 (${window.songList.length})`;
                 }
+                if (window.FilterManager) window.FilterManager.applyListFilter(400);
             } else { list.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px;">该歌单为空或获取失败</div>`; }
         } catch(e) { list.innerHTML = window.NO_PLUGIN_HTML || '加载失败'; }
     };
@@ -673,12 +676,13 @@
         }
 
         // 🎯 拦截 1：引擎切换 (沙盒完全隔离版)
-        // 🎯 拦截 1：引擎切换 (沙盒完全隔离版)
         const engineLi = e.target.closest('#engine-opts .select-option');
         if (engineLi) {
             e.stopPropagation();
-            window.deadSongIndexes = {}; // 🌟 切换引擎，立即清空失效标记
             const engine = engineLi.dataset.value;
+            console.log("【触发】引擎切换至 ->", engine);
+            window.deadSongIndexes = {}; // 🌟 切换引擎，立即清空失效标记
+
             const grid = document.getElementById('playlist-grid');
             const list = document.getElementById('playlist');
 
@@ -708,12 +712,7 @@
             // 3. 提取目标引擎的记忆账本
             const oState = window.StateManager.getState();
             window.currentOnlineView = oState.view;
-
-            const mfSearchInput = document.getElementById('mf-search-input');
-            const mfSearchMainBtns = document.getElementById('mf-search-main-btns');
-            const mfSearchBackBtn = document.getElementById('mf-search-back-btn');
-            const shortDivider = document.querySelector('#global-menu-1-wrapper .divider-v');
-            const oldIcon = document.getElementById('mf-search-pl-icon');
+            console.log("【状态】目标引擎沙盒数据:", oState);
 
             // 4. 精准复原目标引擎的最后现场
             if (window.isWebDAVMode) {
@@ -722,14 +721,22 @@
                 if (grid && window.webdavGridBackup !== undefined) grid.innerHTML = window.webdavGridBackup;
 
                 if (list && window.webdavListBackup !== undefined) {
-                    if (window.songList && window.songList.length > 0 && typeof window.renderPlaylist === 'function') {
-                        window.renderPlaylist();
+                    // 🌟 性能与视图双保险：只有在显示歌曲时才重绘，搜单时坚决不碰
+                    if (oState.view === 'song' || oState.view === 'detail') {
+                        if (window.songList && window.songList.length > 0 && typeof window.renderPlaylist === 'function') window.renderPlaylist();
+                        else list.innerHTML = window.webdavListBackup;
                     } else {
                         list.innerHTML = window.webdavListBackup;
                     }
                 }
 
                 document.getElementById('wd-search-input').value = (oState.view === 'dav_search' || oState.view === 'song') ? (oState.keyword || '') : '';
+
+                // 🌟 核心修复：如果停在详情页，强行修复第二行的标题内容！
+                if (oState.view === 'detail') {
+                    const titleText = document.getElementById('detail-title-text');
+                    if (titleText) titleText.innerHTML = `<span style="display:inline-flex; transform:translateY(2px);">${window.SVG_ICONS.webdav.replace('width="15"', 'width="16"').replace('height="15"', 'height="16"')}</span><span>${oState.detail_name || ''}</span>`;
+                }
 
                 if (oState.view === 'playlist') { if(grid) grid.style.display = 'grid'; if(list) list.style.display = 'none'; }
                 else { if(grid) grid.style.display = 'none'; if(list) list.style.display = 'block'; }
@@ -742,14 +749,22 @@
                 if (grid && window.lxGridBackup !== undefined) grid.innerHTML = window.lxGridBackup;
 
                 if (list && window.lxListBackup !== undefined) {
-                    if (window.songList && window.songList.length > 0 && typeof window.renderPlaylist === 'function') {
-                        window.renderPlaylist();
+                    // 🌟 性能与视图双保险
+                    if (oState.view === 'song' || oState.view === 'detail') {
+                        if (window.songList && window.songList.length > 0 && typeof window.renderPlaylist === 'function') window.renderPlaylist();
+                        else list.innerHTML = window.lxListBackup;
                     } else {
                         list.innerHTML = window.lxListBackup;
                     }
                 }
 
                 document.getElementById('lx-search-input').value = oState.keyword || '';
+
+                // 🌟 核心修复：如果停在详情页，强行修复第二行的标题内容！
+                if (oState.view === 'detail') {
+                    const titleText = document.getElementById('detail-title-text');
+                    if (titleText) titleText.innerHTML = `<span style="display:inline-flex; transform:translateY(2px);">${window.SVG_ICONS?.lx_plugin_line || ''}</span><span>${oState.detail_name || ''}</span>`;
+                }
 
                 if (oState.view === 'playlist') { if(grid) grid.style.display = 'grid'; if(list) list.style.display = 'none'; }
                 else { if(grid) grid.style.display = 'none'; if(list) list.style.display = 'block'; }
@@ -1079,6 +1094,7 @@
         }
 
         if(window.renderPlaylist) window.renderPlaylist();
+        if (window.FilterManager) window.FilterManager.applyListFilter(400);
     };
 
     window.triggerWebDavScan = async function() {

@@ -566,7 +566,7 @@
                 } else {
                     window.songList = window.getMergedSongList(key);
                     window.renderPlaylist();
-
+                    if (window.FilterManager) window.FilterManager.applyListFilter(400);
                     // 🌟 从新架构读取该歌单的最新书签或历史进行跳转
                     let targetName = null;
                     let targetTime = 0;
@@ -1540,6 +1540,7 @@
                     if (window.currentPlaylist && window.currentPlaylist !== '在线资源' && window.currentPlaylist !== '曲库搜索') {
                         window.songList = window.getMergedSongList(window.currentPlaylist);
                         if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+                        if (window.FilterManager) window.FilterManager.applyListFilter(400);
                     }
 
                     if (typeof window.showToast === 'function') {

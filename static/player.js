@@ -236,6 +236,7 @@
     };
 
     window.updateSearchUI = function(playlistName) {
+        if (window.FilterManager) window.FilterManager.resetUI();
         const searchWrap = $('search-inline-wrap');
         const mfPluginRow = $('mf-plugin-row');
         const onlineToolbar = $('online-toolbar-container');

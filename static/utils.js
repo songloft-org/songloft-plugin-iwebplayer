@@ -118,6 +118,109 @@
         }
     };
 
+    // ==========================================
+    // 🔍 第三象限：当前列表极速过滤沙盒 (FilterManager)
+    // ==========================================
+    window.FilterManager = {
+        getRecords: function() {
+            try { return JSON.parse(localStorage.getItem('iwebplayer.list_filters') || '[]'); }
+            catch(e) { return []; }
+        },
+        saveRecords: function(records) {
+            localStorage.setItem('iwebplayer.list_filters', JSON.stringify(records));
+        },
+        getContext: function() {
+            if (window.currentPlaylist === '在线资源') {
+                const state = window.StateManager ? window.StateManager.getState() : {};
+                if (state.view !== 'detail') return null;
+                return {
+                    env: 'online',
+                    plugin: window.PluginManager ? window.PluginManager.currentEngineName : 'LXMusic',
+                    source: state.detail_source || (window.webdavData ? window.webdavData.currentServer : ''),
+                    playlist: String(state.detail_id || state.detail_name)
+                };
+            }
+            else if (['曲库搜索', '我的歌单', '在线资源', 'cache_songs', '_local_iwebplayer_search'].includes(window.currentPlaylist)) {
+                return null;
+            }
+            return { env: 'local', plugin: '', source: '', playlist: window.currentPlaylist };
+        },
+        getFilter: function() {
+            const ctx = this.getContext();
+            if (!ctx) return '';
+            const records = this.getRecords();
+            const record = records.find(r => r.env === ctx.env && r.plugin === ctx.plugin && r.source === ctx.source && r.playlist === ctx.playlist);
+            return record ? record.keyword : '';
+        },
+        setFilter: function(keyword) {
+            const ctx = this.getContext();
+            if (!ctx) return;
+            let records = this.getRecords();
+            records = records.filter(r => !(r.env === ctx.env && r.plugin === ctx.plugin && r.source === ctx.source && r.playlist === ctx.playlist));
+            if (keyword) {
+                records.push({ ...ctx, keyword, timestamp: Date.now() });
+                records.sort((a, b) => b.timestamp - a.timestamp);
+                if (records.length > 50) records = records.slice(0, 50);
+            }
+            this.saveRecords(records);
+        },
+        resetUI: function() {
+            const lWrap = document.getElementById('local-filter-wrap');
+            const lInput = document.getElementById('local-filter-input');
+            const oWrap = document.getElementById('online-filter-wrap');
+            const oInput = document.getElementById('online-filter-input');
+            if (lWrap) lWrap.style.display = 'none';
+            if (oWrap) oWrap.style.display = 'none';
+            if (lInput) lInput.value = '';
+            if (oInput) oInput.value = '';
+        },
+        applyListFilter: function(delay = 0) {
+            this.resetUI();
+            const keyword = this.getFilter();
+            const ctx = this.getContext();
+            if (!ctx) return;
+
+            const applyFn = () => {
+                if (!keyword) return;
+                let targetInput, targetWrap;
+                if (ctx.env === 'online') {
+                    targetWrap = document.getElementById('online-filter-wrap');
+                    targetInput = document.getElementById('online-filter-input');
+                } else {
+                    targetWrap = document.getElementById('local-filter-wrap');
+                    targetInput = document.getElementById('local-filter-input');
+                }
+
+                if (targetWrap && targetInput) {
+                    targetWrap.style.display = 'flex';
+                    targetWrap.classList.add('glow');
+                    targetInput.value = keyword;
+                    setTimeout(() => targetWrap.classList.remove('glow'), 800);
+                }
+                this.triggerFilterLogic(keyword, ctx.env);
+            };
+
+            if (delay > 0 && keyword) {
+                setTimeout(applyFn, delay);
+            } else if (keyword) {
+                applyFn();
+            }
+        },
+        triggerFilterLogic: function(keyword, env) {
+            let baseList = env === 'online' ? (window.allPlaylists['在线资源'] || []) : (window.allPlaylists[window.currentPlaylist] || []);
+
+            if (!keyword) {
+                window.songList = [...baseList];
+            } else {
+                const lowerKw = keyword.toLowerCase();
+                window.songList = baseList.filter(s => {
+                    const nameObj = window.getSongNameObj(s);
+                    return nameObj && nameObj.toLowerCase().includes(lowerKw);
+                });
+            }
+            if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+        }
+    };
 
     // ==========================================
     // 🌟 全局工具函数对接新 ConfigManager

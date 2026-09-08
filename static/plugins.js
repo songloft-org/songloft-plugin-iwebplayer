@@ -31,6 +31,11 @@
 
         container.innerHTML = '';
 
+        // 🌟 核心修复：从新的内存沙盒里读取用户保存的排序！
+        if (window.ConfigManager) {
+            window.currentPlatformSort = window.ConfigManager.get('lxmusic', 'settings.platform_sort') || window.currentPlatformSort;
+        }
+
         // 🌟 核心防御：剔除掉老用户云端配置里可能残留的失效平台（如汽水）
         window.currentPlatformSort = window.currentPlatformSort.filter(key => window.PLATFORM_MAP[key]);
 
@@ -65,6 +70,11 @@
         const ul = document.getElementById('platform-sort-ul');
         if (!ul) return;
         ul.innerHTML = '';
+
+        // 🌟 核心修复：同步从内存沙盒读取最新排序！
+        if (window.ConfigManager) {
+            window.currentPlatformSort = window.ConfigManager.get('lxmusic', 'settings.platform_sort') || window.currentPlatformSort;
+        }
 
         // 🌟 同样加一道保险
         window.currentPlatformSort = window.currentPlatformSort.filter(key => window.PLATFORM_MAP[key]);
