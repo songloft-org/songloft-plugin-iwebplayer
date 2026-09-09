@@ -6,8 +6,13 @@
     const $ = (id) => document.getElementById(id);
 
     // 🌟 终极融合：全局统一的歌词获取中枢 (三级瀑布流)
+    // 🌟 终极融合：全局统一的歌词获取中枢 (三级瀑布流)
     window.fetchSongLyric = async function(rawItem, targetSongName) {
         let finalLrc = null;
+
+        // 🌟 新增：歌词质检员（只要没有 [00:00] 这样的时间轴，一律视为废品纯文本）
+        const isValidLrc = (lrc) => typeof lrc === 'string' && /\[\d{2,}:\d{2}(?:\.\d{1,3})?\]/.test(lrc);
+
         try {
             // 1. SongLoft 官方数据库 (最高优先级，含网盘和被入库的在线歌)
             if (rawItem && rawItem.id) {
@@ -15,9 +20,11 @@
                     const slRes = await fetch(`/api/v1/songs/${rawItem.id}/lyric`);
                     if (slRes.ok) {
                         const slData = await slRes.json();
-                        if (slData && slData.lyric) {
+                        if (isValidLrc(slData?.lyric)) {
                             console.log(`[歌词] 命中 SongLoft 官方数据库`);
                             return slData.lyric;
+                        } else if (slData?.lyric) {
+                            console.log(`[歌词] 官方数据库返回的歌词无时间轴，判定为不合格，丢弃并降级刮削`);
                         }
                     }
                 } catch(e) {}
@@ -34,9 +41,11 @@
                         const lrcUrl = `/api/v1/jsplugin/lxmusic/api/direct/lyric?source=${sd.source}&songmid=${sd.songmid || sd.musicId}&musicId=${sd.musicId}&duration=${sd.duration}`;
                         const lrcRes = await fetch(lrcUrl);
                         const lrcData = await lrcRes.json();
-                        if (lrcData.code === 0 && lrcData.data && lrcData.data.lyric) {
+                        if (lrcData.code === 0 && isValidLrc(lrcData.data?.lyric)) {
                             console.log(`[歌词] 命中 LXMusic 插件原生接口`);
                             return lrcData.data.lyric;
+                        } else if (lrcData.data?.lyric) {
+                            console.log(`[歌词] LXMusic 接口歌词无时间轴，判定为不合格，丢弃并降级刮削`);
                         }
                     } catch(e) {}
                 }
@@ -361,22 +370,27 @@
             const audioEl = $('audio');
             if (audioEl && !audioEl.paused) audioEl.pause();
 
-            const pl = window.playlistMeta ? window.playlistMeta.find(p => p.name === window.currentPlaylist) : null;
-            let targetPlId = pl ? pl.id : null;
-
-            if (!targetPlId) {
-                if (window.showToast) window.showToast("⏳ 正在将列表打包推送到音箱...", true);
-                targetPlId = await window.MiotManager.syncListToPushPlaylist(window.songList);
-                if (!targetPlId) {
-                    if (window.showToast) window.showToast("❌ 打包推送失败，请重试");
-                    return;
-                }
-            }
-
+            // 1. 无论什么情况，先把 UI 画面切过去（高亮、标题变化）
             window.highlightSongUI(index);
             window.updateNpTitleUI(window.currentSongName, true, false);
 
+            // 2. 🌟 核心修复：只有用户主动点播时，才执行耗时的建单推流。
+            // 如果是音箱自动切歌触发的同步(autoPlay=false)，直接跳过这段厚重的逻辑！
             if (autoPlay) {
+                const pl = window.playlistMeta ? window.playlistMeta.find(p => p.name === window.currentPlaylist) : null;
+                let targetPlId = pl ? pl.id : null;
+
+                const isFiltered = window.FilterManager && window.FilterManager.getFilter().trim() !== '';
+
+                if (!targetPlId || isFiltered) {
+                    if (window.showToast) window.showToast(isFiltered ? "⏳ 正在打包过滤后的列表推送至音箱..." : "⏳ 正在将列表打包推送到音箱...", true);
+                    targetPlId = await window.MiotManager.syncListToPushPlaylist(window.songList);
+                    if (!targetPlId) {
+                        if (window.showToast) window.showToast("❌ 打包推送失败，请重试");
+                        return;
+                    }
+                }
+                // 拿到 ID 后下发给小爱
                 window.MiotManager.playPlaylist(targetPlId, index);
             }
 
@@ -384,6 +398,14 @@
             const miniCoverImg = $('mini-cover-img');
 
             const handleCoverError = function() {
+                // 🌟 神级抢救：突破 QQ 音乐等平台的防盗链 CORS 限制！
+                // 如果图片因为跨域被浏览器截杀，我们自动套上 Songloft 后端代理再试一次
+                if (this.src && !this.src.includes('/api/v1/proxy') && this.src.startsWith('http') && !this.src.includes(window.location.host)) {
+                    const token = window.getAccessToken ? window.getAccessToken() : "";
+                    this.src = `/api/v1/proxy?url=${encodeURIComponent(this.src)}&access_token=${token}`;
+                    return; // 给代理一次机会，如果是真死链，会再次触发 onerror 走下面的逻辑
+                }
+
                 if (this.src !== window.defaultCover) {
                     this.src = window.defaultCover;
                     if (!rawItem._scrapedCover) {
@@ -468,6 +490,13 @@
         const progressBar = $('progress-bar');
 
         const handleCoverError = function() {
+            // 🌟 神级抢救：突破 QQ 音乐等平台的防盗链 CORS 限制！
+            if (this.src && !this.src.includes('/api/v1/proxy') && this.src.startsWith('http') && !this.src.includes(window.location.host)) {
+                const token = window.getAccessToken ? window.getAccessToken() : "";
+                this.src = `/api/v1/proxy?url=${encodeURIComponent(this.src)}&access_token=${token}`;
+                return; // 给代理一次机会，如果是真死链，会再次触发 onerror 走下面的逻辑
+            }
+
             if (this.src !== window.defaultCover) {
                 this.src = window.defaultCover;
                 if (!rawItem._scrapedCover) {

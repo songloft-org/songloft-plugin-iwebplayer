@@ -14,6 +14,7 @@
         },
         wsStatus: null,
         pingTimer: null,
+        _hasAutoJumped: false, // 标记是否已经执行过自动寻回跳转
 
         // 🌟 虚拟时钟引擎参数
         virtualClockId: null,
@@ -227,6 +228,7 @@
 
         // 核心切换逻辑
         selectDevice: function(id, type, accountId, name) {
+
             this.currentDevice = { id, type, accountId, name };
             const deviceVal = document.getElementById('device-val');
             if (deviceVal) {
@@ -295,8 +297,9 @@
             // 🌟 1. 乐观更新：立刻让图标变成“暂停(播放中)”形状，不等待网络返回
             if (window.updatePlayButtonUI) window.updatePlayButtonUI(true);
             this.isWsPlaying = true;
-            this.lastWsPos = 0;       // 🌟 强行清空上一首歌的进度缓存
-            this.lastWsDuration = 0;  // 🌟 归零总时长，挂起虚拟时钟，静静等待 WebSocket 的真实推送唤醒！
+            this.lastWsPos = 0;
+            this.lastWsDuration = 0;
+            this._maxEstPos = 0;      // 🌟 新增：强制清空虚拟时钟的最高水位线
 
             // 🌟 同步让下拉框里的设备图标变成跳动波浪！
             const targetDev = this.devices.find(d => d.deviceID === this.currentDevice.id);
@@ -333,6 +336,10 @@
             // 🌟 2. 乐观更新：立刻翻转图标，并加锁 4000 毫秒（拒绝听信滞后的 WebSocket 推送）
             this._stateLockTime = Date.now() + 4000;
             this.isWsPlaying = targetState;
+            // 🌟 如果解除暂停，必须将物理时间的基准锚点拉到此刻，防止时间发生飞跃后回滚！
+            if (targetState) {
+                this.lastWsTime = performance.now();
+            }
             if (window.updatePlayButtonUI) window.updatePlayButtonUI(targetState);
 
             // 🌟 同步更新下拉框里的图标
@@ -432,9 +439,18 @@
                 // 阻塞等待灌库完成（非常快，因为是批量接口）
                 await Promise.all(tasks);
 
-                // 5. 静默重载全局数据，让前端的内存状态和后端一致 (不加 await！绝不阻塞播放)
-                if (typeof window.reloadGlobalData === 'function') {
-                    window.reloadGlobalData().catch(e => console.warn(e));
+                // 5. 极致优化：不触发全量重载，直接在前端内存中"伪装"注入这个新歌单！
+                // 这样既能让自动寻回逻辑找到它，又省去了所有的网络同步开销。
+                if (window.playlistMeta) {
+                    window.playlistMeta = window.playlistMeta.filter(p => p.name !== 'iWebPlayer推送');
+                    window.playlistMeta.push({ id: plId, name: 'iWebPlayer推送', labels: ['auto_created'] });
+                }
+                if (window.allPlaylists) {
+                    window.allPlaylists['iWebPlayer推送'] = [...currentList];
+                }
+                // 顺手重绘一下下拉框，让它立刻在菜单里出现
+                if (typeof window.initPlaylistDropdown === 'function') {
+                    window.initPlaylistDropdown();
                 }
 
                 return plId; // 立刻返回全新的 ID 给播放器用
@@ -534,6 +550,21 @@
                     let estPos = this.lastWsPos + (now - this.lastWsTime) / 1000;
                     if (estPos > this.lastWsDuration) estPos = this.lastWsDuration;
 
+                    // 🌟 核心防回滚补丁：抹平网络延迟带来的进度跳变
+                    if (this._maxEstPos === undefined) this._maxEstPos = 0;
+                    if (estPos < this._maxEstPos) {
+                        // 如果倒退误差在 2 秒以内，判定为网络推送滞后，强制稳住不动！
+                        if (this._maxEstPos - estPos < 2) {
+                            estPos = this._maxEstPos;
+                        } else {
+                            // 倒退极多（比如拖动进度条、切歌），才允许重置水位线
+                            this._maxEstPos = estPos;
+                        }
+                    } else {
+                        // 正常向前滚动，更新最高水位线
+                        this._maxEstPos = estPos;
+                    }
+
                     // 平滑更新时间文本
                     const timeCurrentEl = document.getElementById('time-current');
                     if (timeCurrentEl) {
@@ -568,7 +599,13 @@
 
             const position = parseFloat(data.position) || 0;
             const duration = parseFloat(data.duration) || 0;
-            const isPlaying = data.state === 'playing';
+            let isPlaying = data.state === 'playing';
+
+            // 🌟 状态强制保护锁：如果处于刚点击暂停/播放的 2 秒内，拒绝听信网络传来的滞后状态！
+            // 坚决维持用户刚才点击的目标状态 (this.isWsPlaying)
+            if (this._stateLockTime && Date.now() < this._stateLockTime) {
+                isPlaying = this.isWsPlaying;
+            }
 
             // 🌟 2. 不马上粗暴刷新时间！只把数据喂给虚拟时钟
             this.lastWsPos = position;
@@ -604,10 +641,47 @@
             }
 
             // ④ 🤖 自动感知切歌（利用前端原生逻辑更新 UI 并抓取封面歌词）
+            // ④ 🤖 自动感知切歌（利用前端原生逻辑更新 UI 并抓取封面歌词）
             if (data.current_song && data.current_song.title) {
                 const newSongName = data.current_song.artist ? `${data.current_song.title} - ${data.current_song.artist}` : data.current_song.title;
 
+                // 🌟 新增：首次连接设备时，智能追踪并跳转到歌曲所属的最优歌单
+                if (!this._hasAutoJumped) {
+                    this._hasAutoJumped = true;
+
+                    let foundPlaylist = null;
+                    // 剔除系统保留字，提取出真正的常规自定义歌单
+                    const systemPls = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs', '电台收藏', 'iWebPlayer推送', '全部'];
+                    const allPlKeys = Object.keys(window.allPlaylists || {});
+                    const customPls = allPlKeys.filter(k => !systemPls.includes(k));
+                    // 严格按照优先级排兵布阵
+                    const searchOrder = [...customPls, '收藏', '所有歌曲', 'iWebPlayer推送'];
+
+                    // 优先检查当前停留的歌单是否已经包含了这首歌，包含了就不瞎跳，保持用户视野
+                    const currentSongs = window.getMergedSongList ? window.getMergedSongList(window.currentPlaylist) : [];
+                    if (currentSongs.some(item => window.getSongNameObj(item) === newSongName)) {
+                        foundPlaylist = window.currentPlaylist;
+                    } else {
+                        // 按照优先级寻找：常规歌单 -> 收藏 -> 所有歌曲 -> iWebPlayer推送
+                        for (const plName of searchOrder) {
+                            const plSongs = window.allPlaylists ? window.allPlaylists[plName] : [];
+                            if (plSongs && plSongs.some(item => window.getSongNameObj(item) === newSongName)) {
+                                foundPlaylist = plName;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (foundPlaylist && foundPlaylist !== window.currentPlaylist) {
+                        if (typeof window.switchPlaylistSilently === 'function') {
+                            if (window.showToast) window.showToast(`🎵 音箱正在播放，已自动定位至: ${foundPlaylist}`);
+                            window.switchPlaylistSilently(foundPlaylist);
+                        }
+                    }
+                }
+
                 if (window.currentSongName !== newSongName && window.songList) {
+                    this._maxEstPos = 0; // 🌟 侦测到小爱自己切歌，强制重置最高水位线
                     const targetIdx = window.songList.findIndex(item => window.getSongNameObj(item) === newSongName);
                     if (targetIdx !== -1) {
                         // 发现音箱切歌了，通知前端假装“点”了这首歌，但不发送 play 指令

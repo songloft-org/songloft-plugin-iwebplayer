@@ -433,6 +433,11 @@
 
         window.songList = window.getMergedSongList(targetPlaylistName);
         if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+
+        // 🌟 核心修复：自动跳转完成后，必须像手动点击一样，恢复目标歌单之前保存的过滤状态和过滤窗口 UI！
+        if (window.FilterManager && typeof window.FilterManager.applyListFilter === 'function') {
+            window.FilterManager.applyListFilter(400);
+        }
     };
 
     /* ==========================================
