@@ -330,9 +330,15 @@ router.delete('/store', async (req) => {
             await (songloft.storage as any).delete(key);
         }
 
-        // 顺手给语音助手发个广播，让它也把对应的 Key 覆盖为空（或者在助手端自行处理删除）
+        // 🌟 核心修复：给语音助手发送真正的 delete 物理删除指令，而不是覆盖为空！
         if (key.startsWith('webdav_') || key === 'iwebplayer.webdav' || key.startsWith('iwebplayer.')) {
-            broadcastWebDavConfig(key, "{}");
+            let exportKey = key;
+            if (key === 'iwebplayer.webdav') exportKey = 'webdav_config'; // 处理别名转换
+
+            songloft.comm.send(TWIN_PLUGIN_ID, "sync_webdav_data", {
+                type: 'delete',
+                key: exportKey
+            }).catch(() => {});
         }
 
         return jsonResponse({ ret: "OK" });
@@ -448,30 +454,30 @@ router.get('/debug', async (req) => {
 
 
 // ==========================================
-// ⏰ 后台定时保活机制（每 1 天自动打卡）
+// ⏰ 后台定时保活机制（启动即打卡 + 每日续期）
 // ==========================================
 function startKeepAlive() {
     if (keepAliveTimer) clearInterval(keepAliveTimer);
 
-    // 设置为每 24 小时执行一次
-    keepAliveTimer = setInterval(async () => {
+    // 封装单次打卡逻辑
+    const doKeepAlive = async () => {
         try {
             const token = await songloft.plugin.getToken();
             if (token) {
-                // 兼容不同版本的存储引擎写入，保持活跃
-                if (typeof songloft.storage.set === 'function') {
-                    await songloft.storage.set('last_keep_alive', new Date().toISOString());
-                } else if (typeof songloft.storage.setItem === 'function') {
-                    await songloft.storage.setItem('last_keep_alive', new Date().toISOString());
-                }
-                songloft.log.info('[保活机制] iWebPlayer 每日定时保活成功，Token已续期');
+                await songloft.storage.set('last_keep_alive', new Date().toISOString());
+                songloft.log.info('[保活机制] 每日定时保活成功，Token 状态正常');
             }
         } catch (e) {
             songloft.log.warn('[保活机制] 插件保活异常: ' + String(e));
         }
-    }, 24 * 60 * 60 * 1000);
-}
+    };
 
+    // 🌟 1. 插件启动/重载时【立刻先打卡一次】（解决 24 小时首帧延迟问题）
+    doKeepAlive();
+
+    // 🌟 2. 随后开启每 24 小时一次的循环定时器
+    keepAliveTimer = setInterval(doKeepAlive, 24 * 60 * 60 * 1000);
+}
 // ==== 核心生命周期函数 ====
 function onInit(): void {
     songloft.log.info('iWebPlayer 原生架构已就绪！');
@@ -485,6 +491,19 @@ function onInit(): void {
         if (from !== TWIN_PLUGIN_ID) return;
 
         try {
+            // 🌟 核心新增：接收小爱助手发来的物理删除指令！
+            if (payload.type === 'delete' && payload.key) {
+                if (typeof songloft.storage.removeItem === 'function') {
+                    await songloft.storage.removeItem(payload.key);
+                } else if (typeof (songloft.storage as any).remove === 'function') {
+                    await (songloft.storage as any).remove(payload.key);
+                } else if (typeof (songloft.storage as any).delete === 'function') {
+                    await (songloft.storage as any).delete(payload.key);
+                }
+                songloft.log.info(`🗑️ 镜像同步删除成功: ${payload.key}`);
+                return; // 删除完毕直接返回
+            }
+
             if (payload.type === 'config') {
                 // 同步配置 (如默认节点、根目录)
                 if (typeof songloft.storage.set === 'function') {
@@ -506,7 +525,7 @@ function onInit(): void {
                 songloft.log.info(`📥 镜像同步曲库成功: ${payload.davId}`);
             }
         } catch (e) {
-            songloft.log.error(`❌ 同步数据写入失败: ${e}`);
+            songloft.log.error(`❌ 同步数据操作失败: ${e}`);
         }
     });
 }
