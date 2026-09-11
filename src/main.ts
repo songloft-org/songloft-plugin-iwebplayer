@@ -182,7 +182,7 @@ router.get('/musicinfo', async (req) => {
     // 🌟 赛跑机制探测 (3秒超时)
     const probeRes: any = await Promise.race([
         fetch(fullUrl, { method: 'HEAD' }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("探测超时")), 3000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error("探测超时")), 6000))
     ]);
 
     // 如果文件丢失或拒绝访问，直接抛出错误
