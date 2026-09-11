@@ -262,11 +262,6 @@
     background: transparent;
   }
 
-  /* 🌟 新增：小爱音箱模式下进度条置灰并彻底禁用拖拽 */
-  body.miot-mode .progress-container { pointer-events: none; }
-  body.miot-mode .progress-bar { background: var(--text-sub) !important; }
-  body.miot-mode .progress-thumb { display: none !important; }
-
   .player-container { max-width: 800px; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-evenly; }
   .time-row { width: 100%; display: flex; justify-content: space-between; }
   .time-current, .time-duration { font-size: 11px; color: var(--text-sub); opacity: 0.8; font-variant-numeric: tabular-nums; }
@@ -1223,8 +1218,8 @@
   <script src="./static/playlist.js?v1.3.1" defer></script>
   <script src="./static/online.js?v1.3.0" defer></script>
   <script src="./static/plugins.js?v1.3.0" defer></script>
-  <script src="./static/player.js?v1.3.1" defer></script>
-  <script src="./static/miot.js?v1.3.1" defer></script>
+  <script src="./static/player.js?v1.3.2" defer></script>
+  <script src="./static/miot.js?v1.3.2" defer></script>
 
 </head>
 <body>
@@ -2203,7 +2198,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.3.1';
+    window.APP_VERSION = 'v1.3.2';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -3299,14 +3294,66 @@
         else window.showToast("💡 当前没有正在播放的歌曲");
     });
     fpCornerSpeed.addEventListener('click', (e) => { e.stopPropagation(); fpSpeedPopup.classList.toggle('show'); });
-    fpSpeedSlider.addEventListener('input', (e) => updateFpSpeedUI(parseFloat(e.target.value)));
-    document.getElementById('fp-speed-plus').addEventListener('click', () => {
-        fpSpeedSlider.value = Math.min(3.0, parseFloat(fpSpeedSlider.value) + 0.1).toFixed(1);
-        updateFpSpeedUI(parseFloat(fpSpeedSlider.value));
+
+    // 🌟 统一的 2 秒挂起防抖发送器 (带 UI 强制防穿透霸体锁)
+    let _speedSyncTimeout = null;
+    window._speedSyncingLock = false; // 新增：全局UI霸体锁
+
+    const debounceSendSpeed = (val) => {
+        if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
+            if (_speedSyncTimeout) clearTimeout(_speedSyncTimeout);
+            _speedSyncTimeout = setTimeout(() => {
+                window.MiotManager.setSpeed(val);
+                if (window.showToast) window.showToast(`🚀 音箱倍速已同步: ${val.toFixed(1)}x`);
+
+                // Toast 弹出后，延长 1.5 秒护盾再解锁，防止音箱轮询到旧数据
+                setTimeout(() => {
+                    window._speedSyncingLock = false;
+                }, 1500);
+            }, 2000); // 👈 这里改成了 2000 (即 2 秒)
+        } else {
+            window._speedSyncingLock = false; // 本机模式秒解锁
+        }
+    };
+
+    // 🌟 新增：小爱音箱最高 2.0 倍速限制器
+    const getSafeSpeed = (requestedSpeed) => {
+        const isXiaoai = window.MiotManager && window.MiotManager.currentDevice.type === 'miot';
+        if (isXiaoai && requestedSpeed > 2.0) {
+            if (window.showToast) window.showToast("⚠️ 当前音箱最高仅支持 2.0 倍速");
+            return 2.0;
+        }
+        return requestedSpeed;
+    };
+
+    fpSpeedSlider.addEventListener('input', (e) => {
+        let val = parseFloat(e.target.value);
+        val = getSafeSpeed(val); // 经过安全限速器
+
+        window._speedSyncingLock = true;
+        window.updateFpSpeedUI(val, true);
+        debounceSendSpeed(val);
     });
+
+    document.getElementById('fp-speed-plus').addEventListener('click', () => {
+        let nextVal = parseFloat(fpSpeedSlider.value) + 0.1;
+        // 先保证不超过UI组件本身的最高限制 3.0
+        let val = Math.min(3.0, nextVal);
+        val = getSafeSpeed(val); // 再经过音箱的安全限速器
+
+        window._speedSyncingLock = true;
+        window.updateFpSpeedUI(val, true);
+        debounceSendSpeed(val);
+    });
+
     document.getElementById('fp-speed-minus').addEventListener('click', () => {
-        fpSpeedSlider.value = Math.max(0.5, parseFloat(fpSpeedSlider.value) - 0.1).toFixed(1);
-        updateFpSpeedUI(parseFloat(fpSpeedSlider.value));
+        // 减速一般不会超上限，但为了逻辑严密，依然过一遍限速器
+        let val = Math.max(0.5, parseFloat(fpSpeedSlider.value) - 0.1);
+        val = getSafeSpeed(val);
+
+        window._speedSyncingLock = true;
+        window.updateFpSpeedUI(val, true);
+        debounceSendSpeed(val);
     });
 
     function closeConfigModal() {
@@ -3333,12 +3380,23 @@
         const newSpeed = parseFloat(configSpeedSlider.value);
         const newResume = document.querySelector('input[name="config-resume-mode"]:checked').value;
 
-        if (isXiaoai) { conf.speedXiaoai = newSpeed; conf.resumeXiaoai = newResume; }
-        else { conf.speedLocal = newSpeed; conf.resumeLocal = newResume; }
+        if (isXiaoai) {
+            conf.speedXiaoai = newSpeed;
+            conf.resumeXiaoai = newResume;
+            // 🌟 点击保存时，立刻推给音箱
+            if (window.MiotManager) window.MiotManager.setSpeed(newSpeed);
+        }
+        else {
+            conf.speedLocal = newSpeed;
+            conf.resumeLocal = newResume;
+        }
 
-        window.savePlaylistConfig(currentPlaylist, conf);
+        window.savePlaylistConfig(window.currentPlaylist, conf);
         closeConfigModal(); window.showToast("✅ 设置已保存"); window.initPlaylistDropdown();
-        if (!isXiaoai) updateFpSpeedUI(conf.speedLocal);
+
+        // UI 跟着同步刷新
+        if (!isXiaoai) window.updateFpSpeedUI(conf.speedLocal);
+        else window.updateFpSpeedUI(conf.speedXiaoai);
     });
 
     document.addEventListener('click', (e) => {

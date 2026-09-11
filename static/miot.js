@@ -21,8 +21,10 @@
         lastWsPos: 0,
         lastWsDuration: 0,
         lastWsTime: 0,
+        lastWsSpeed: 1,
         isWsPlaying: false,
         _stateLockTime: 0,
+        _seekLockTime: 0,
 
         // 初始化入口
         init: async function() {
@@ -476,7 +478,51 @@
             } catch (e) { console.warn("[MIoT] 音量调节失败", e); }
         },
 
-        // 🌟 新增：向小爱音箱下发设置播放模式指令
+        // 🌟 向小爱音箱下发设置播放速度指令
+        setSpeed: async function(speed) {
+            if (this.currentDevice.type !== 'miot') return;
+            try {
+                await fetch('/api/v1/jsplugin/miot/player/speed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        account_id: this.currentDevice.accountId,
+                        device_id: this.currentDevice.id,
+                        speed: parseFloat(speed)
+                    })
+                });
+            } catch (e) { console.warn("[MIoT] 速度调节失败", e); }
+        },
+
+        // 🌟 向小爱音箱下发调整进度指令
+        seekTo: async function(position) {
+            if (this.currentDevice.type !== 'miot') return;
+
+            // 1. 乐观更新：立刻拨动本地虚拟时钟，并上锁 3 秒（防网络延迟弹回）
+            this.lastWsPos = position;
+            this.lastWsTime = performance.now();
+            this._maxEstPos = position;
+            this._seekLockTime = Date.now() + 3000;
+
+            // 2. 瞬间更新 UI (时间和歌词)
+            const timeCurrentEl = document.getElementById('time-current');
+            if (timeCurrentEl) timeCurrentEl.innerText = window.formatTime(position);
+            if (window.LyricsEngine) window.LyricsEngine.sync(position);
+
+            try {
+                await fetch('/api/v1/jsplugin/miot/player/seek', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        account_id: this.currentDevice.accountId,
+                        device_id: this.currentDevice.id,
+                        position: Math.floor(position) // 保险起见，给音箱传整数
+                    })
+                });
+            } catch (e) { console.warn("[MIoT] 进度跳转失败", e); }
+        },
+
+        // 🌟 向小爱音箱下发设置播放模式指令
         setPlayMode: async function(modeIndex) {
             if (this.currentDevice.type !== 'miot') return;
             const modeMap = { 0: 'order', 1: 'loop', 2: 'random', 3: 'single' };
@@ -546,8 +592,8 @@
                 // 只有在小爱播放模式、且确实在播放、且获取到了总时长的情况下，才自己推算进度
                 if (this.currentDevice.type === 'miot' && this.isWsPlaying && this.lastWsDuration > 0) {
                     const now = performance.now();
-                    // 推算：上次传来的秒数 + (现在距离上次收到推送的时间差)
-                    let estPos = this.lastWsPos + (now - this.lastWsTime) / 1000;
+                    // 🌟 核心突破：推算时间必须乘上音箱的真实倍速！否则歌词会越跑越慢！
+                    let estPos = this.lastWsPos + ((now - this.lastWsTime) / 1000) * (this.lastWsSpeed || 1);
                     if (estPos > this.lastWsDuration) estPos = this.lastWsDuration;
 
                     // 🌟 核心防回滚补丁：抹平网络延迟带来的进度跳变
@@ -565,21 +611,24 @@
                         this._maxEstPos = estPos;
                     }
 
-                    // 平滑更新时间文本
-                    const timeCurrentEl = document.getElementById('time-current');
-                    if (timeCurrentEl) {
-                        const newText = window.formatTime(estPos);
-                        if (timeCurrentEl.innerText !== newText) timeCurrentEl.innerText = newText;
-                    }
+                    // 🌟 核心防冲突：如果用户正在拖拽进度条，坚决不让虚拟时钟覆写界面！
+                    if (!window.isDragging) {
+                        // 平滑更新时间文本
+                        const timeCurrentEl = document.getElementById('time-current');
+                        if (timeCurrentEl) {
+                            const newText = window.formatTime(estPos);
+                            if (timeCurrentEl.innerText !== newText) timeCurrentEl.innerText = newText;
+                        }
 
-                    // 平滑更新进度条
-                    const progressBar = document.getElementById('progress-bar');
-                    if (progressBar) {
-                        progressBar.style.width = (estPos / this.lastWsDuration * 100) + '%';
-                    }
+                        // 平滑更新进度条
+                        const progressBar = document.getElementById('progress-bar');
+                        if (progressBar) {
+                            progressBar.style.width = (estPos / this.lastWsDuration * 100) + '%';
+                        }
 
-                    // 平滑滚动歌词
-                    if (window.LyricsEngine) window.LyricsEngine.sync(estPos);
+                        // 平滑滚动歌词
+                        if (window.LyricsEngine) window.LyricsEngine.sync(estPos);
+                    }
                 }
                 this.virtualClockId = requestAnimationFrame(tick);
             };
@@ -597,8 +646,13 @@
         syncUIWithMiotStatus: function(data) {
             if (this.currentDevice.type !== 'miot') return;
 
-            const position = parseFloat(data.position) || 0;
+            let position = parseFloat(data.position) || 0;
             const duration = parseFloat(data.duration) || 0;
+
+            // 🌟 进度保护锁：如果刚拖拽了进度条（3秒内），拒收服务器传来的落后进度！
+            if (this._seekLockTime && Date.now() < this._seekLockTime) {
+                position = this.lastWsPos;
+            }
             let isPlaying = data.state === 'playing';
 
             // 🌟 状态强制保护锁：如果处于刚点击暂停/播放的 2 秒内，拒绝听信网络传来的滞后状态！
@@ -612,6 +666,7 @@
             this.lastWsDuration = duration;
             this.lastWsTime = performance.now(); // 记录此刻的物理时间锚点
             this.isWsPlaying = isPlaying;
+            this.lastWsSpeed = data.speed || 1;  // 记录底层传来的真实倍速
 
             // ① 更新不会高频变动的总时长
             const timeDurationEl = document.getElementById('time-duration');
@@ -633,14 +688,13 @@
             }
 
             // ③ 如果是暂停状态，直接定格界面
-            if (!isPlaying) {
+            if (!isPlaying && !window.isDragging) { // 🌟 加上 !window.isDragging
                 const timeCurrentEl = document.getElementById('time-current');
                 if (timeCurrentEl) timeCurrentEl.innerText = window.formatTime(position);
                 const progressBar = document.getElementById('progress-bar');
                 if (progressBar && duration > 0) progressBar.style.width = (position / duration * 100) + '%';
             }
 
-            // ④ 🤖 自动感知切歌（利用前端原生逻辑更新 UI 并抓取封面歌词）
             // ④ 🤖 自动感知切歌（利用前端原生逻辑更新 UI 并抓取封面歌词）
             if (data.current_song && data.current_song.title) {
                 const newSongName = data.current_song.artist ? `${data.current_song.title} - ${data.current_song.artist}` : data.current_song.title;
@@ -708,8 +762,26 @@
                 const newMode = modeMap[data.play_mode];
                 if (newMode !== undefined && window.playMode !== newMode) {
                     window.playMode = newMode;
-                    // 🌟 彻底掐断这里的本地缓存写入，防止音箱的状态污染本机的档案！
                     if (window.updatePlayModeUI) window.updatePlayModeUI();
+                }
+            }
+
+            // ⑧ 🤖 同步倍速 UI (🌟 仅在这里做视觉屏蔽，绝不影响上面的进度条和状态！)
+            if (data.speed !== undefined) {
+                // 只要“倍速悬浮面板”或“偏好设置弹窗”亮着，就不接受后端的倍速覆盖
+                const speedPopup = document.getElementById('fp-speed-popup');
+                const configModal = document.getElementById('config-modal-backdrop');
+                const isOperating = (speedPopup && speedPopup.classList.contains('show')) ||
+                                    (configModal && configModal.classList.contains('show'));
+
+                if (!isOperating) {
+                    const speedSlider = document.getElementById('fp-speed-slider');
+                    if (speedSlider) {
+                        const currentUI = parseFloat(speedSlider.value) || 1;
+                        if (currentUI !== data.speed && typeof window.updateFpSpeedUI === 'function') {
+                            window.updateFpSpeedUI(data.speed);
+                        }
+                    }
                 }
             }
         }
