@@ -296,6 +296,12 @@
             fullPlayer.classList.add('open');
             document.body.classList.add('player-open');
             if (window.isIOS || window.innerWidth < 600) document.body.style.overflow = 'hidden';
+
+            // 🌟 核心修复 2：弹窗展开时，立刻命令歌词引擎按最新高度重新计算并居中！
+            if (window.LyricsEngine && typeof window.LyricsEngine.scrollToCurrent === 'function') {
+                // 给浏览器 50ms 的渲染时间，确保能取到最真实的 100% 展开高度
+                setTimeout(() => window.LyricsEngine.scrollToCurrent(), 50);
+            }
         } else {
             fullPlayer.style.transform = ''; // 清除内联，让 CSS 顺滑收起
             fullPlayer.classList.remove('open');

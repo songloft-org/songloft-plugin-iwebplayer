@@ -1217,7 +1217,7 @@
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v0.8.0" defer></script>
   <script src="./static/utils.js?v1.3.0" defer></script>
-  <script src="./static/lyrics.js?v1.1.6" defer></script>
+  <script src="./static/lyrics.js?v1.3.3" defer></script>
   <script src="./static/playlist.js?v1.3.1" defer></script>
   <script src="./static/online.js?v1.3.0" defer></script>
   <script src="./static/plugins.js?v1.3.0" defer></script>
@@ -2694,6 +2694,17 @@
         drawerHandle.addEventListener('click', () => window.toggleFullPlayer(false));
         npInfo.addEventListener('click', () => window.toggleFullPlayer());
         npInfo.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, {passive: true});
+
+        // 🌟 核心体验优化：给整个底部播放栏垫上防穿透钢板
+        const playerBarEl = document.getElementById('player-bar');
+        if (playerBarEl) {
+            playerBarEl.addEventListener('touchmove', e => {
+                // 只要手指在底部播放栏滑动，强制拦截系统的网页滚动行为！
+                // 这样中部的歌曲列表就死死钉在原地，绝对不会跟着往上跑了。
+                e.preventDefault();
+            }, { passive: false });
+        }
+
         npInfo.addEventListener('touchend', e => { if (touchStartY - e.changedTouches[0].clientY > 30) window.toggleFullPlayer(true); });
 
         // 🌟 核心修复 3：让沉浸幕布与播放器 1:1 物理绑定，同步下滑！

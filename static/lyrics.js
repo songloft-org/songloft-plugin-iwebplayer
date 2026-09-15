@@ -211,12 +211,16 @@ window.LyricsEngine = (function() {
 
         function onDragEnd() {
             if (!manualScrolling) return;
-            containerEl.style.transition = '';
+            containerEl.style.transition = ''; // 恢复 CSS 原本的顺滑动画
             document.body.style.userSelect = '';
             document.body.style.webkitUserSelect = '';
             wrapperEl.classList.remove('dragging');
             if (resumeTimer) clearTimeout(resumeTimer);
-            resumeTimer = setTimeout(() => { resumeTimer = null; manualScrolling = false; }, 2000);
+            resumeTimer = setTimeout(() => {
+                resumeTimer = null;
+                manualScrolling = false;
+                scrollToCurrent(); // 🌟 核心修复：1秒时间一到，立刻强行让歌词平滑归位！
+            }, 1000);
         }
 
         wrapperEl.addEventListener('mousedown', onDragStart);
@@ -227,5 +231,18 @@ window.LyricsEngine = (function() {
         wrapperEl.addEventListener('touchend', onDragEnd);
     }
 
-    return { init, parse, sync };
+    // 🌟 核心修复 1：新增强制重新居中对齐的方法
+    function scrollToCurrent() {
+        if (lastActiveIndex !== -1 && wrapperEl && containerEl) {
+            const currentLine = document.getElementById(`lyric-${lastActiveIndex}`);
+            if (currentLine) {
+                // 此时面板已展开，获取到的 offsetHeight 是绝对准确的
+                const offset = currentLine.offsetTop - (wrapperEl.offsetHeight / 2) + (currentLine.offsetHeight / 2);
+                containerEl.style.transform = `translateY(-${Math.max(0, offset)}px)`;
+            }
+        }
+    }
+
+    // 🌟 将新方法暴露给外部
+    return { init, parse, sync, scrollToCurrent };
 })();
