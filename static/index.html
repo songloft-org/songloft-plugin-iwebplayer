@@ -300,8 +300,9 @@
     transform: translateY(110%); transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; align-items: center;
   }
   .full-player.open { transform: translateY(0); }
-  .drawer-handle { width: 100%; height: 30px; display: flex; justify-content: center; align-items: center; cursor: pointer; padding-top: 5px; flex-shrink: 0; }
-  .handle-bar { width: 60px; height: 5px; background: var(--text-sub); border-radius: 3px; opacity: 0.4; }
+  .drawer-handle { width: 100%; height: 40px; display: flex; justify-content: flex-start; align-items: center; cursor: pointer; padding: 4px 0 0 10px; flex-shrink: 0; box-sizing: border-box; }
+  .down-arrow { display: flex; justify-content: center; align-items: center; color: var(--text-sub); animation: bounce-down 2s infinite; width: 40px; height: 40px; transition: color 0.3s ease; }
+  @keyframes bounce-down { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(5px);} 60% {transform: translateY(3px);} }
 
   .fp-cover-wrapper { width: 100%; display: flex; justify-content: center; align-items: center; padding: 18px 16px 8px 16px; flex-shrink: 0; }
   .fp-cover {
@@ -1134,6 +1135,7 @@
     color: rgba(255, 255, 255, 0.85) !important;
   }
 
+
   body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .header .title-main {
     color: #ffffff !important;
   }
@@ -1148,6 +1150,7 @@
     border-color: rgba(255, 255, 255, 0.22) !important;
     background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
   }
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-dark-bg .down-arrow { color: rgba(255, 255, 255, 0.85) !important; }
 
   /* ☀️ 2. 封面顶部偏亮 (ambient-top-light-bg) -> 文字/按钮切换深色 */
   body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .header .settings-btn {
@@ -1168,7 +1171,7 @@
     border-color: rgba(0, 0, 0, 0.15) !important;
     background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
   }
-
+  body.ambient-active.player-open:not(.split-view-active).ambient-top-light-bg .down-arrow { color: #1f2937 !important; }
 
   /* ==========================================
      📐 精准校对：修复 PWA 模式下的安全区 (刘海) 塌陷重叠
@@ -1218,7 +1221,7 @@
   <script src="./static/playlist.js?v1.3.1" defer></script>
   <script src="./static/online.js?v1.3.0" defer></script>
   <script src="./static/plugins.js?v1.3.0" defer></script>
-  <script src="./static/player.js?v1.3.2" defer></script>
+  <script src="./static/player.js?v1.3.3" defer></script>
   <script src="./static/miot.js?v1.3.2" defer></script>
 
 </head>
@@ -1436,8 +1439,10 @@
 
 <div class="full-player" id="full-player">
 
-  <div class="drawer-handle" id="drawer-handle">
-    <div class="handle-bar"></div>
+  <div class="drawer-handle" id="drawer-handle" title="收起沉浸模式">
+    <div class="down-arrow">
+      <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </div>
   </div>
   <div class="fp-cover-wrapper">
     <img id="fp-cover" class="fp-cover" src="" alt="..." crossorigin="anonymous">
@@ -2198,7 +2203,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.3.2';
+    window.APP_VERSION = 'v1.3.3';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2691,9 +2696,98 @@
         npInfo.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, {passive: true});
         npInfo.addEventListener('touchend', e => { if (touchStartY - e.changedTouches[0].clientY > 30) window.toggleFullPlayer(true); });
 
-        fullPlayer.addEventListener('touchstart', e => { fpTouchStartY = e.touches[0].clientY; drawerGestureFromLyrics = !!(e.target.closest('#fp-lyrics-wrapper') || e.target.closest('#fp-speed-popup')); }, {passive: true});
-        fullPlayer.addEventListener('touchend', e => { if (!drawerGestureFromLyrics && (e.changedTouches[0].clientY - fpTouchStartY > 50)) window.toggleFullPlayer(false); drawerGestureFromLyrics = false; });
-        fullPlayer.addEventListener('touchmove', e => { if (!e.target.closest('#fp-lyrics-wrapper') && !e.target.closest('#fp-speed-popup')) e.preventDefault(); }, { passive: false });
+        // 🌟 核心修复 3：让沉浸幕布与播放器 1:1 物理绑定，同步下滑！
+        let fpTouchStartY = 0;
+        let fpCurrentY = 0;
+        let fpIsDragging = false;
+        let fpIsInteractableElement = false;
+
+        fullPlayer.addEventListener('touchstart', e => {
+            if (window.innerWidth >= 960 && document.body.classList.contains('split-view-active')) return;
+            fpTouchStartY = e.touches[0].clientY;
+            fpCurrentY = 0;
+            fpIsDragging = false;
+
+            // 如果用户按在歌词区域或滑块弹窗，让它内部自己滚
+            fpIsInteractableElement = !!e.target.closest('#fp-lyrics-wrapper') || !!e.target.closest('#fp-speed-popup');
+
+            if (!fpIsInteractableElement) {
+                fullPlayer.style.transition = 'none'; // 面板关闭回弹，准备跟手
+
+                // 🌟 抓住氛围幕布，关闭它的过渡动画，准备和面板一起移动
+                const ambientBg = document.getElementById('fp-ambient-bg');
+                if (ambientBg && document.body.classList.contains('ambient-active')) {
+                    ambientBg.style.transition = 'none';
+                }
+            }
+        }, { passive: true });
+
+        fullPlayer.addEventListener('touchmove', e => {
+            if (window.innerWidth >= 960 && document.body.classList.contains('split-view-active')) return;
+
+            // 🛑 拦截底层滚动 (排除音量条)
+            if (!e.target.closest('input[type="range"]')) {
+                e.preventDefault();
+            }
+
+            if (fpIsInteractableElement) return;
+
+            const deltaY = e.touches[0].clientY - fpTouchStartY;
+
+            // 只有向下滑动才产生位移
+            if (deltaY > 0) {
+                fpIsDragging = true;
+                fpCurrentY = deltaY;
+                const movePx = deltaY * 0.85;
+                fullPlayer.style.transform = `translateY(${movePx}px)`;
+
+                // 🌟 核心魔法：让背景幕布跟着播放器一起往下移动！
+                // 这样屏幕上方就会立刻漏出底部的歌曲列表
+                const ambientBg = document.getElementById('fp-ambient-bg');
+                if (ambientBg && document.body.classList.contains('ambient-active')) {
+                    ambientBg.style.transform = `translateY(${movePx}px)`;
+                }
+            }
+        }, { passive: false });
+
+        fullPlayer.addEventListener('touchend', e => {
+            if (window.innerWidth >= 960 && document.body.classList.contains('split-view-active')) return;
+            if (fpIsInteractableElement) return;
+
+            fullPlayer.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+            const ambientBg = document.getElementById('fp-ambient-bg');
+
+            if (fpIsDragging) {
+                if (fpCurrentY > 80) {
+                    // 🌟 决定关闭：让幕布也顺滑滑到底部屏幕外
+                    if (ambientBg && document.body.classList.contains('ambient-active')) {
+                        ambientBg.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                        ambientBg.style.transform = 'translateY(110%)';
+
+                        // 动画结束后清理内联样式
+                        setTimeout(() => {
+                            ambientBg.style.transform = '';
+                            ambientBg.style.removeProperty('transition');
+                        }, 400);
+                    }
+                    if (typeof window.toggleFullPlayer === 'function') window.toggleFullPlayer(false);
+                } else {
+                    // 🌟 距离不够：面板回弹，幕布也跟着回弹到原位
+                    fullPlayer.style.transform = '';
+                    if (ambientBg && document.body.classList.contains('ambient-active')) {
+                        ambientBg.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                        ambientBg.style.transform = '';
+
+                        setTimeout(() => {
+                            if (document.body.classList.contains('player-open')) {
+                                ambientBg.style.removeProperty('transition');
+                            }
+                        }, 400);
+                    }
+                }
+            }
+            fpIsDragging = false;
+        });
 
         // 模态框与弹窗事件
         function closeAbout() { aboutBackdrop.classList.remove('show'); aboutBackdrop.setAttribute('aria-hidden', 'true'); document.body.style.overflow = ''; }

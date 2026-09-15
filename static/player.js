@@ -139,10 +139,7 @@
             if (miniCover) miniCover.style.display = 'block';
         }
 
-        let favSvg = '';
-        if (checkFav && window.favoriteList && window.favoriteList.includes(text)) {
-            favSvg = `<svg style="flex-shrink: 0; margin-left: 4px;" viewBox="0 0 24 24" width="18" height="18" fill="var(--primary)" color="var(--primary)"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
-        }
+        // 🌟 核心修改 2：彻底删除了 favSvg（底部的红心标识），让底部更纯净
 
         let extHtml = '';
         let extension = '';
@@ -158,17 +155,13 @@
             }
 
             if (rawItem) {
-                // 🌟 复原身份
                 rawItem = window.restoreOnlineIdentity(rawItem);
-
                 let targetPath = rawItem.file_path;
 
-                // 尝试从 WebDAV 的 source_data 中拿
                 if (rawItem.plugin_entry_path === 'dav' && rawItem.source_data && rawItem.source_data.path) {
                     targetPath = rawItem.source_data.path;
                 }
 
-                // 🌟 无敌兜底：如果啥都没有，直接去 dedup_key 里强行抓取
                 if (!targetPath && typeof rawItem.dedup_key === 'string') {
                     targetPath = rawItem.dedup_key;
                 }
@@ -215,7 +208,7 @@
           <div class="np-marquee-container" style="display: flex; align-items: center; white-space: nowrap;">
             <span class="np-title-text">${text}</span>
             <div class="np-title-extra" style="display: flex; align-items: center; flex-shrink: 0;">
-              ${extHtml}${favSvg}
+              ${extHtml}
             </div>
           </div>
         `;
@@ -288,15 +281,41 @@
         if (!fullPlayer) return;
         if (window.innerWidth >= 960 && document.body.classList.contains('split-view-active')) return;
 
+        const ambientBg = $('fp-ambient-bg'); // 🌟 抓取沉浸背景幕布
         const isOpen = forceState !== undefined ? forceState : !fullPlayer.classList.contains('open');
+
         if (isOpen) {
+            fullPlayer.style.transform = ''; // 清除拖拽时遗留的内联样式
+
+            // 🌟 展开时，清除强制指令，让 CSS 样式接管
+            if (ambientBg) {
+                ambientBg.style.removeProperty('transition');
+                ambientBg.style.removeProperty('opacity');
+            }
+
             fullPlayer.classList.add('open');
             document.body.classList.add('player-open');
             if (window.isIOS || window.innerWidth < 600) document.body.style.overflow = 'hidden';
         } else {
+            fullPlayer.style.transform = ''; // 清除内联，让 CSS 顺滑收起
             fullPlayer.classList.remove('open');
-            document.body.classList.remove('player-open');
-            document.body.style.overflow = '';
+
+            // 🌟 核心优化：立刻强制背景同步褪色！不遮挡底层的歌曲列表
+            if (ambientBg) {
+                ambientBg.style.setProperty('transition', 'opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)', 'important');
+                ambientBg.style.setProperty('opacity', '0', 'important');
+            }
+
+            if (!fullPlayer.classList.contains('open')) {
+                    document.body.classList.remove('player-open');
+                    document.body.style.overflow = '';
+
+                    // 🌟 清理痕迹，保持纯净
+                    if (ambientBg) {
+                        ambientBg.style.removeProperty('transition');
+                        ambientBg.style.removeProperty('opacity');
+                    }
+            }
         }
     };
 
@@ -354,19 +373,20 @@
         }
         if (!plId) { window.showToast("❌ 找不到收藏歌单"); return; }
 
-        window.showToast("⏳ 正在同步...");
         try {
             if (isFav) {
                 await fetch(`/api/v1/playlists/${plId}/songs/${rawSong.id}`, { method: 'DELETE' });
+                // 🌟 核心修改 1：仅在本地内存剔除记录，彻底告别一堆网络抓取请求！
+                window.favoriteList = window.favoriteList.filter(name => name !== songName);
             } else {
                 await fetch(`/api/v1/playlists/${plId}/songs`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: [rawSong.id] })
                 });
+                // 🌟 核心修改 1：仅在本地内存追加记录，不再触发全局刷新！
+                window.favoriteList.push(songName);
             }
 
-            if (window.reloadGlobalData) await window.reloadGlobalData();
-
-            const currentlyFav = window.favoriteList.includes(songName);
+            const currentlyFav = !isFav;
             const favIcon = $(`fav-${index}`);
             if (favIcon) favIcon.style.display = currentlyFav ? 'block' : 'none';
 
@@ -374,8 +394,8 @@
             else window.showToast(`💔 已取消收藏: ${songName}`);
 
             if (songName === window.currentSongName) {
-                window.updateNpTitleUI(window.currentSongName);
-                const coverSrc = $('fp-cover') ?$('fp-cover').src : window.defaultCover;
+                window.updateNpTitleUI(window.currentSongName, false);
+                const coverSrc = $('fp-cover') ? $('fp-cover').src : window.defaultCover;
                 if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, coverSrc, window.favoriteList, window.APP_LOGO);
 
                 const cornerFav = $('fp-corner-fav');
@@ -1093,14 +1113,22 @@
         });
 
         // 4. 底部主控按钮
+        // 4. 底部主控按钮
         btnPlay.addEventListener('click', () => {
           if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
               window.MiotManager.togglePlay();
               return;
           }
-          if (!window._hasManuallyPlayed && window.currentIndex !== -1 && audioEl.paused && (!audioEl.src || audioEl.src === window.location.href)) {
-              window._hasManuallyPlayed = true; window.playSong(window.currentIndex, true); return;
+
+          // 🌟 核心修复：去掉了对 audioEl.src 的判断限制。
+          // 只要是刷新页面后的【第一次物理点击】，统统强制重新执行 playSong 重载流程！
+          // 这样能在移动端的“物理点击生命周期”内，完美唤醒媒体加载并精准跳转续播时间点。
+          if (!window._hasManuallyPlayed && window.currentIndex !== -1 && audioEl.paused) {
+              window._hasManuallyPlayed = true;
+              window.playSong(window.currentIndex, true);
+              return;
           }
+
           window._hasManuallyPlayed = true;
           if (audioEl.src && audioEl.src !== window.location.href) {
               if (audioEl.paused) audioEl.play(); else { window.isPageBtnPause = true; audioEl.pause(); setTimeout(() => { window.isPageBtnPause = false; }, 200); }
@@ -1114,7 +1142,13 @@
         btnMode.addEventListener('click', (e) => { e.stopPropagation(); modePopup.classList.toggle('show'); });
         modePopup.querySelectorAll('.mode-item').forEach(item => {
             item.addEventListener('click', (e) => {
-                e.stopPropagation(); window.playMode = parseInt(item.dataset.mode); window.updatePlayModeUI();
+                e.stopPropagation();
+                window.playMode = parseInt(item.dataset.mode);
+                window.updatePlayModeUI();
+
+                // 将最新的播放模式同步写回 LocalStorage，确保下次刷新能正确读取！
+                localStorage.setItem('iwebplayer.local_play_mode', window.playMode);
+
                 if (!window.MiotManager || window.MiotManager.currentDevice.type !== 'miot') {
                     window.ConfigManager.set('config', 'player_state.playMode', window.playMode); // 🌟 使用新引擎
                 }
