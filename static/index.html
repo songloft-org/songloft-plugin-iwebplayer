@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta id="app-logo" content="./static/logo.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <meta id="theme-color-meta" name="theme-color" content="#f3f4f6">
   <title>iWebPlayer</title>
 
@@ -2172,17 +2172,15 @@
 
   <script>
     /* ==========================================
-     * 1. 全局 Fetch 拦截器与 Token 内存缓存池
+     * 1. 全局 Fetch 拦截器与 Token 自动续签引擎
      * ========================================== */
-    // 🌟 新增：带内存缓存的 Token 提取器（只读一次磁盘，后续 0 开销）
-    window._cachedAccessToken = null;
+
+    // 🌟 修复 1：废除永久内存缓存，直接读取 localStorage (现代浏览器极快，无性能损耗)
     window.getAccessToken = function() {
-        if (window._cachedAccessToken !== null) return window._cachedAccessToken;
         try {
             const authData = JSON.parse(localStorage.getItem('songloft-auth') || "{}");
-            window._cachedAccessToken = authData.accessToken || "";
-        } catch(e) { window._cachedAccessToken = ""; }
-        return window._cachedAccessToken;
+            return authData.accessToken || "";
+        } catch(e) { return ""; }
     };
 
     const originalFetch = window.fetch;
@@ -2190,20 +2188,48 @@
       config = config || {};
       config.headers = config.headers || {};
       const isExternal = typeof resource === 'string' && /^https?:\/\//i.test(resource);
+
+      // 发起请求前，带上当前的 Token
       if (!isExternal) {
-          // 🚀 优化：调用内存缓存，省去昂贵的 JSON.parse 和磁盘 I/O
           const token = window.getAccessToken();
           if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
           }
       }
-      return originalFetch(resource, config);
-    };
 
+      // 执行真实的请求
+      let response = await originalFetch(resource, config);
+
+      // 🌟 核心修复 2：Token 失效(401)时的无缝自动续签机制！
+      if (!isExternal && response.status === 401) {
+          try {
+              // 1. 请求失败，立马找咱们后端的保活接口要一把最新、最鲜活的钥匙
+              const freshRes = await originalFetch('./api/token');
+              if (freshRes.ok) {
+                  const freshData = await freshRes.json();
+                  if (freshData && freshData.token) {
+
+                      // 2. 拿到新钥匙，立刻更新到浏览器的 localStorage，让全站起死回生
+                      const authData = JSON.parse(localStorage.getItem('songloft-auth') || "{}");
+                      authData.accessToken = freshData.token;
+                      localStorage.setItem('songloft-auth', JSON.stringify(authData));
+
+                      // 3. 换上新钥匙，重新发起刚才那个失败的请求，实现用户无感知的无缝重试！
+                      config.headers['Authorization'] = `Bearer ${freshData.token}`;
+                      response = await originalFetch(resource, config);
+                  }
+              }
+          } catch(e) {
+              console.error("自动续签拦截器运行失败", e);
+          }
+      }
+
+      return response;
+    };
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.3.3';
+    window.APP_VERSION = 'v1.3.5';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
