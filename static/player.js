@@ -364,6 +364,42 @@
             if (onlineToolbar) onlineToolbar.classList.remove('show');
             if (menuWrapper && dropzone1) dropzone1.appendChild(menuWrapper);
         }
+        setTimeout(() => {
+            const filterWrap = $('filter-action-wrap');
+            if (filterWrap) {
+                // 如果当前是“我的歌单”，也强制显示漏斗图标
+                filterWrap.style.display = ((window.FilterManager && window.FilterManager.getContext()) || playlistName === '我的歌单') ? 'flex' : 'none';
+            }
+
+            const jumpWrap = $('jump-source-wrap');
+            if (jumpWrap) {
+                jumpWrap.style.display = (playlistName === '曲库搜索') ? 'flex' : 'none';
+            }
+
+            // 🌟 修复：切到其他列表只隐藏，不清除数据；切回来恢复显示并闪烁红框
+            const gridWrap = $('grid-filter-wrap');
+            if (playlistName !== '我的歌单') {
+                if (gridWrap) gridWrap.style.display = 'none'; // 仅隐藏
+            } else {
+                if (gridWrap && window._gridFilterKeyword) {
+                    gridWrap.style.display = 'flex';
+                    const gridInput = $('grid-filter-input');
+                    if (gridInput) gridInput.value = window._gridFilterKeyword;
+                    $('grid-filter-clear')?.classList.add('show');
+
+                    // 触发特效：闪烁一下红框，800ms后自动消失
+                    gridWrap.classList.add('glow');
+                    if (window._gridGlowTimer) clearTimeout(window._gridGlowTimer);
+                    window._gridGlowTimer = setTimeout(() => gridWrap.classList.remove('glow'), 800);
+                }
+            }
+        }, 50);
+
+        const navSearchBtn = document.getElementById('nav-search-btn');
+        if (navSearchBtn) navSearchBtn.classList.toggle('active', playlistName === '曲库搜索');
+
+        const navOnlineBtn = document.getElementById('nav-online-btn');
+        if (navOnlineBtn) navOnlineBtn.classList.toggle('active', playlistName === '在线资源');
     };
 
     window.toggleFavorite = async function(songName, index) {

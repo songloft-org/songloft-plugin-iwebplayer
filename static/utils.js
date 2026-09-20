@@ -421,7 +421,7 @@
       if (name === '我的歌单') { icon = window.SVG_ICONS?.list || ''; count = window.playlistMeta ? window.playlistMeta.filter(pl => pl.name !== '电台收藏').length : 0; }
       else if (name === '所有歌曲') icon = window.SVG_ICONS?.music || '';
       else if (name === '所有电台') icon = window.SVG_ICONS?.radio || '';
-      else if (name === '在线资源') icon = `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
+      else if (name === '在线资源') icon = window.SVG_ICONS?.online || '';
       else if (name === '收藏') icon = window.SVG_ICONS?.heart || '';
       else if (name === '曲库搜索') icon = window.SVG_ICONS?.search || '';
       else if (window.customPlaylistNames && window.customPlaylistNames.includes(name)) { icon = window.SVG_ICONS?.disc || ''; displayName = name; }

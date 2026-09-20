@@ -682,7 +682,7 @@
         stickyGroup.appendChild(stickyUl);
         playlistOpts.appendChild(stickyGroup); // 把整个置顶块放进下拉框
 
-        const stickyKeys = ['在线资源', '曲库搜索', '我的歌单'];
+        const stickyKeys = ['我的歌单', '所有歌曲', '收藏'];
         stickyKeys.forEach(key => {
             if (allCleanKeys.includes(key)) {
                 createOpt(key, stickyUl);
@@ -700,12 +700,7 @@
         });
 
         if (customKeys.length > 0) {
-            if (systemKeys.length > 0) {
-                if (playlistOpts.lastElementChild) playlistOpts.lastElementChild.style.borderBottom = 'none';
-                const sep = document.createElement('li');
-                sep.style.cssText = 'height: 1px; background: var(--border); margin: 6px 16px; cursor: default; box-sizing: content-box;';
-                playlistOpts.appendChild(sep);
-            }
+
             customKeys.forEach(key => createOpt(key));
         }
 
@@ -839,12 +834,21 @@
                 grid.innerHTML = matchText ? `<div style="grid-column: 1 / -1; font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: -4px; padding-left: 4px;">${matchText}</div>` : '';
             }
 
+            // 🌟 1. 先拿出所有基础本地歌单
+            let baseMetas = [...(window.playlistMeta || [])]
+                .filter(pl => pl.name !== '所有电台' && pl.name !== '电台收藏');
+
+            // 🌟 2. 如果当前有关键词，立刻对这些歌单进行名称匹配
+            if (window.currentPlaylist === '我的歌单' && window._gridFilterKeyword) {
+                const kw = window._gridFilterKeyword.toLowerCase();
+                baseMetas = baseMetas.filter(pl => pl.name.toLowerCase().includes(kw));
+            }
+
+            // 🌟 3. 再组装进原有的混合渲染逻辑
             const metas = isWebDavGrid ? (window.webdavPlaylistMeta || []) :
                           isWebDavSearchGrid ? window.matchedWebDavPlaylists :
                           (isSearchGrid ? window.matchedLocalPlaylists :
-                          [...(window.playlistMeta || [])]
-                              .filter(pl => pl.name !== '所有电台' && pl.name !== '电台收藏')
-                              .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')));
+                          baseMetas.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')));
 
             window.playlistObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -1119,15 +1123,18 @@
 
                 if (window.currentPlaylist === '曲库搜索') {
                     let foundPl = '';
+                    let realPlName = ''; // 🌟 新增：用来存储真实后台歌单名
                     const skipPls = ['全部', '所有歌曲', '最近新增', '曲库搜索', '收藏', '下载', '所有电台'];
                     for (const [plName, plSongs] of Object.entries(window.allPlaylists)) {
                         if (skipPls.includes(plName)) continue;
                         if (plSongs.some(item => item.id === rawItem.id)) {
+                            realPlName = plName; // 🌟 记录真实名字（防止缓存歌曲被中文化导致找不到）
                             foundPl = plName === 'cache_songs' ? '缓存歌曲' : plName;
                             break;
                         }
                     }
                     if (foundPl) {
+                        li.dataset.sourcePl = realPlName; // 🌟 将源歌单名埋在 li 的数据里
                         sourceTagHtml = `<div class="song-playlist-tag">${foundPl}</div>`;
                     }
                 }
@@ -1227,6 +1234,25 @@
                     if (window.deadSongIndexes[window.currentPlaylist]) {
                         window.deadSongIndexes[window.currentPlaylist] = window.deadSongIndexes[window.currentPlaylist].filter(i => i !== index);
                     }
+
+                    // 🌟 核心拦截：如果是“曲库搜索”且开启了智能跳转，且这首歌有源歌单
+                    if (window.currentPlaylist === '曲库搜索' && window.isJumpSourceEnabled && li.dataset.sourcePl) {
+                        const targetPl = li.dataset.sourcePl;
+                        const targetSongName = window.getSongNameObj(rawItem);
+
+                        // 1. 静默瞬间把底层列表切换到源歌单
+                        if (window.switchPlaylistSilently) window.switchPlaylistSilently(targetPl);
+
+                        // 2. 在新切换的列表中，寻找这首歌的真实索引
+                        const newIndex = window.songList.findIndex(item => window.getSongNameObj(item) === targetSongName);
+                        if (newIndex !== -1) {
+                            // 3. 用新索引直接播放，完美衔接！
+                            if (window.playSong) window.playSong(newIndex);
+                            return; // 🛑 终止原有代码执行
+                        }
+                    }
+
+                    // 原有的普通播放逻辑
                     if(window.playSong) window.playSong(index);
                 });
 
