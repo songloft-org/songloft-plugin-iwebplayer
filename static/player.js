@@ -530,14 +530,17 @@
         Number(audio.dataset.playbackRequest) === playbackRequest &&
         (!audio.currentSrc || audio.currentSrc === audio.src);
 
-    window.playSong = async function(index, autoPlay = true, resumeTime = 0) {
+    window.playSong = async function(index, autoPlay = true, resumeTime = 0, options = {}) {
         if (index < 0 || index >= window.songList.length) return;
 
+        const resumePlaylist = window.currentPlaylist;
+        const sessionRestore = options.resumeKind === 'session';
         const request = window.invalidatePlaybackRequest();
         pendingPlayback = true;
         const isCurrent = () => request === playbackRequest;
         const targetPlaylist = window.currentPlaylist;
         const selectedList = window.songList.slice();
+        
         const rawItem = window.restoreOnlineIdentity(selectedList[index]);
         const targetSongName = window.getSongNameObj(rawItem);
         const globalToken = window.getAccessToken ? window.getAccessToken() : "";
@@ -784,28 +787,23 @@
             if (!info || !info.url) throw new Error("接口未返回有效的播放直链");
 
             if (info && info.url && audioEl) {
-                let targetResumeTime = resumeTime > 0 ? resumeTime : 0;
+                let targetResumeTime = (sessionRestore || window.remembersPlayback(resumePlaylist)) && resumeTime > 0 ? resumeTime : 0;
                 let targetSpeed = plConfig.speedLocal || 1.0;
 
-                if (targetResumeTime === 0) {
-                    if (plConfig.resumeLocal === 'off') {
-                        const lastData = window.ProgressManager.getPlLast(targetPlaylist);
-                        if (lastData && lastData.name === targetSongName) targetResumeTime = lastData.time;
-                    } else {
-                        const historyData = window.ProgressManager.getPlHistory(targetPlaylist);
-                        const found = historyData.find(item => item.name === targetSongName);
-                        if (found) targetResumeTime = found.time;
-                    }
+                if (!sessionRestore && window.remembersPlayback(resumePlaylist) && targetResumeTime === 0) {
+                    const historyData = window.ProgressManager.getPlHistory(resumePlaylist);
+                    const found = historyData.find(item => item.name === targetSongName);
+                    if (found) targetResumeTime = found.time;
                 }
 
-                if (plConfig.resumeLocal === 'global') {
+                if (!sessionRestore && window.getPlaylistConfig(resumePlaylist).resumeLocal === 'global') {
                     try {
-                        const res = await fetch(`./sync?playlist=${encodeURIComponent(targetPlaylist)}`);
+                        const res = await fetch(`./sync?playlist=${encodeURIComponent(window.currentPlaylist)}`);
                         if (!isCurrent()) return;
                         if (res.ok) {
                             const resData = await res.json();
                             if (!isCurrent()) return;
-                            if (resData && resData.data && resData.data.songName === targetSongName) {
+                            if (window.remembersPlayback(resumePlaylist) && resData && resData.data && resData.data.songName === targetSongName) {
                                 targetResumeTime = resData.data.time;
                             }
                         }
@@ -846,7 +844,6 @@
                     }, 8000);
                 }
 
-
                 audioEl.defaultPlaybackRate = targetSpeed;
                 audioEl.playbackRate = targetSpeed;
                 if (typeof window.updateFpSpeedUI === 'function') window.updateFpSpeedUI(targetSpeed);
@@ -855,7 +852,8 @@
 
                 const restoreProgress = () => {
                     if (!isCurrent()) return;
-                    if (audioEl.duration && targetResumeTime > 0) {
+                    if (!sessionRestore && !window.remembersPlayback(resumePlaylist)) targetResumeTime = 0;
+                    if (audioEl.duration && Number.isFinite(Number(targetResumeTime)) && targetResumeTime > 0 && targetResumeTime < audioEl.duration) {
                         audioEl.currentTime = targetResumeTime;
                         if(timeCurrentEl) timeCurrentEl.innerText = window.formatTime(targetResumeTime);
                         if(timeDurationEl) timeDurationEl.innerText = window.formatTime(audioEl.duration);
@@ -1036,10 +1034,14 @@
 
     let cloudSyncTimer = null;
     let lastCloudSyncTime = 0;
+    window.cancelCloudSync = function() {
+        if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+        cloudSyncTimer = null;
+    };
     window.syncToCloud = function(playlist, songName, time, speed, force = false) {
         if (!playlist || !songName) return;
         const conf = window.getPlaylistConfig(playlist);
-        if (conf.resumeLocal !== 'global') return;
+        if (conf.resumeLocal !== 'global') { window.cancelCloudSync(); return; }
 
         const now = Date.now();
         if (!force && now - lastCloudSyncTime < 10000) {
@@ -1222,7 +1224,6 @@
           }
         });
 
-        // 4. 底部主控按钮
         // 4. 底部主控按钮
         btnPlay.addEventListener('click', () => {
           if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
