@@ -1236,12 +1236,12 @@
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v1.3.6" defer></script>
-  <script src="./static/utils.js?v1.3.6" defer></script>
+  <script src="./static/utils.js?v1.3.8" defer></script>
   <script src="./static/lyrics.js?v1.3.3" defer></script>
   <script src="./static/playlist.js?v1.3.7" defer></script>
   <script src="./static/online.js?v1.3.0" defer></script>
   <script src="./static/plugins.js?v1.3.0" defer></script>
-  <script src="./static/player.js?v1.3.6" defer></script>
+  <script src="./static/player.js?v1.3.8" defer></script>
   <script src="./static/miot.js?v1.3.2" defer></script>
 
 </head>
@@ -1679,7 +1679,7 @@
       <div class="pref-item mb-12">
         <div class="pref-text-wrap">
           <div class="pref-title">锁屏歌词</div>
-          <div class="pref-desc">在系统锁屏和控制中心的歌曲标题处动态显示当前歌词。</div>
+          <div class="pref-desc">在系统锁屏界面，歌曲标题处动态显示当前歌词。</div>
         </div>
         <label class="ios-switch">
           <input type="checkbox" id="switch-lock-lyric">
@@ -1690,7 +1690,7 @@
       <div class="pref-item">
         <div class="pref-text-wrap">
           <div class="pref-title">沉浸氛围背景</div>
-          <div class="pref-desc">提取当前专辑封面，在全屏播放页生成动态高斯模糊流光效果。</div>
+          <div class="pref-desc">播放歌曲时，歌词及封面融入背景。</div>
         </div>
         <label class="ios-switch">
           <input type="checkbox" id="switch-ambient-bg">
@@ -1700,8 +1700,19 @@
 
       <div class="pref-item mt-12">
         <div class="pref-text-wrap">
+          <div class="pref-title">自动记忆播放进度</div>
+          <div class="pref-desc">打开歌单时，将自动定位上次播放的曲及进度。</div>
+        </div>
+        <label class="ios-switch">
+          <input type="checkbox" id="switch-auto-resume">
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="pref-item mt-12">
+        <div class="pref-text-wrap">
           <div class="pref-title">高性能同步模式</div>
-          <div class="pref-desc">开启后极速同步全量曲库。仅限高配服务器使用，低配开启可能导致 504 错误。</div>
+          <div class="pref-desc">极速同步全量曲库。若出现错误，请禁用。</div>
         </div>
         <label class="ios-switch">
           <input type="checkbox" id="switch-high-perf">
@@ -2273,7 +2284,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.3.7';
+    window.APP_VERSION = 'v1.3.8';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -3378,6 +3389,7 @@
         const switchLockLyric = document.getElementById('switch-lock-lyric');
         const switchAmbientBg = document.getElementById('switch-ambient-bg');
         const switchHighPerf = document.getElementById('switch-high-perf');
+        const switchAutoResume = document.getElementById('switch-auto-resume');
         // 🌟 新增 DOM 抓取：
         const prefDevVal = document.getElementById('pref-default-device-val');
         const prefDevOpts = document.getElementById('pref-default-device-opts');
@@ -3402,6 +3414,7 @@
                     if (switchLockLyric) switchLockLyric.checked = currentPrefs.lockLyric;
                     if (switchAmbientBg) switchAmbientBg.checked = currentPrefs.ambientBg !== false;
                     if (switchHighPerf) switchHighPerf.checked = currentPrefs.highPerf !== false;
+                    if (switchAutoResume) switchAutoResume.checked = currentPrefs.autoResume === true;
 
                     // 🌟 动态渲染自定义下拉框选项
                     if (prefDevVal && prefDevOpts) {
@@ -3492,7 +3505,7 @@
                     });
                 }
 
-                // 🌟 新增监听：高性能模式开关变化
+                // 高性能模式开关变化
                 if (switchHighPerf) {
                     switchHighPerf.addEventListener('change', (e) => {
                         window.savePreferences({ highPerf: e.target.checked });
@@ -3502,7 +3515,14 @@
                     });
                 }
 
-                // 🌟 监听：清除本地数据并恢复默认 (内联互动版)
+                // 自动记忆开关变化
+                if (switchAutoResume) {
+                    switchAutoResume.addEventListener('change', (e) => {
+                        window.savePreferences({ autoResume: e.target.checked });
+                    });
+                }
+
+                // 清除本地数据并恢复默认 (内联互动版)
                 const btnResetApp = document.getElementById('btn-reset-app');
                 const resetNormalView = document.getElementById('reset-normal-view');
                 const resetConfirmView = document.getElementById('reset-confirm-view');

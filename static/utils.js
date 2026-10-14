@@ -8,7 +8,7 @@
     // ==========================================
     const defaultConfig = {
         config: {
-            preferences: { lockLyric: true, ambientBg: true, highPerf: true, defaultDevice: 'last' },
+            preferences: { lockLyric: true, ambientBg: true, highPerf: true, autoResume: false, defaultDevice: 'last' }, // 👈 这里加上 autoResume: false
             player_state: { volume: 100, playMode: 1, splitMode: true },
             playlist_configs: {},
             recent_playlists: [] // 👈 收编到根目录
@@ -71,7 +71,16 @@
             localStorage.setItem('iwebplayer.active', JSON.stringify({ playlist, songName, time }));
         },
         getActive: function() {
-            try { return JSON.parse(localStorage.getItem('iwebplayer.active')) || {}; }
+            try {
+                const data = JSON.parse(localStorage.getItem('iwebplayer.active')) || {};
+                if (!data.playlist) return data;
+
+                const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
+                const conf = typeof window.getPlaylistConfig === 'function' ? window.getPlaylistConfig(data.playlist) : {};
+                const shouldRemember = prefs.autoResume === true || conf.resumeLocal === 'local' || conf.resumeLocal === 'global';
+
+                return { ...data, time: shouldRemember ? data.time : 0 };
+            }
             catch(e) { return {}; }
         },
 
@@ -86,7 +95,15 @@
         getPlLast: function(playlist) {
             try {
                 const data = JSON.parse(localStorage.getItem('iwebplayer.pl_last')) || {};
-                return data[playlist] || null;
+                const item = data[playlist];
+                if (!item) return null;
+
+                const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
+                const conf = typeof window.getPlaylistConfig === 'function' ? window.getPlaylistConfig(playlist) : {};
+                const shouldRemember = prefs.autoResume === true || conf.resumeLocal === 'local' || conf.resumeLocal === 'global';
+
+                // 🌟 核心：永远返回真实的歌名（保住闪红光），但时间归0（隐藏秒表）
+                return { name: item.name, time: shouldRemember ? item.time : 0 };
             } catch(e) { return null; }
         },
 
@@ -105,7 +122,14 @@
         getPlHistory: function(playlist) {
             try {
                 const data = JSON.parse(localStorage.getItem('iwebplayer.pl_history')) || {};
-                return data[playlist] || [];
+                const list = data[playlist] || [];
+
+                const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
+                const conf = typeof window.getPlaylistConfig === 'function' ? window.getPlaylistConfig(playlist) : {};
+                const shouldRemember = prefs.autoResume === true || conf.resumeLocal === 'local' || conf.resumeLocal === 'global';
+
+                // 🌟 核心：映射数组，保留每一首歌的名字，但统一屏蔽时间
+                return list.map(item => ({ name: item.name, time: shouldRemember ? item.time : 0 }));
             } catch(e) { return []; }
         },
 
