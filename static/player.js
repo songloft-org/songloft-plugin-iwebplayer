@@ -1226,13 +1226,7 @@
                   if (actualPlayingPl === window.currentPlaylist && actualPlayingSong === window.currentSongName) {
                       const timeWrap = document.getElementById(`time-wrap-${window.currentIndex}`);
                       if (timeWrap) {
-                          // 如果开了全局记忆，或者歌单单独开了续播，就显示时间
-                          if (isAutoResumeOn || conf.resumeLocal === 'local' || conf.resumeLocal === 'global') {
-
-                              timeWrap.innerHTML = `<div style="display: flex; align-items: center; color: var(--primary); margin-left: 8px; flex-shrink: 0;" title="已记录进度">${window.SVG_ICONS.stopwatch}</div>`;
-                          } else {
-                              timeWrap.innerHTML = ''; // 否则隐藏
-                          }
+                          timeWrap.innerHTML = '';
                       }
                   }
               } else {
