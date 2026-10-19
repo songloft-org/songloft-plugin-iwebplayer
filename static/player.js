@@ -535,6 +535,7 @@
 
         const sessionRestore = options.resumeKind === 'session';
         const request = window.invalidatePlaybackRequest();
+        if (window.updatePlayButtonUI && autoPlay) window.updatePlayButtonUI(true);
         pendingPlayback = true;
         const isCurrent = () => request === playbackRequest;
         const targetPlaylist = window.currentPlaylist;
@@ -1268,18 +1269,24 @@
               return;
           }
 
-          // 🌟 核心修复：去掉了对 audioEl.src 的判断限制。
-          // 只要是刷新页面后的【第一次物理点击】，统统强制重新执行 playSong 重载流程！
-          // 这样能在移动端的“物理点击生命周期”内，完美唤醒媒体加载并精准跳转续播时间点。
           if (!window._hasManuallyPlayed && window.currentIndex !== -1 && audioEl.paused) {
               window._hasManuallyPlayed = true;
-              window.playSong(window.currentIndex, true, audioEl.currentTime); // 👈 传递 audioEl.currentTime
+              window.updatePlayButtonUI(true); // 🌟 新增：第一次物理点击时瞬间变图标
+              window.playSong(window.currentIndex, true, audioEl.currentTime);
               return;
           }
 
           window._hasManuallyPlayed = true;
           if (audioEl.src && audioEl.src !== window.location.href) {
-              if (audioEl.paused) audioEl.play(); else { window.isPageBtnPause = true; audioEl.pause(); setTimeout(() => { window.isPageBtnPause = false; }, 200); }
+              if (audioEl.paused) {
+                  window.updatePlayButtonUI(true); // 🌟 新增：瞬间变图标
+                  audioEl.play();
+              } else {
+                  window.isPageBtnPause = true;
+                  window.updatePlayButtonUI(false); // 🌟 新增：瞬间变图标
+                  audioEl.pause();
+                  setTimeout(() => { window.isPageBtnPause = false; }, 200);
+              }
               return;
           }
           if (window.songList.length === 0) return;

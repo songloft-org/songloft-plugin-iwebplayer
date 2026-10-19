@@ -103,7 +103,7 @@
                 const shouldRemember = prefs.autoResume === true || conf.resumeLocal === 'local' || conf.resumeLocal === 'global';
 
                 // 🌟 核心：永远返回真实的歌名（保住闪红光），但时间归0（隐藏秒表）
-                return { name: item.name, time: shouldRemember ? item.time : 0 };
+                return { name: item.name, time: shouldRemember ? item.time : null };
             } catch(e) { return null; }
         },
 
@@ -129,7 +129,7 @@
                 const shouldRemember = prefs.autoResume === true || conf.resumeLocal === 'local' || conf.resumeLocal === 'global';
 
                 // 🌟 核心：映射数组，保留每一首歌的名字，但统一屏蔽时间
-                return list.map(item => ({ name: item.name, time: shouldRemember ? item.time : 0 }));
+                return list.map(item => ({ name: item.name, time: shouldRemember ? item.time : null }));
             } catch(e) { return []; }
         },
 
@@ -536,29 +536,62 @@
         return title || artist || "未知歌曲";
     };
 
-    window.fetchScrape = async function(rawItem, type, currentSongName = null) {
-        if (!rawItem) return null;
-        let filename = '';
-        const nameObj = window.getSongNameObj ? window.getSongNameObj(rawItem) : (currentSongName || '');
-        if (nameObj) { filename = nameObj.replace(/\.(mp3|flac|wav|m4a|aac|ogg|ape|wma|alac)(.*)$/i, '').replace(/#.*$/, ''); }
-        else if (rawItem.file_path) { filename = String(rawItem.file_path).split('/').pop().replace(/\.[^/.]+$/, ""); }
-
-        let title = rawItem.title || rawItem.name || '';
-        let artist = rawItem.artist || rawItem.singer || '';
-        if (filename && filename.includes(' - ')) {
-            const parts = filename.split(' - ');
-            title = parts[0].trim();
-            artist = parts.slice(1).join(' - ').trim();
-        }
-        const url = `/api/v1/jsplugin/iwebplayer/scrape?type=${type}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&filename=${encodeURIComponent(filename)}`;
-        try {
-            const res = await fetch(url);
-            if (res.ok) {
-                const data = await res.json();
-                return type === 'cover' ? data.cover : data.lyric;
+    // ==========================================
+    // 🚦 封面刮削并发控制器 (预留网络车道给音频请求)
+    // ==========================================
+    window.ScrapeManager = {
+        queue: [],
+        active: 0,
+        max: 3, // 🌟 限制最多同时 3 个封面请求，永远给浏览器预留 3 个通道给播放请求！
+        add: function(task) {
+            return new Promise(resolve => {
+                this.queue.push({ task, resolve });
+                this.run();
+            });
+        },
+        run: async function() {
+            if (this.active >= this.max || this.queue.length === 0) return;
+            this.active++;
+            const { task, resolve } = this.queue.shift();
+            try {
+                const res = await task();
+                resolve(res);
+            } catch (e) {
+                resolve(null);
+            } finally {
+                this.active--;
+                this.run(); // 当前任务完成，放行下一个
             }
-        } catch(e) {}
-        return null;
+        }
     };
 
-})(window);
+    window.fetchScrape = async function(rawItem, type, currentSongName = null) {
+        // 将真正的网络请求包装成 task，塞进并发控制器的队列中
+        return window.ScrapeManager.add(async () => {
+            if (!rawItem) return null;
+            let filename = '';
+            const nameObj = window.getSongNameObj ? window.getSongNameObj(rawItem) : (currentSongName || '');
+            if (nameObj) { filename = nameObj.replace(/\.(mp3|flac|wav|m4a|aac|ogg|ape|wma|alac)(.*)$/i, '').replace(/#.*$/, ''); }
+            else if (rawItem.file_path) { filename = String(rawItem.file_path).split('/').pop().replace(/\.[^/.]+$/, ""); }
+
+            let title = rawItem.title || rawItem.name || '';
+            let artist = rawItem.artist || rawItem.singer || '';
+            if (filename && filename.includes(' - ')) {
+                const parts = filename.split(' - ');
+                title = parts[0].trim();
+                artist = parts.slice(1).join(' - ').trim();
+            }
+            const url = `/api/v1/jsplugin/iwebplayer/scrape?type=${type}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&filename=${encodeURIComponent(filename)}`;
+
+            try {
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    return type === 'cover' ? data.cover : data.lyric;
+                }
+            } catch(e) {}
+            return null;
+        });
+    };
+
+})(window); // 保持 utils.js 原有的结尾

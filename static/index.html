@@ -920,13 +920,14 @@
 
     /* 彻底透明化右侧歌曲列表，消除深色块，融入环境 */
     body.ambient-active.split-view-active .song-item {
-      background-color: transparent !important;
+      background-color: transparent;
       backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
       border: none !important;
       box-shadow: none !important;
       border-radius: 0 !important;
       border-bottom: 1px solid rgba(128, 128, 128, 0.1) !important; /* 极淡的分割线 */
       margin-bottom: 0 !important; /* 消除卡片间距，变成无缝悬浮列表 */
+      transition: background-color 2s ease, transform 0.1s;
     }
 
     /* 其它控件保留毛玻璃保护壳 */
@@ -985,10 +986,11 @@
 
       /* 剥离暗黑模式下右侧列表的深色卡片背景 */
       body.ambient-active.split-view-active .song-item {
-        background-color: transparent !important;
+        background-color: transparent;
         border: none !important;
         box-shadow: none !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        transition: background-color 2s ease, transform 0.1s;
       }
 
       body.ambient-active.split-view-active .pl-card-b,
@@ -1236,12 +1238,12 @@
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v1.3.6" defer></script>
-  <script src="./static/utils.js?v1.3.8" defer></script>
+  <script src="./static/utils.js?v1.3.10b" defer></script>
   <script src="./static/lyrics.js?v1.3.3" defer></script>
   <script src="./static/playlist.js?v1.3.7" defer></script>
   <script src="./static/online.js?v1.3.0" defer></script>
   <script src="./static/plugins.js?v1.3.0" defer></script>
-  <script src="./static/player.js?v1.3.8" defer></script>
+  <script src="./static/player.js?v1.3.10b" defer></script>
   <script src="./static/miot.js?v1.3.2" defer></script>
 
 </head>
@@ -2284,7 +2286,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.3.8';
+    window.APP_VERSION = 'v1.3.10';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -3519,6 +3521,8 @@
                 if (switchAutoResume) {
                     switchAutoResume.addEventListener('change', (e) => {
                         window.savePreferences({ autoResume: e.target.checked });
+                        // 🌟 立刻重绘当前列表，让所有的秒表 SVG 瞬间出现或消失！
+                        if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
                     });
                 }
 
