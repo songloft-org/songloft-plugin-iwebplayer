@@ -529,7 +529,7 @@
                     let recents = window.ConfigManager.get('config', 'playback.recent_playlists') || [];
                     recents = recents.filter(k => k !== key);
                     recents.unshift(key);
-                    if (recents.length > 3) recents = recents.slice(0, 3);
+                    if (recents.length > 4) recents = recents.slice(0, 4);
                     window.ConfigManager.set('config', 'playback.recent_playlists', recents);
 
                     setTimeout(() => { if (typeof window.initPlaylistDropdown === 'function') window.initPlaylistDropdown(); }, 300);
@@ -650,9 +650,14 @@
         // 修复问题1：给 stickyGroup 加上 background: var(--card-bg)，防止下方列表上滑时穿透重叠
         stickyGroup.style.cssText = 'position: sticky; top: 0; z-index: 10; padding: 0; margin: 0; border-bottom: 1px solid var(--border); list-style: none; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 8px 8px 0 0; background: var(--card-bg); overflow: hidden;';
 
-        // 1. 率先插入最近播放的 3 个歌单 (置顶第一行)
+        // 1. 率先插入最近播放的歌单 (置顶第一行)
         let recents = window.ConfigManager.get('config', 'playback.recent_playlists') || [];
-        recents = recents.filter(k => allCleanKeys.includes(k)); // 过滤掉被删掉的歌单
+
+        // 🌟 在过滤掉被删歌单的同时，也把【当前正在显示的歌单(defaultKey)】无情剔除！
+        recents = recents.filter(k => allCleanKeys.includes(k) && k !== defaultKey);
+
+        // 🌟 因为存了4个，剔除当前1个后可能剩下3个，保险起见截取前3个显示
+        recents = recents.slice(0, 3);
 
         if (recents.length > 0) {
             const recentDiv = document.createElement('div');

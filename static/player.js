@@ -5,7 +5,7 @@
     // 内部微型 DOM 获取器
     const $ = (id) => document.getElementById(id);
 
-    // 🌟 核心引擎重构：统一在线歌曲身份复原器 (增强型推导版 - 纯净无日志)
+    // 🌟 核心引擎重构：统一在线歌曲身份复原器
     window.restoreOnlineIdentity = function(rawItem) {
         if (!rawItem || !rawItem.id) return rawItem;
 
@@ -30,7 +30,6 @@
                 } catch(e) {}
             }
 
-            // LXMusic 简写解析
             if (!parsed && rawItem.plugin_entry_path === 'lxmusic' && typeof rawItem.dedup_key === 'string' && rawItem.dedup_key.includes(':')) {
                 const parts = rawItem.dedup_key.split(':');
                 if (parts.length >= 2) {
@@ -48,9 +47,8 @@
                 }
             }
 
-            // 🌟 新增：WebDAV 简写解析 (格式: dav_服务器名_/文件路径)
             if (!parsed && rawItem.plugin_entry_path === 'dav' && typeof rawItem.dedup_key === 'string' && rawItem.dedup_key.startsWith('dav_')) {
-                const rest = rawItem.dedup_key.substring(4); // 截掉 'dav_'
+                const rest = rawItem.dedup_key.substring(4);
                 const firstSlash = rest.indexOf('/');
                 if (firstSlash !== -1) {
                     let configName = rest.substring(0, firstSlash);
@@ -68,7 +66,6 @@
         return rawItem;
     };
 
-    // 🌟 终极融合：全局统一的歌词获取中枢 (三级瀑布流)
     window.fetchSongLyric = async function(rawItem, targetSongName) {
         rawItem = window.restoreOnlineIdentity(rawItem);
         let finalLrc = null;
@@ -138,8 +135,6 @@
         } else {
             if (miniCover) miniCover.style.display = 'block';
         }
-
-        // 🌟 核心修改 2：彻底删除了 favSvg（底部的红心标识），让底部更纯净
 
         let extHtml = '';
         let extension = '';
@@ -235,6 +230,17 @@
         }
         window.currentIndex = index;
 
+        const conf = window.getPlaylistConfig ? window.getPlaylistConfig(window.currentPlaylist) : {};
+        if (conf.resumeLocal === 'off') {
+            const currentDeadList = window.deadSongIndexes[window.currentPlaylist] || [];
+            document.querySelectorAll('[id^="time-wrap-"]').forEach(el => {
+                const idx = parseInt(el.id.replace('time-wrap-', ''));
+                if (idx !== window.currentIndex && !currentDeadList.includes(idx)) {
+                    el.innerHTML = ''; // 瞬间擦除旧歌的时钟[cite: 4]
+                }
+            });
+        }
+
         const rawItem = window.songList[window.currentIndex];
         window.currentSongName = window.getSongNameObj(rawItem);
 
@@ -281,13 +287,12 @@
         if (!fullPlayer) return;
         if (window.innerWidth >= 960 && document.body.classList.contains('split-view-active')) return;
 
-        const ambientBg = $('fp-ambient-bg'); // 🌟 抓取沉浸背景幕布
+        const ambientBg = $('fp-ambient-bg');
         const isOpen = forceState !== undefined ? forceState : !fullPlayer.classList.contains('open');
 
         if (isOpen) {
-            fullPlayer.style.transform = ''; // 清除拖拽时遗留的内联样式
+            fullPlayer.style.transform = '';
 
-            // 🌟 展开时，清除强制指令，让 CSS 样式接管
             if (ambientBg) {
                 ambientBg.style.removeProperty('transition');
                 ambientBg.style.removeProperty('opacity');
@@ -297,16 +302,13 @@
             document.body.classList.add('player-open');
             if (window.isIOS || window.innerWidth < 600) document.body.style.overflow = 'hidden';
 
-            // 🌟 核心修复 2：弹窗展开时，立刻命令歌词引擎按最新高度重新计算并居中！
             if (window.LyricsEngine && typeof window.LyricsEngine.scrollToCurrent === 'function') {
-                // 给浏览器 50ms 的渲染时间，确保能取到最真实的 100% 展开高度
                 setTimeout(() => window.LyricsEngine.scrollToCurrent(), 50);
             }
         } else {
-            fullPlayer.style.transform = ''; // 清除内联，让 CSS 顺滑收起
+            fullPlayer.style.transform = '';
             fullPlayer.classList.remove('open');
 
-            // 🌟 核心优化：立刻强制背景同步褪色！不遮挡底层的歌曲列表
             if (ambientBg) {
                 ambientBg.style.setProperty('transition', 'opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)', 'important');
                 ambientBg.style.setProperty('opacity', '0', 'important');
@@ -316,7 +318,6 @@
                     document.body.classList.remove('player-open');
                     document.body.style.overflow = '';
 
-                    // 🌟 清理痕迹，保持纯净
                     if (ambientBg) {
                         ambientBg.style.removeProperty('transition');
                         ambientBg.style.removeProperty('opacity');
@@ -367,7 +368,6 @@
         setTimeout(() => {
             const filterWrap = $('filter-action-wrap');
             if (filterWrap) {
-                // 如果当前是“我的歌单”，也强制显示漏斗图标
                 filterWrap.style.display = ((window.FilterManager && window.FilterManager.getContext()) || playlistName === '我的歌单') ? 'flex' : 'none';
             }
 
@@ -376,10 +376,9 @@
                 jumpWrap.style.display = (playlistName === '曲库搜索') ? 'flex' : 'none';
             }
 
-            // 🌟 修复：切到其他列表只隐藏，不清除数据；切回来恢复显示并闪烁红框
             const gridWrap = $('grid-filter-wrap');
             if (playlistName !== '我的歌单') {
-                if (gridWrap) gridWrap.style.display = 'none'; // 仅隐藏
+                if (gridWrap) gridWrap.style.display = 'none';
             } else {
                 if (gridWrap && window._gridFilterKeyword) {
                     gridWrap.style.display = 'flex';
@@ -387,7 +386,6 @@
                     if (gridInput) gridInput.value = window._gridFilterKeyword;
                     $('grid-filter-clear')?.classList.add('show');
 
-                    // 触发特效：闪烁一下红框，800ms后自动消失
                     gridWrap.classList.add('glow');
                     if (window._gridGlowTimer) clearTimeout(window._gridGlowTimer);
                     window._gridGlowTimer = setTimeout(() => gridWrap.classList.remove('glow'), 800);
@@ -418,13 +416,11 @@
         try {
             if (isFav) {
                 await fetch(`/api/v1/playlists/${plId}/songs/${rawSong.id}`, { method: 'DELETE' });
-                // 🌟 核心修改 1：仅在本地内存剔除记录，彻底告别一堆网络抓取请求！
                 window.favoriteList = window.favoriteList.filter(name => name !== songName);
             } else {
                 await fetch(`/api/v1/playlists/${plId}/songs`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song_ids: [rawSong.id] })
                 });
-                // 🌟 核心修改 1：仅在本地内存追加记录，不再触发全局刷新！
                 window.favoriteList.push(songName);
             }
 
@@ -437,7 +433,7 @@
 
             if (songName === window.currentSongName) {
                 window.updateNpTitleUI(window.currentSongName, false);
-                const coverSrc = $('fp-cover') ? $('fp-cover').src : window.defaultCover;
+                const coverSrc = $('fp-cover') ?$('fp-cover').src : window.defaultCover;
                 if(window.updateMediaSession) window.updateMediaSession(window.currentSongName, coverSrc, window.favoriteList, window.APP_LOGO);
 
                 const cornerFav = $('fp-corner-fav');
@@ -455,19 +451,15 @@
         if (rawItem && rawItem.plugin_entry_path === 'dav') {
             const globalToken = window.getAccessToken ? window.getAccessToken() : "";
 
-            // 🌟 极限提速：只要是保存在本地歌单中的 WebDAV 歌曲（拥有真实的数据库数字 ID），
-            // 且不在"在线资源"面板临时浏览，就直接在前端秒拼出底层串流通道，彻底跳过 /musicinfo 探针的等待！
             if (rawItem.id && Number.isInteger(Number(rawItem.id)) && window.currentPlaylist !== '在线资源') {
                 return `/api/v1/songs/${rawItem.id}/play?access_token=${globalToken}`;
             }
 
-            // 💡 以下保持不变：为“在线资源”面板里的临时网盘歌曲提供前端代理直连
             let sd = rawItem.source_data || {};
             if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e){} }
 
             const serverName = sd.configName || (window.webdavData ? window.webdavData.currentServer : '');
 
-            // 🌟 极限护盾：如果连 path 都没有，说明它不是正常的网盘数据，直接退回给后端
             if (!serverName || !sd.path) return null;
 
             if (serverName && window.webdavData && window.webdavData.credentials && window.webdavData.credentials[serverName]) {
@@ -494,7 +486,6 @@
     // =========================================================================
     // 🌟 核心引擎重构：播放请求流转
     // =========================================================================
-    // Each selection owns its async work. The next click invalidates it immediately.
     let playbackRequest = 0;
     let pendingPlayback = false;
     let metadataCleanup = null;
@@ -790,17 +781,18 @@
                 let targetResumeTime = resumeTime > 0 ? resumeTime : 0;
                 let targetSpeed = plConfig.speedLocal || 1.0;
 
-                // 🌟 读取偏好设置中的“自动记忆开关”
                 const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
                 const isAutoResumeOn = prefs.autoResume === true;
 
-                // 1. 如果是点击列表切歌（传入的时间是 0），且开启了自动记忆，才去读取历史
-                if (targetResumeTime === 0 && isAutoResumeOn) {
-                    const historyData = window.ProgressManager.getPlHistory(targetPlaylist);
-                    const found = historyData.find(item => item.name === targetSongName);
-                    if (found) {
-                        targetResumeTime = found.time;
-                    } else {
+                // 🌟 读取分流修复：续播歌单拥有最高特权，无视全局记忆开关
+                if (targetResumeTime === 0) {
+                    if (plConfig.resumeLocal !== 'off') {
+                        // 启用了续播：无论开没开自动记忆，必定去历史记录里恢复进度
+                        const historyData = window.ProgressManager.getPlHistory(targetPlaylist);
+                        const found = historyData.find(item => item.name === targetSongName);
+                        if (found) targetResumeTime = found.time;
+                    } else if (isAutoResumeOn) {
+                        // 普通歌单：只有在开启了全局自动记忆时，才去恢复最后一首歌的进度
                         const lastData = window.ProgressManager.getPlLast(targetPlaylist);
                         if (lastData && lastData.name === targetSongName) {
                             targetResumeTime = lastData.time;
@@ -865,13 +857,12 @@
                 const restoreProgress = () => {
                     if (!isCurrent()) return;
 
-                    // 🌟 修改点：最终拦截，如果不该记忆，进度归零
                     const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
                     const isAutoResumeOn = prefs.autoResume === true;
                     const shouldRemember = isAutoResumeOn || plConfig.resumeLocal === 'local' || plConfig.resumeLocal === 'global';
 
                     if (!sessionRestore && !shouldRemember) {
-                        targetResumeTime = 0; // 强行从头开始
+                        targetResumeTime = 0;
                     }
 
                     if (audioEl.duration && Number.isFinite(Number(targetResumeTime)) && targetResumeTime > 0 && targetResumeTime < audioEl.duration) {
@@ -1040,8 +1031,6 @@
     // 🌟 核心引擎重构：音频事件与控件绑定中枢
     // =========================================================================
     window.updateFpSpeedUI = function(speed, isFromUser = false) {
-        // 🌟 核心拦截：如果正处于用户手动调速的挂起期（还没同步完成并弹出 Toast），
-        // 则无视任何来自后台的轮询刷新（即 isFromUser 为 false 的调用），防止 UI 闪回旧数据！
         if (window._speedSyncingLock && !isFromUser) return;
 
         const fpCornerSpeed = document.getElementById('fp-corner-speed');
@@ -1078,6 +1067,40 @@
     };
 
     window.bindPlayerEvents = function() {
+        // 🌟 动态注入 CSS 护盾：高亮的歌曲强制隐藏时钟（完全不破坏原有 DOM，干净利落）
+        if (!document.getElementById('dynamic-playing-style')) {
+            const style = document.createElement('style');
+            style.id = 'dynamic-playing-style';
+            style.innerHTML = `body.is-audio-playing .song-item.playing [id^="time-wrap-"] > *:not(.song-dead-tag) { display: none !important; }`;
+            document.head.appendChild(style);
+        }
+
+        // 🌟 终极绝杀：直接劫持底层的读取引擎！
+        // 保证读取时就切断普通歌单的旧数据，永不闪烁。
+        if (window.ProgressManager && !window.ProgressManager._isPatched) {
+            const originalGetPlHistory = window.ProgressManager.getPlHistory;
+            window.ProgressManager.getPlHistory = function(playlistName) {
+                const rawHistory = originalGetPlHistory.call(this, playlistName) || [];
+                const conf = window.getPlaylistConfig(playlistName);
+
+                // 1. 如果启用了续播功能的歌单，要排除掉（原样返回所有）
+                if (conf.resumeLocal !== 'off') return rawHistory;
+
+                // 2. 禁用自动记忆时：直接返回空，底层就不会渲染任何时钟
+                const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
+                if (prefs.autoResume !== true) return [];
+
+                // 3. 开启了自动记忆的普通歌单，只记录/返回当前（最后播放）的那一首！
+                const lastData = window.ProgressManager.getPlLast(playlistName);
+                if (lastData && lastData.name) {
+                    const filtered = rawHistory.filter(item => item.name === lastData.name);
+                    return filtered.length > 0 ? filtered : [{ name: lastData.name, time: lastData.time }];
+                }
+                return [];
+            };
+            window.ProgressManager._isPatched = true;
+        }
+
         const audioEl = document.getElementById('audio');
         const btnPlay = document.getElementById('btn-play');
         const btnPrev = document.getElementById('btn-prev');
@@ -1093,27 +1116,20 @@
         const progressBar = document.getElementById('progress-bar');
         const timeCurrentEl = document.getElementById('time-current');
         const timeDurationEl = document.getElementById('time-duration');
-        window.isDragging = false; // 🌟 暴露给全局
+        window.isDragging = false;
 
         // 1. 音频核心事件监听
         audioEl.addEventListener('play', () => {
           if (!currentMedia(audioEl)) return;
           window.updatePlayButtonUI(true);
+
+          // 🌟 特权 1：只有普通歌单才打隐身标记，续播歌单正常显示时钟！
+          const conf = window.getPlaylistConfig(window.currentPlaylist);
+          if (conf.resumeLocal === 'off') {
+              document.body.classList.add('is-audio-playing');
+          }
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
           window.setupMediaSession(audioEl, btnPrev, btnNext);
-
-          const conf = window.getPlaylistConfig(window.currentPlaylist);
-          const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
-          const isAutoResumeOn = prefs.autoResume === true;
-          const shouldRemember = isAutoResumeOn || conf.resumeLocal === 'local' || conf.resumeLocal === 'global';
-
-          if (!shouldRemember) {
-              const currentDeadList = window.deadSongIndexes[window.currentPlaylist] || [];
-              document.querySelectorAll('[id^="time-wrap-"]').forEach(el => {
-                  const idx = parseInt(el.id.replace('time-wrap-', ''));
-                  if (!currentDeadList.includes(idx)) el.innerHTML = '';
-              });
-          }
         });
 
         audioEl.addEventListener('playing', () => { if (!currentMedia(audioEl)) return; audioEl.dataset.hasStarted = "1"; window.consecutiveFailures = 0; if ('mediaSession' in navigator) window.setupMediaSession(audioEl, btnPrev, btnNext); });
@@ -1121,6 +1137,7 @@
         audioEl.addEventListener('pause', () => {
           if (!currentMedia(audioEl)) return;
           window.updatePlayButtonUI(false);
+          document.body.classList.remove('is-audio-playing');
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
           if (audioEl.src && !audioEl.ended && window.currentSongName) {
               const actualPlayingPl = audioEl.dataset.playingPlaylist || window.currentPlaylist;
@@ -1131,6 +1148,7 @@
 
         audioEl.addEventListener('error', () => {
           if (!currentMedia(audioEl)) return;
+          document.body.classList.remove('is-audio-playing');
           if (window._davDirectTimeout) clearTimeout(window._davDirectTimeout);
           if (audioEl.src && audioEl.src !== window.location.href) {
             if (audioEl.dataset.hasStarted === "1") { window.updatePlayButtonUI(false); return; }
@@ -1178,7 +1196,7 @@
         // 3. 时间与进度更新
         audioEl.addEventListener('timeupdate', () => {
           if (!currentMedia(audioEl)) return;
-          if (!audioEl.duration || window.isDragging) return; // 🌟 换成全局变量
+          if (!audioEl.duration || window.isDragging) return;
           const current = audioEl.currentTime;
           const duration = audioEl.duration;
 
@@ -1208,35 +1226,34 @@
               const actualPlayingPl = audioEl.dataset.playingPlaylist || window.currentPlaylist;
               const actualPlayingSong = audioEl.dataset.playingSongName || window.currentSongName;
 
+              // 🌟 极简：直接写入当前时间，底层无多余操作
               window.ProgressManager.setActive(actualPlayingPl, actualPlayingSong, current);
-
-              const conf = window.getPlaylistConfig(actualPlayingPl);
-              const prefs = typeof window.getPreferences === 'function' ? window.getPreferences() : {};
-              const isAutoResumeOn = prefs.autoResume === true; // 获取全局记忆开关
-
-              // 永远写入 lastData 保证刷新页面能定位歌曲 (闪红光)
               window.ProgressManager.setPlLast(actualPlayingPl, actualPlayingSong, current);
 
-              if (isAutoResumeOn || conf.resumeLocal !== 'off') {
-                  window.ProgressManager.setPlHistory(actualPlayingPl, actualPlayingSong, current);
-                  if (conf.resumeLocal === 'global') {
-                      window.syncToCloud(actualPlayingPl, actualPlayingSong, current, audioEl.playbackRate, false);
-                  }
+              const conf = window.getPlaylistConfig(actualPlayingPl);
 
-                  // 🌟 修改点：只在 UI 显示这一步拦截
-                  if (actualPlayingPl === window.currentPlaylist && actualPlayingSong === window.currentSongName) {
-                      const timeWrap = document.getElementById(`time-wrap-${window.currentIndex}`);
-                      if (timeWrap) {
-                          timeWrap.innerHTML = '';
+              // 统一写入 History，不用担心污染，因为劫持器会自动过滤垃圾数据
+              window.ProgressManager.setPlHistory(actualPlayingPl, actualPlayingSong, current);
+              if (conf.resumeLocal === 'global') {
+                  window.syncToCloud(actualPlayingPl, actualPlayingSong, current, audioEl.playbackRate, false);
+              }
+
+              // 🌟 特权 2：如果是续播歌单，每2秒动态更新右侧的时钟和时间！
+              if (conf.resumeLocal !== 'off' && actualPlayingPl === window.currentPlaylist) {
+                  const timeWrap = document.getElementById(`time-wrap-${window.currentIndex}`);
+                  if (timeWrap) {
+                      const newTimeStr = window.formatTime(current);
+                      // 1. 如果有旧时间，正则替换数字，绝不破坏原有 DOM 结构
+                      if (/\d{2,}:\d{2}/.test(timeWrap.innerHTML)) {
+                          timeWrap.innerHTML = timeWrap.innerHTML.replace(/\d{2,}:\d{2}/, newTimeStr);
                       }
-                  }
-              } else {
-                  // 如果全关了，清空 UI 的小秒表
-                  if (actualPlayingPl === window.currentPlaylist && actualPlayingSong === window.currentSongName) {
-                      const currentDeadList = window.deadSongIndexes[window.currentPlaylist] || [];
-                      const timeWrap = document.getElementById(`time-wrap-${window.currentIndex}`);
-                      if (timeWrap && !currentDeadList.includes(window.currentIndex)) {
-                          timeWrap.innerHTML = '';
+                      // 2. 如果是刚播放的新歌（节点为空），直接注入 100% 原生代码！
+                      else if (timeWrap.innerHTML.trim() === '') {
+                          const isGlobal = conf.resumeLocal === 'global';
+                          const rawSvg = isGlobal ? (window.SVG_ICONS?.cloud_clock || '') : (window.SVG_ICONS?.stopwatch || '');
+
+                          // 🌟 终极修复：直接复制 playlist.js 里的原生样式！
+                          timeWrap.innerHTML = `<div style="display: flex; align-items: center; font-size: 11px; color: var(--primary); font-variant-numeric: tabular-nums; margin-left: 8px; flex-shrink: 0; font-weight: 500;">${rawSvg}${newTimeStr}</div>`;
                       }
                   }
               }
@@ -1271,7 +1288,7 @@
 
           if (!window._hasManuallyPlayed && window.currentIndex !== -1 && audioEl.paused) {
               window._hasManuallyPlayed = true;
-              window.updatePlayButtonUI(true); // 🌟 新增：第一次物理点击时瞬间变图标
+              window.updatePlayButtonUI(true);
               window.playSong(window.currentIndex, true, audioEl.currentTime);
               return;
           }
@@ -1279,11 +1296,11 @@
           window._hasManuallyPlayed = true;
           if (audioEl.src && audioEl.src !== window.location.href) {
               if (audioEl.paused) {
-                  window.updatePlayButtonUI(true); // 🌟 新增：瞬间变图标
+                  window.updatePlayButtonUI(true);
                   audioEl.play();
               } else {
                   window.isPageBtnPause = true;
-                  window.updatePlayButtonUI(false); // 🌟 新增：瞬间变图标
+                  window.updatePlayButtonUI(false);
                   audioEl.pause();
                   setTimeout(() => { window.isPageBtnPause = false; }, 200);
               }
@@ -1301,11 +1318,10 @@
                 window.playMode = parseInt(item.dataset.mode);
                 window.updatePlayModeUI();
 
-                // 将最新的播放模式同步写回 LocalStorage，确保下次刷新能正确读取！
                 localStorage.setItem('iwebplayer.local_play_mode', window.playMode);
 
                 if (!window.MiotManager || window.MiotManager.currentDevice.type !== 'miot') {
-                    window.ConfigManager.set('config', 'player_state.playMode', window.playMode); // 🌟 使用新引擎
+                    window.ConfigManager.set('config', 'player_state.playMode', window.playMode);
                 }
                 modePopup.classList.remove('show');
                 if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') window.MiotManager.setPlayMode(window.playMode);
@@ -1346,7 +1362,12 @@
         }
 
         window.playNextSong = playNextSong;
-        audioEl.addEventListener('ended', () => { if (currentMedia(audioEl)) playNextSong(true); });
+
+        // 🌟 恢复原本的 ended 逻辑，不再强行清零
+        audioEl.addEventListener('ended', () => {
+            document.body.classList.remove('is-audio-playing');
+            if (currentMedia(audioEl)) playNextSong(true);
+        });
 
         btnNext.addEventListener('click', () => {
             if (window.preloadCache && window.playMode !== 3) {
@@ -1408,7 +1429,6 @@
           return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
         }
 
-        // 🌟 智能获取当前设备的总时长
         function getActiveDuration() {
             return (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') ? window.MiotManager.lastWsDuration : audioEl.duration;
         }
@@ -1416,12 +1436,12 @@
         function handleDragStart(e) {
             const duration = getActiveDuration();
             if (!duration) return;
-            window.isDragging = true; // 🌟 换成全局变量宣告开始拖拽
+            window.isDragging = true;
             progressBar.style.width = (getPercentage(e) * 100) + '%';
         }
         function handleDragMove(e) {
             const duration = getActiveDuration();
-            if (!window.isDragging || !duration) return; // 🌟 换成全局变量
+            if (!window.isDragging || !duration) return;
             e.preventDefault();
             const p = getPercentage(e);
             progressBar.style.width = (p * 100) + '%';
@@ -1430,11 +1450,10 @@
         }
         function handleDragEnd(e) {
             const duration = getActiveDuration();
-            if (!window.isDragging || !duration) return; // 🌟 换成全局变量
-            window.isDragging = false; // 🌟 换成全局变量宣告结束
+            if (!window.isDragging || !duration) return;
+            window.isDragging = false;
             const targetTime = getPercentage(e) * duration;
 
-            // 🌟 核心分流：音箱模式调接口，本机模式拨底层
             if (window.MiotManager && window.MiotManager.currentDevice.type === 'miot') {
                 window.MiotManager.seekTo(targetTime);
             } else {
