@@ -230,6 +230,24 @@
 
         // 核心切换逻辑
         selectDevice: function(id, type, accountId, name) {
+            // 🌟 1. 获取切换前的状态，用于判断是 "切向小爱" 还是 "切回本机"
+            const prevType = this.currentDevice.type;
+            const audioEl = document.getElementById('audio');
+
+            // 🌟 2. 切向小爱：【本机静音保护与现场备份】
+            if (prevType === 'local' && type === 'miot') {
+                // 备份本机的现场 (当前歌单、索引、进度、是否正在播放)
+                this._savedLocalState = {
+                    playlist: window.currentPlaylist,
+                    index: window.currentIndex,
+                    time: audioEl ? audioEl.currentTime : 0,
+                    wasPlaying: audioEl && !audioEl.paused // 🌟 记录本机之前的播放状态
+                };
+                // 本机无条件闭嘴，交出声音控制权
+                if (audioEl && !audioEl.paused) {
+                    audioEl.pause();
+                }
+            }
 
             this.currentDevice = { id, type, accountId, name };
             const deviceVal = document.getElementById('device-val');
@@ -243,18 +261,17 @@
 
             if (window.showToast) window.showToast(`✅ 已切换至：${name}`);
 
-            // 🌟 新增：动态切换 body 的隐身披风
+            // 🌟 动态切换 body 的隐身披风
             if (type === 'miot') {
                 document.body.classList.add('miot-mode');
-            } else {
-                document.body.classList.remove('miot-mode');
-            }
 
-            if (type === 'miot') {
+                // 🌟 核心修复：每次切向小爱，必须重置寻回标记！让它能重新定位小爱所在的歌单
+                this._hasAutoJumped = false;
+
                 this.connectStatusWs(accountId, id);
-                // ... 下面保持原样 ...
                 this.startVirtualClock();
             } else {
+                document.body.classList.remove('miot-mode');
                 this.disconnectStatusWs();
                 this.stopVirtualClock();
 
@@ -262,24 +279,40 @@
                 const localVol = localStorage.getItem('iwebplayer.player_volume') || 100;
                 const volSlider = document.getElementById('volume-slider');
                 const volText = document.getElementById('volume-text');
-                const audioEl = document.getElementById('audio');
 
                 if (volSlider) volSlider.value = localVol;
                 if (volText) volText.innerText = localVol + '%';
                 if (window.updateVolumeIcon) window.updateVolumeIcon(localVol);
                 if (audioEl) audioEl.volume = localVol / 100;
 
-                // 🌟 核心新增：切回本机时，强行把本机的独立播放顺序从缓存里恢复回来！
+                // 切回本机时，强行把本机的独立播放顺序从缓存里恢复回来！
                 const storedMode = parseInt(localStorage.getItem('iwebplayer.local_play_mode'));
                 window.playMode = isNaN(storedMode) ? 1 : storedMode;
                 if (window.updatePlayModeUI) window.updatePlayModeUI();
+
+                // 🌟 3. 切回本机：【还原并自动播放】
+                if (this._savedLocalState && typeof window.playSong === 'function') {
+                    const { playlist, index, time, wasPlaying } = this._savedLocalState;
+                    if (index !== -1) {
+                        // 如果在看小爱时歌单被偷偷切了（寻回逻辑），必须先静默切回来
+                        if (playlist && window.currentPlaylist !== playlist && typeof window.switchPlaylistSilently === 'function') {
+                            window.switchPlaylistSilently(playlist);
+                        }
+                        // 🌟 动态决定是否起播：如果切走前在放，切回来就放；切走前暂停，切回来也暂停
+                        window.playSong(index, !!wasPlaying, time, { resumeKind: 'session' });
+                    }
+                    this._savedLocalState = null; // 消费完清空
+                } else if (audioEl && audioEl.src && audioEl.src !== window.location.href) {
+                    // 兜底逻辑：如果内存刚好被清理，但播放器还在，直接唤醒
+                    audioEl.play().catch(()=>{});
+                    if (window.updatePlayButtonUI) window.updatePlayButtonUI(true);
+                }
             }
 
-            // 强行刷新一次底部按钮，防止切回来后图标错乱
+            // 🌟 核心修复：强行刷新一次底部播放按钮，防止双端都未播放时图标不切换！
             if (window.updatePlayButtonUI) window.updatePlayButtonUI(window.isPlaying);
-            if (window.updateVolumeBtnUI) window.updateVolumeBtnUI(); // 🌟 新增：切设备时刷新音量图标
+            if (window.updateVolumeBtnUI) window.updateVolumeBtnUI(); // 切设备时刷新音量图标状态
         },
-
         // 向小爱音箱下发播放指令
         playPlaylist: async function(playlistId, startIndex) {
             // 🌟 动态映射当前播放模式
@@ -331,6 +364,19 @@
         // 向小爱音箱下发 暂停/继续 指令
         togglePlay: async function() {
             if (this.currentDevice.type !== 'miot') return;
+
+            // ==========================================
+            // 🌟 核心修复：幽灵状态下的无脑播放拦截
+            // ==========================================
+            // 如果刚切到一个空闲的音箱（_hasAutoJumped 为 false），
+            // 此时直接发 toggle 恢复指令，音箱会唤醒它自己脑子里的上一首歌。
+            // 我们必须拦截这个操作，把前端 UI 当前高亮的这首歌，强行当作一首新歌推过去！
+            if (!this._hasAutoJumped && !window.isPlaying) {
+                if (window.currentIndex !== -1 && typeof window.playSong === 'function') {
+                    window.playSong(window.currentIndex, true);
+                    return; // 拦截成功，直接退出，不发无脑的 toggle 指令
+                }
+            }
 
             // 🌟 1. 明确我们期望的目标状态 (想播放设为 true，想暂停设为 false)
             const targetState = !window.isPlaying;
@@ -539,6 +585,7 @@
         // 断开 WebSocket
         disconnectStatusWs: function() {
             if (this.wsStatus) {
+                this.wsStatus.onclose = null; // 屏蔽 onclose，防止主动断开时触发重连
                 this.wsStatus.close();
                 this.wsStatus = null;
             }
@@ -546,10 +593,18 @@
                 clearInterval(this.pingTimer);
                 this.pingTimer = null;
             }
+            if (this.reconnectTimer) {
+                clearTimeout(this.reconnectTimer);
+                this.reconnectTimer = null;
+            }
+            if (this.pollTimer) {
+                clearInterval(this.pollTimer);
+                this.pollTimer = null;
+            }
         },
 
-        // 连接播放状态 WebSocket
-        connectStatusWs: function(accountId, deviceId) {
+        // 连接播放状态 WebSocket (加入自动重连与 HTTP 轮询兜底)
+        connectStatusWs: function(accountId, deviceId, retryCount = 0) {
             this.disconnectStatusWs();
 
             const token = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
@@ -558,10 +613,35 @@
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/api/v1/jsplugin/miot/status/ws?account_id=${accountId}&device_id=${deviceId}&access_token=${token}`;
 
+            // 🛡️ HTTP 轮询兜底机制：WS 断线时每 2 秒拉一次状态，保证 UI 绝对不卡死
+            const startFallbackPolling = () => {
+                if (this.pollTimer) return;
+                this.pollTimer = setInterval(async () => {
+                    // 如果切回了本机或换了设备，立刻停止轮询
+                    if (this.currentDevice.type !== 'miot' || this.currentDevice.id !== deviceId) {
+                        clearInterval(this.pollTimer);
+                        this.pollTimer = null;
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`/api/v1/jsplugin/miot/player/status?account_id=${accountId}&device_id=${deviceId}`);
+                        const data = await res.json();
+                        if (data.success && data.data) {
+                            this.syncUIWithMiotStatus(data.data);
+                        }
+                    } catch(e) {}
+                }, 2000);
+            };
+
             try {
                 this.wsStatus = new WebSocket(wsUrl);
 
                 this.wsStatus.onopen = () => {
+                    retryCount = 0; // 连接成功，清零重连次数
+                    if (this.pollTimer) {
+                        clearInterval(this.pollTimer); // WS 活了，立刻停止 HTTP 兜底
+                        this.pollTimer = null;
+                    }
                     this.pingTimer = setInterval(() => {
                         if (this.wsStatus && this.wsStatus.readyState === WebSocket.OPEN) {
                             this.wsStatus.send(JSON.stringify({ type: 'ping' }));
@@ -578,13 +658,30 @@
                     } catch (e) {}
                 };
 
-                this.wsStatus.onclose = () => {
-                    if (this.pingTimer) clearInterval(this.pingTimer);
+                this.wsStatus.onerror = () => {
+                    // onerror 触发后，浏览器会自动触发 onclose，由 onclose 统一处理重连
                 };
 
-            } catch (e) {}
-        },
+                this.wsStatus.onclose = () => {
+                    if (this.pingTimer) clearInterval(this.pingTimer);
+                    this.wsStatus = null;
 
+                    // 如果用户还在看小爱设备，开启急救模式
+                    if (this.currentDevice.type === 'miot' && this.currentDevice.id === deviceId) {
+                        startFallbackPolling(); // 立即启动轮询，稳住 UI
+
+                        // 启动指数退避重连 (1s, 2s, 4s... 最多间隔 15s)
+                        const delay = Math.min(1000 * Math.pow(2, retryCount), 15000);
+                        this.reconnectTimer = setTimeout(() => {
+                            this.connectStatusWs(accountId, deviceId, retryCount + 1);
+                        }, delay);
+                    }
+                };
+
+            } catch (e) {
+                startFallbackPolling();
+            }
+        },
         // 🌟 3. 神级虚拟时钟：推演真实秒数，实现 60FPS 丝滑滚动
         startVirtualClock: function() {
             if (this.virtualClockId) return;
@@ -643,25 +740,41 @@
         },
 
         // 接收到后端的真实数据后，修正虚拟时钟的基准线
+        // 接收到后端的真实数据后，修正虚拟时钟的基准线
         syncUIWithMiotStatus: function(data) {
             if (this.currentDevice.type !== 'miot') return;
 
-            let position = parseFloat(data.position) || 0;
-            const duration = parseFloat(data.duration) || 0;
+            let isPlaying = data.state === 'playing';
+
+            // 🌟 状态强制保护锁：如果处于刚点击暂停/播放的 2 秒内，拒绝听信网络传来的滞后状态！
+            if (this._stateLockTime && Date.now() < this._stateLockTime) {
+                isPlaying = this.isWsPlaying;
+            }
+
+            // ==========================================
+            // 🌟 核心修复：幽灵状态隔离墙 & 首次跳跃标记
+            // ==========================================
+            let isGhostState = false;
+            let isFirstActiveConnect = false; // 🌟 新增：专门标记“首次连上且正在播放”的瞬间
+
+            if (!this._hasAutoJumped) {
+                if (!isPlaying) {
+                    isGhostState = true;
+                } else {
+                    this._hasAutoJumped = true;
+                    isFirstActiveConnect = true; // 🌟 只有在这一次，才允许自动跳转歌单！
+                }
+            }
+
+            let position = isGhostState ? 0 : (parseFloat(data.position) || 0);
+            let duration = isGhostState ? 0 : (parseFloat(data.duration) || 0);
 
             // 🌟 进度保护锁：如果刚拖拽了进度条（3秒内），拒收服务器传来的落后进度！
             if (this._seekLockTime && Date.now() < this._seekLockTime) {
                 position = this.lastWsPos;
             }
-            let isPlaying = data.state === 'playing';
 
-            // 🌟 状态强制保护锁：如果处于刚点击暂停/播放的 2 秒内，拒绝听信网络传来的滞后状态！
-            // 坚决维持用户刚才点击的目标状态 (this.isWsPlaying)
-            if (this._stateLockTime && Date.now() < this._stateLockTime) {
-                isPlaying = this.isWsPlaying;
-            }
-
-            // 🌟 2. 不马上粗暴刷新时间！只把数据喂给虚拟时钟
+            // 🌟 不马上粗暴刷新时间！只把数据喂给虚拟时钟
             this.lastWsPos = position;
             this.lastWsDuration = duration;
             this.lastWsTime = performance.now(); // 记录此刻的物理时间锚点
@@ -673,9 +786,11 @@
             if (timeDurationEl && duration > 0) {
                 const durText = window.formatTime(duration);
                 if (timeDurationEl.innerText !== durText) timeDurationEl.innerText = durText;
+            } else if (isGhostState && timeDurationEl) {
+                timeDurationEl.innerText = '00:00';
             }
 
-            // ② 状态兜底与纠偏（如果乐观更新出错，WS推来的真实状态会纠正图标）
+            // ② 状态兜底与纠偏
             if (window.isPlaying !== isPlaying) {
                 if (window.updatePlayButtonUI) window.updatePlayButtonUI(isPlaying);
             }
@@ -684,68 +799,69 @@
             const targetDev = this.devices.find(d => d.deviceID === this.currentDevice.id);
             if (targetDev && targetDev.is_playing !== isPlaying) {
                 targetDev.is_playing = isPlaying;
-                this.renderDeviceList(); // 重新渲染下拉框（因为菜单通常是收起的，所以静默重绘毫无性能损耗）
+                this.renderDeviceList();
             }
 
-            // ③ 如果是暂停状态，直接定格界面
-            if (!isPlaying && !window.isDragging) { // 🌟 加上 !window.isDragging
+            // ③ 如果是暂停/停止状态，直接定格界面
+            if (!isPlaying && !window.isDragging) {
                 const timeCurrentEl = document.getElementById('time-current');
                 if (timeCurrentEl) timeCurrentEl.innerText = window.formatTime(position);
                 const progressBar = document.getElementById('progress-bar');
-                if (progressBar && duration > 0) progressBar.style.width = (position / duration * 100) + '%';
+                if (progressBar) {
+                    progressBar.style.width = duration > 0 ? (position / duration * 100) + '%' : '0%';
+                }
             }
 
             // ④ 🤖 自动感知切歌（利用前端原生逻辑更新 UI 并抓取封面歌词）
             if (data.current_song && data.current_song.title) {
                 const newSongName = data.current_song.artist ? `${data.current_song.title} - ${data.current_song.artist}` : data.current_song.title;
 
-                // 🌟 新增：首次连接设备时，智能追踪并跳转到歌曲所属的最优歌单
-                if (!this._hasAutoJumped) {
-                    this._hasAutoJumped = true;
+                // 🌟 终极隔离：只要是幽灵状态，彻底屏蔽下方的歌单寻回和切歌逻辑
+                if (!isGhostState) {
 
-                    let foundPlaylist = null;
-                    // 剔除系统保留字，提取出真正的常规自定义歌单
-                    const systemPls = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs', '电台收藏', 'iWebPlayer推送', '全部'];
-                    const allPlKeys = Object.keys(window.allPlaylists || {});
-                    const customPls = allPlKeys.filter(k => !systemPls.includes(k));
-                    // 严格按照优先级排兵布阵
-                    const searchOrder = [...customPls, '收藏', '所有歌曲', 'iWebPlayer推送'];
+                    // 🌟 核心修复：把“跳歌单”的逻辑严密锁死在【首次活跃连接】这唯一的瞬间！
+                    if (isFirstActiveConnect) {
+                        let foundPlaylist = null;
+                        const systemPls = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs', '电台收藏', 'iWebPlayer推送', '全部'];
+                        const allPlKeys = Object.keys(window.allPlaylists || {});
+                        const customPls = allPlKeys.filter(k => !systemPls.includes(k));
+                        const searchOrder = [...customPls, '收藏', '所有歌曲', 'iWebPlayer推送'];
 
-                    // 优先检查当前停留的歌单是否已经包含了这首歌，包含了就不瞎跳，保持用户视野
-                    const currentSongs = window.getMergedSongList ? window.getMergedSongList(window.currentPlaylist) : [];
-                    if (currentSongs.some(item => window.getSongNameObj(item) === newSongName)) {
-                        foundPlaylist = window.currentPlaylist;
-                    } else {
-                        // 按照优先级寻找：常规歌单 -> 收藏 -> 所有歌曲 -> iWebPlayer推送
-                        for (const plName of searchOrder) {
-                            const plSongs = window.allPlaylists ? window.allPlaylists[plName] : [];
-                            if (plSongs && plSongs.some(item => window.getSongNameObj(item) === newSongName)) {
-                                foundPlaylist = plName;
-                                break;
+                        const currentSongs = window.getMergedSongList ? window.getMergedSongList(window.currentPlaylist) : [];
+                        if (currentSongs.some(item => window.getSongNameObj(item) === newSongName)) {
+                            foundPlaylist = window.currentPlaylist;
+                        } else {
+                            for (const plName of searchOrder) {
+                                const plSongs = window.allPlaylists ? window.allPlaylists[plName] : [];
+                                if (plSongs && plSongs.some(item => window.getSongNameObj(item) === newSongName)) {
+                                    foundPlaylist = plName;
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    if (foundPlaylist && foundPlaylist !== window.currentPlaylist) {
-                        if (typeof window.switchPlaylistSilently === 'function') {
-                            if (window.showToast) window.showToast(`🎵 音箱正在播放，已自动定位至: ${foundPlaylist}`);
-                            window.switchPlaylistSilently(foundPlaylist);
+                        if (foundPlaylist && foundPlaylist !== window.currentPlaylist) {
+                            if (typeof window.switchPlaylistSilently === 'function') {
+                                if (window.showToast) window.showToast(`🎵 音箱正在播放，已自动定位至: ${foundPlaylist}`);
+                                window.switchPlaylistSilently(foundPlaylist);
+                            }
                         }
-                    }
-                }
+                    } // <--- 限制结束！以后再怎么心跳轮询，也绝对跨不过这条线！
 
-                if (window.currentSongName !== newSongName && window.songList) {
-                    this._maxEstPos = 0; // 🌟 侦测到小爱自己切歌，强制重置最高水位线
-                    const targetIdx = window.songList.findIndex(item => window.getSongNameObj(item) === newSongName);
-                    if (targetIdx !== -1) {
-                        // 发现音箱切歌了，通知前端假装“点”了这首歌，但不发送 play 指令
-                        if (typeof window.playSong === 'function') {
-                            window.playSong(targetIdx, false);
+                    // 底部的歌名跟随逻辑（不跳歌单，只更新名字和按钮），保持原样
+                    if (window.currentSongName !== newSongName && window.songList) {
+                        this._maxEstPos = 0;
+                        const targetIdx = window.songList.findIndex(item => window.getSongNameObj(item) === newSongName);
+                        if (targetIdx !== -1) {
+                            if (typeof window.playSong === 'function') {
+                                window.playSong(targetIdx, false);
+                            }
                         }
                     }
                 }
             }
-            // ⑥ 🤖 同步音量 (避免拖拽时冲突，只判断数值)
+
+            // ⑥ 🤖 同步音量
             if (data.volume !== undefined) {
                 const volSlider = document.getElementById('volume-slider');
                 const volText = document.getElementById('volume-text');
@@ -766,9 +882,8 @@
                 }
             }
 
-            // ⑧ 🤖 同步倍速 UI (🌟 仅在这里做视觉屏蔽，绝不影响上面的进度条和状态！)
+            // ⑧ 🤖 同步倍速 UI
             if (data.speed !== undefined) {
-                // 只要“倍速悬浮面板”或“偏好设置弹窗”亮着，就不接受后端的倍速覆盖
                 const speedPopup = document.getElementById('fp-speed-popup');
                 const configModal = document.getElementById('config-modal-backdrop');
                 const isOperating = (speedPopup && speedPopup.classList.contains('show')) ||
