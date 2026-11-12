@@ -87,7 +87,7 @@ router.get('/musiclist', async (req) => {
       const cleanedSongs = plSongs.map((s: any) => ({
           id: s.id, title: s.title || "", artist: s.artist || "", album: s.album || "",
           file_path: s.file_path || "", cover_url: s.cover_url || "", duration: s.duration || 0, type: s.type || "local",
-          plugin_entry_path: s.plugin_entry_path || "", dedup_key: s.dedup_key || ""
+          plugin_entry_path: s.plugin_entry_path || "", dedup_key: s.dedup_key || "", updated_at: s.updated_at || ""
       }));
 
       return jsonResponse(cleanedSongs);
@@ -112,7 +112,7 @@ router.get('/musiclist', async (req) => {
           const cleanedSongs = plSongs.map((s: any) => ({
               id: s.id, title: s.title || "", artist: s.artist || "", album: s.album || "",
               file_path: s.file_path || "", cover_url: s.cover_url || "", duration: s.duration || 0, type: s.type || "local",
-              plugin_entry_path: s.plugin_entry_path || "", dedup_key: s.dedup_key || ""
+              plugin_entry_path: s.plugin_entry_path || "", dedup_key: s.dedup_key || "", updated_at: s.updated_at || ""
           }));
 
           const isPhysicalFolder = pl.labels && pl.labels.includes("auto_created");
@@ -544,4 +544,3 @@ globalThis.onInit = onInit;
 globalThis.onDeinit = onDeinit;
 // @ts-expect-error
 globalThis.onHTTPRequest = onHTTPRequest;
-
