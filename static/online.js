@@ -988,7 +988,7 @@
                 name: folderName, song_count: window.webdavData.library[folderName].length, cover_url: ''
             }));
 
-            if (window.currentPlaylist === '在线资源') {
+            if (window.isWebDAVMode && window.currentPlaylist === '在线资源') {
                 const oState = window.getOnlineState();
                 if (oState.view === 'detail' && oState.detail_name && window.webdavData.library[oState.detail_name]) {
                     window.renderWebDavFolder(oState.detail_name, window.webdavData.library[oState.detail_name], false, true);
@@ -1003,7 +1003,7 @@
             return;
         }
 
-        if (window.currentPlaylist === '在线资源') {
+        if (window.isWebDAVMode && window.currentPlaylist === '在线资源') {
             list.style.display = 'none'; grid.style.display = 'grid';
             grid.innerHTML = '<div style="text-align: center; padding: 60px; color: var(--text-sub); grid-column: 1 / -1;">正在拉取网盘索引...</div>';
         }
@@ -1051,7 +1051,7 @@
                 name: folderName, song_count: libraryData[folderName].length, cover_url: ''
             }));
 
-            if (window.currentPlaylist === '在线资源') {
+            if (window.isWebDAVMode && window.currentPlaylist === '在线资源') {
                 const oState = window.getOnlineState();
                 if (oState.view === 'detail' && oState.detail_name && libraryData[oState.detail_name]) {
                     window.renderWebDavFolder(oState.detail_name, libraryData[oState.detail_name], false, true);

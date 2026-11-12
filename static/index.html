@@ -765,6 +765,10 @@
     body.split-view-active:has(#online-toolbar-container[style*="display: flex"]) #scroll-wrapper {
       top: 154px !important; /* (108 + 38 + 8) 完美衔接双行底部！ */
     }
+    /* 🎯 动态追踪：当本地歌单排序栏出现时，裁切线精确下移 36px */
+    body.split-view-active:has(#playlist-sort-toolbar[style*="display: flex"]) #scroll-wrapper {
+      top: 144px !important;
+    }
 
     /* 3. 剥夺内部歌单和歌曲列表的独立滚动权，让它们在外衣里平铺融合 */
     body.split-view-active #scroll-wrapper .playlist,
@@ -1231,20 +1235,75 @@
   }
 
   /* 🌟 2. 彻底切断所有弹窗内部滚动容器的底层滚动链 (防止 iPhone 惯性回弹穿透) */
-  .modal-scroll-body, .plugin-body-col, .select-options, .wd-dir-list, .add-song-playlist-ul, .edit-pl-list-container {
+  .modal-scroll-body, .plugin-body-col, .select-options, .wd-dir-list, .add-song-playlist-ul, .edit-pl-list-container, #set-cover-songs-list {
     overscroll-behavior: none !important;
     -webkit-overflow-scrolling: touch;
   }
+  /* --- 歌单内联排序工具栏 (胶囊按钮版 - 紧凑型) --- */
+  .sort-inline-toolbar {
+      display: none; align-items: center; justify-content: space-between;
+      background: transparent; border: none;
+      padding: 0 4px 0 2px; height: 30px; margin-top: -2px; flex-shrink: 0; animation: fadeIn 0.2s;
+  }
+  .sort-btn-group {
+      display: flex; align-items: center; gap: 8px; flex: 1;
+      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .sort-btn-group::-webkit-scrollbar { display: none; }
+
+  .sort-btn {
+      font-size: 12px; color: var(--text-main); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      height: 26px; padding: 0 12px; font-weight: 500; transition: all 0.2s; user-select: none;
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 13px;
+      white-space: nowrap; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  }
+  .sort-btn:active { transform: scale(0.95); background: var(--bg-color); }
+  .sort-btn.active {
+      background: rgba(236, 72, 153, 0.08); border-color: rgba(236, 72, 153, 0.3);
+      color: var(--primary); font-weight: bold;
+  }
+  .sort-btn .sort-arrow { font-size: 12px; font-weight: bold; margin-left: 2px; display: inline-flex; align-items: center; transform: translateY(-1px); }
+  .sort-close-btn {
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 8px;
+      color: var(--text-sub); cursor: pointer; border-radius: 50%; transition: background 0.2s;
+  }
+  .sort-close-btn:active { background: var(--border); color: var(--text-main); }
+
+  /* 🌟 手动排序模式的全局样式控制 */
+
+  body.manual-sort-mode .song-item {
+      padding-left: 50px; /* 👈 把内部留白从 36px 扩大到 50px，空隙更大 */
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .drag-handle {
+      display: none;
+      position: absolute; left: 0; top: 0; bottom: 0;
+      width: 50px; /* 👈 把手感应区扩大到 50px */
+      align-items: center; justify-content: center;
+      color: var(--text-sub); cursor: grab; z-index: 10;
+  }
+  body.manual-sort-mode .drag-handle {
+      display: flex;
+  }
+  .song-item.dragging-ghost {
+      opacity: 0.9; box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+      background: var(--card-bg) !important; border: 1px solid var(--primary) !important;
+      transform: scale(1.02); z-index: 9999 !important; cursor: grabbing;
+  }
+  .song-item.drag-placeholder { opacity: 0; }
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v1.3.6" defer></script>
-  <script src="./static/utils.js?v1.3.10" defer></script>
+  <script src="./static/utils.js?v1.5.0a" defer></script>
   <script src="./static/lyrics.js?v1.3.3" defer></script>
-  <script src="./static/playlist.js?v1.3.11" defer></script>
-  <script src="./static/online.js?v1.3.0" defer></script>
+  <script src="./static/playlist.js?v1.5.0a" defer></script>
+  <script src="./static/online.js?v1.5.0a" defer></script>
   <script src="./static/plugins.js?v1.3.0" defer></script>
   <script src="./static/player.js?v1.3.11" defer></script>
   <script src="./static/miot.js?v1.3.12" defer></script>
+  <script src="./static/sort.js?v1.5.0b" defer></script>
 
 </head>
 <body>
@@ -1389,6 +1448,7 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
               </div>
               <ul class="select-options" id="global-menu-1-opts">
+                <li class="select-option hidden" id="menu-sort-playlist"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><path d="M3 6l3 -3l3 3M6 3v18M21 18l-3 3l-3 -3M18 21V3"></path></svg>歌曲排序</li>
                 <li class="select-option" id="setting-refresh"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>刷新曲库</li>
 
                 <li class="select-option global-cover-btn disabled-text"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="svg-mr-8"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>设置封面</li>
@@ -1405,6 +1465,20 @@
         </div>
 
       </div>
+    </div>
+
+    <!-- 歌曲内联排序栏 -->
+    <div class="sort-inline-toolbar" id="playlist-sort-toolbar">
+        <div class="sort-btn-group">
+            <div class="sort-btn" data-type="manual">手动</div>
+            <div class="sort-btn" data-type="name" data-order="desc">名称<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="song" data-order="desc">歌曲<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="artist" data-order="desc">歌手<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="recent" data-order="asc">最近<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="number">数字<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="random">随机<span class="sort-arrow"></span></div>
+        </div>
+        <!-- X 关闭按钮已彻底移除 -->
     </div>
 
     <div class="search-inline-wrap" id="online-toolbar-container" style="display: none;">
@@ -2286,7 +2360,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.3.12';
+    window.APP_VERSION = 'v1.5.0';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2748,6 +2822,14 @@
                 const configBtn = document.querySelector('.global-dev-btn');
                 if (configBtn) configBtn.classList.toggle('disabled-text', currentPlaylist === '我的歌单');
 
+                // 🌟 新增：动态判定是否显示“歌单排序”
+                const sortBtn = document.getElementById('menu-sort-playlist');
+                if (sortBtn) {
+                    const systemBasics = ['我的歌单', '所有歌曲', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs', '电台收藏'];
+                    const isSortable = !systemBasics.includes(window.currentPlaylist);
+                    sortBtn.style.display = isSortable ? 'flex' : 'none';
+                }
+
                 // 🌟 修复：动态判断“设置封面”按钮是否置灰
                 const coverBtn = document.querySelector('.global-cover-btn');
                 if (coverBtn) {
@@ -2782,6 +2864,11 @@
 
                 gm1Opts.classList.toggle('show');
             });
+        }
+
+        // 🌟 绑定：初始化外置的独立排序引擎
+        if (typeof window.SortEngine !== 'undefined' && typeof window.SortEngine.init === 'function') {
+            window.SortEngine.init();
         }
 
         document.addEventListener('click', (e) => {
@@ -4236,49 +4323,49 @@
         }
 
         window.modalListObserver = new IntersectionObserver((entries) => {
+            let needTrigger = false;
             entries.forEach(entry => {
                 const li = entry.target;
-                if (!entry.isIntersecting) {
-                    li._inView = false;
-                    if (li._scrapeTimer) { clearTimeout(li._scrapeTimer); li._scrapeTimer = null; }
-                    return;
-                }
+                if (entry.isIntersecting) {
+                    li._inView = true;
+                    const img = li.querySelector('img');
+                    if (img && !img._taskAssigned) {
+                        img._taskAssigned = true;
+                        img.setAttribute('data-cover-task', 'true');
 
-                li._inView = true;
-                const img = li.querySelector('img');
-                const index = li.dataset.index;
-                const song = window.songList[index];
+                        img._runCoverTask = async () => {
+                            const index = li.dataset.index;
+                            const song = window.songList[index];
+                            const songName = window.getSongNameObj(song);
+                            const globalToken = window.getAccessToken ? window.getAccessToken() : "";
 
-                // 如果有现成原生图，直接懒加载
-                if (img.dataset.src) {
-                    img.src = img.dataset.src;
-                    img.removeAttribute('data-src');
-                }
-                // 如果标记了需要刮削
-                else if (img.dataset.scrape === "true") {
-                    if (li._scrapeTimer) clearTimeout(li._scrapeTimer);
-                    li._scrapeTimer = setTimeout(async () => {
-                        if (!li._inView) return;
-                        img.removeAttribute('data-scrape');
-
-                        const hdCover = await window.fetchScrape(song, 'cover');
-                        if (!li._inView) return;
-
-                        if (hdCover) {
-                            img.src = hdCover;
-                            song._scrapedCover = hdCover; // 存入全局内存
-
-                            // 🌟 动态同步：如果这张图刚好已经被用户点击选中了，立马更新上方的大预览图！
-                            if (li.dataset.selected === 'true') {
-                                previewImg.src = hdCover;
-                                window._pendingCover = { type: 'scraped', data: hdCover };
+                            if (song._scrapedCover && song._scrapedCover !== window.defaultCover && !song._scrapedCover.startsWith('data:image/svg')) {
+                                img.src = song._scrapedCover;
+                            } else if (song.cover_url && song.cover_url.trim() !== '') {
+                                const sep = song.cover_url.includes('?') ? '&' : '?';
+                                await window.loadImgOrScrape(img, `${song.cover_url}${sep}access_token=${globalToken}`, song, songName);
+                            } else {
+                                const hdCover = await window.fetchScrape(song, 'cover', songName);
+                                if (hdCover) {
+                                    img.src = hdCover;
+                                    song._scrapedCover = hdCover;
+                                    if (li.dataset.selected === 'true') {
+                                        previewImg.src = hdCover;
+                                        window._pendingCover = { type: 'scraped', data: hdCover };
+                                    }
+                                } else {
+                                    img.src = window.defaultCover;
+                                    song._scrapedCover = window.defaultCover;
+                                }
                             }
-                        } else {
-                            song._scrapedCover = window.defaultCover; // 刮削失败，死心兜底
-                        }
-                    }, 300); // 弹窗里响应速度稍微调快一点
+                        };
+                        needTrigger = true;
+                    }
+                } else {
+                    li._inView = false;
                 }
             });
+            if (needTrigger) window.BatchCoverLoader.trigger();
         }, { root: ul, rootMargin: '100px 0px', threshold: 0.1 });
 
         // 🌟 全局挂载弹窗专属的死链抢救器
@@ -4484,7 +4571,7 @@
     document.querySelectorAll('.about-modal-backdrop').forEach(function(backdrop) {
         backdrop.addEventListener('touchmove', function(e) {
             // 如果用户滑动的是弹窗内部【允许滚动】的区域，放行
-            const scrollable = e.target.closest('.modal-scroll-body, .plugin-body-col, .select-options, .wd-dir-list, .add-song-playlist-ul, .edit-pl-list-container');
+            const scrollable = e.target.closest('.modal-scroll-body, .plugin-body-col, .select-options, .wd-dir-list, .add-song-playlist-ul, .edit-pl-list-container, #set-cover-songs-list');
             if (scrollable) {
                 // 如果该区域的内容很少，还不足以产生滚动条，依然锁死（防止拖拽整个弹窗）
                 if (scrollable.scrollHeight <= scrollable.clientHeight) {

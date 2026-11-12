@@ -432,6 +432,12 @@
         if (typeof window.updateSearchUI === 'function') window.updateSearchUI(targetPlaylistName);
 
         window.songList = window.getMergedSongList(targetPlaylistName);
+
+        // 🌟 新增：切换歌单时，调用独立排序引擎进行 UI 状态重置与手柄补偿
+        if (typeof window.SortEngine !== 'undefined' && typeof window.SortEngine.resetStateOnPlaylistChange === 'function') {
+            window.SortEngine.resetStateOnPlaylistChange(targetPlaylistName);
+        }
+
         if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
 
         // 🌟 核心修复：自动跳转完成后，必须像手动点击一样，恢复目标歌单之前保存的过滤状态和过滤窗口 UI！
@@ -551,6 +557,10 @@
                     window._showBackBtn = true;
                 } else {
                     window._showBackBtn = false;
+                }
+                // 🌟 新增：切换歌单时，清理所有的排序残留 UI 状态，并主动补偿手动排序手柄
+                if (typeof window.SortEngine !== 'undefined' && typeof window.SortEngine.resetStateOnPlaylistChange === 'function') {
+                    window.SortEngine.resetStateOnPlaylistChange(key); // 把 key 传进去 (如果是 switchPlaylistSilently 则是 targetPlaylistName)
                 }
                 const backWrap = document.getElementById('back-to-grid-wrap');
                 if (backWrap) {
@@ -737,61 +747,7 @@
         }
     };
 
-    // 🌟 全局挂载：列表图片 404 时的抢救器
-    window.handleListCoverError = function(imgEl, index) {
-        if (imgEl.src !== window.defaultCover) {
-            imgEl.src = window.defaultCover;
-            const rawItem = window.songList[index];
-            if (rawItem && !rawItem._scrapedCover) {
-                window.fetchScrape(rawItem, 'cover').then(hdCover => {
-                    if (hdCover) {
-                        rawItem._scrapedCover = hdCover;
-                        imgEl.src = hdCover;
-                        // 如果刚好是正在播放的歌，顺便把播放器里变空白的封面也更新了
-                        if (window.currentIndex === index && window.updateNpTitleUI) {
-                             const fpCover = document.getElementById('fp-cover');
-                             if (fpCover && fpCover.src.includes('svg+xml')) fpCover.src = hdCover;
-                             const miniCoverImg = document.getElementById('mini-cover-img');
-                             if (miniCoverImg && miniCoverImg.src.includes('svg+xml')) miniCoverImg.src = hdCover;
-                        }
-                    }
-                }).catch(()=>{});
-            }
-        }
-    };
 
-    // 🌟 全局挂载：海报墙歌单封面 404 时的抢救器
-    window.handlePlaylistCoverError = function(imgEl, plName) {
-        if (imgEl.src !== window.defaultCover) {
-            // 先瞬间用默认图兜底，防止浏览器无限闪烁死循环
-            imgEl.src = window.defaultCover;
-
-            const playlistSongs = window.getMergedSongList(plName);
-            if (playlistSongs && playlistSongs.length > 0) {
-                // 开启连环刮削抢救（向后查最多 5 首歌）
-                (async () => {
-                    let foundCover = null;
-                    const maxCheck = Math.min(playlistSongs.length, 5);
-                    for (let i = 0; i < maxCheck; i++) {
-                        const checkSong = playlistSongs[i];
-                        if (checkSong._scrapedCover === window.defaultCover) continue;
-
-                        const hdCover = await window.fetchScrape(checkSong, 'cover');
-                        if (hdCover) {
-                            foundCover = hdCover;
-                            if (typeof checkSong === 'object') checkSong._scrapedCover = hdCover;
-                            break; // 💡 抢救到一张高清图，立刻停止！
-                        } else {
-                            if (typeof checkSong === 'object') checkSong._scrapedCover = window.defaultCover;
-                        }
-                    }
-                    if (foundCover && imgEl) {
-                        imgEl.src = foundCover; // 强行贴上救回来的高清封面！
-                    }
-                })();
-            }
-        }
-    };
 
     window.renderPlaylist = function() {
         const grid = document.getElementById('playlist-grid');
@@ -856,92 +812,71 @@
                           baseMetas.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')));
 
             window.playlistObserver = new IntersectionObserver((entries) => {
+                let needTrigger = false;
                 entries.forEach(entry => {
                     const card = entry.target;
-                    const img = card.querySelector('.pl-cover-img');
-                    if (!img) return;
-
                     if (entry.isIntersecting) {
                         card._inView = true;
-                        const plName = card.dataset.plName;
-                        const coverUrl = card.dataset.coverUrl;
+                        const img = card.querySelector('.pl-cover-img');
+                        if (img && !img._taskAssigned) {
+                            img._taskAssigned = true;
+                            img.setAttribute('data-cover-task', 'true');
 
-                        if (coverUrl && coverUrl !== 'null' && coverUrl !== 'undefined' && coverUrl.trim() !== '') {
-                            // 🌟 修复：智能判断原 URL 是否已有参数
-                            const sep = coverUrl.includes('?') ? '&' : '?';
-                            img.src = `${coverUrl}${sep}access_token=${globalToken}`;
-                            window.playlistObserver.unobserve(card);
-                        } else {
-                            const playlistSongs = window.getMergedSongList(plName);
-                            if (playlistSongs && playlistSongs.length > 0) {
-                                // 🌟 智能寻回：向下遍历，必须排除掉默认的 window.defaultCover（防之前刮削失败的缓存干扰）
-                                const validSong = playlistSongs.find(s =>
-                                    (s._scrapedCover && s._scrapedCover !== 'null' && s._scrapedCover !== 'undefined' && s._scrapedCover !== window.defaultCover) ||
-                                    (s.cover_url && s.cover_url !== 'null' && s.cover_url !== 'undefined' && s.cover_url.trim() !== '')
-                                );
+                            img._runCoverTask = async () => {
+                                const plName = card.dataset.plName;
+                                const coverUrl = card.dataset.coverUrl;
+                                const globalToken = window.getAccessToken ? window.getAccessToken() : "";
 
-                                if (validSong) {
-                                    if (validSong._scrapedCover && validSong._scrapedCover !== 'null' && validSong._scrapedCover !== 'undefined') {
-                                        img.src = validSong._scrapedCover;
-                                        window.playlistObserver.unobserve(card);
-                                    } else {
-                                        // 🌟修复单曲封面回退的连接符
-                                        const sep2 = validSong.cover_url.includes('?') ? '&' : '?';
-                                        img.src = `${validSong.cover_url}${sep2}access_token=${globalToken}`;
-                                        window.playlistObserver.unobserve(card);
-                                    }
+                                // 有现成原生URL
+                                if (coverUrl && coverUrl !== 'null' && coverUrl !== 'undefined' && coverUrl.trim() !== '') {
+                                    const sep = coverUrl.includes('?') ? '&' : '?';
+                                    await window.loadImgOrScrape(img, `${coverUrl}${sep}access_token=${globalToken}`, null, null);
                                 } else {
-                                    // 🌟 深度连环刮削：如果没找到现成封面，依次抓前几首歌去全网请求，直到成功为止！
-                                    if (card._scrapeTimer) clearTimeout(card._scrapeTimer);
-                                    card._scrapeTimer = setTimeout(async () => {
-                                        if (!card._inView) return;
-                                        window.playlistObserver.unobserve(card);
+                                    // 遍历寻找包含的单曲封面
+                                    const playlistSongs = window.getMergedSongList(plName);
+                                    if (playlistSongs && playlistSongs.length > 0) {
+                                        const validSong = playlistSongs.find(s =>
+                                            (s._scrapedCover && s._scrapedCover !== 'null' && s._scrapedCover !== window.defaultCover) ||
+                                            (s.cover_url && s.cover_url.trim() !== '')
+                                        );
 
-                                        let foundCover = null;
-                                        // 限制最多只往后查 5 首歌，防止无封面文件夹引起服务器 API 并发爆炸
-                                        const maxCheck = Math.min(playlistSongs.length, 5);
-
-                                        for (let i = 0; i < maxCheck; i++) {
-                                            if (!card._inView) break;
-                                            const checkSong = playlistSongs[i];
-
-                                            // 如果这首歌之前已经被刮削过且确认为无封面，直接跳过，省一次网络请求
-                                            if (checkSong._scrapedCover === window.defaultCover) continue;
-
-                                            // 🚀 触发刮削器
-                                            const hdCover = await window.fetchScrape(checkSong, 'cover');
-
-                                            if (hdCover) {
-                                                foundCover = hdCover;
-                                                if (typeof checkSong === 'object') checkSong._scrapedCover = hdCover;
-                                                break; // 💡 一旦找到有效封面，立刻终结循环！
+                                        if (validSong) {
+                                            if (validSong._scrapedCover && validSong._scrapedCover !== window.defaultCover) {
+                                                img.src = validSong._scrapedCover;
                                             } else {
-                                                // 没找到，给这首歌打上黑名单缓存，下次就算重新加载页面也不去查它了
-                                                if (typeof checkSong === 'object') checkSong._scrapedCover = window.defaultCover;
+                                                const sep2 = validSong.cover_url.includes('?') ? '&' : '?';
+                                                await window.loadImgOrScrape(img, `${validSong.cover_url}${sep2}access_token=${globalToken}`, validSong, window.getSongNameObj(validSong));
                                             }
-                                        }
-
-                                        if (!card._inView) return;
-                                        if (foundCover) {
-                                            img.src = foundCover;
                                         } else {
-                                            img.src = window.defaultCover;
+                                            // 刮削抢救（前5首歌）
+                                            let foundCover = null;
+                                            const maxCheck = Math.min(playlistSongs.length, 5);
+                                            for (let i = 0; i < maxCheck; i++) {
+                                                const checkSong = playlistSongs[i];
+                                                if (checkSong._scrapedCover === window.defaultCover) continue;
+                                                const hdCover = await window.fetchScrape(checkSong, 'cover');
+                                                if (hdCover) {
+                                                    foundCover = hdCover;
+                                                    if (typeof checkSong === 'object') checkSong._scrapedCover = hdCover;
+                                                    break;
+                                                } else {
+                                                    if (typeof checkSong === 'object') checkSong._scrapedCover = window.defaultCover;
+                                                }
+                                            }
+                                            img.src = foundCover ? foundCover : window.defaultCover;
                                         }
-                                    }, 500);
+                                    } else {
+                                        img.src = window.defaultCover;
+                                    }
                                 }
-                            } else {
-                                img.src = window.defaultCover;
-                                window.playlistObserver.unobserve(card);
-                            }
+                            };
+                            needTrigger = true;
                         }
                     } else {
                         card._inView = false;
-                        if (card._scrapeTimer) {
-                            clearTimeout(card._scrapeTimer);
-                            card._scrapeTimer = null;
-                        }
                     }
                 });
+                if (needTrigger) window.BatchCoverLoader.trigger();
             }, { root: null, rootMargin: '100px 0px', threshold: 0.1 });
 
             metas.forEach(pl => {
@@ -1013,52 +948,51 @@
 
         // 🌟 给歌曲列表新建一个专属的观察器，防止覆盖上面海报墙的！
         window.listObserver = new IntersectionObserver((entries) => {
+            let needTrigger = false;
             entries.forEach(entry => {
                 const li = entry.target;
-
-                // 🌟 终极优化：切回上级菜单导致列表隐藏时，立刻瞬间退出！
-                if (!entry.isIntersecting) {
-                    li._inView = false;
-                    if (li._scrapeTimer) {
-                        clearTimeout(li._scrapeTimer);
-                        li._scrapeTimer = null;
-                    }
-                    return;
-                }
-
-                const img = li.querySelector('.song-cover-img');
-                if (!img) return;
-                const index = li.dataset.index;
-
                 if (entry.isIntersecting) {
                     li._inView = true;
-                    if (img.dataset.src) {
-                        img.src = img.dataset.src;
-                        img.removeAttribute('data-src');
-                    } else if (img.dataset.scrape === "true") {
-                        if (li._scrapeTimer) clearTimeout(li._scrapeTimer);
-                        li._scrapeTimer = setTimeout(async () => {
-                            if (!li._inView) return;
-                            img.removeAttribute('data-scrape');
+                    const img = li.querySelector('.song-cover-img');
+                    if (img && !img._taskAssigned) {
+                        img._taskAssigned = true;
+                        img.setAttribute('data-cover-task', 'true');
+
+                        img._runCoverTask = async () => {
+                            const index = li.dataset.index;
                             const rawItem = window.songList[index];
-                            const hdCover = await window.fetchScrape(rawItem, 'cover');
-                            if (!li._inView) return;
-                            if (hdCover) {
-                                img.src = hdCover;
-                                if (typeof window.songList[index] === 'object') window.songList[index]._scrapedCover = hdCover;
-                            } else {
-                                if (typeof window.songList[index] === 'object') window.songList[index]._scrapedCover = window.defaultCover;
+                            const songName = window.getSongNameObj(rawItem);
+                            const globalToken = window.getAccessToken ? window.getAccessToken() : "";
+
+                            // 1. 已有刮削图
+                            if (rawItem._scrapedCover && rawItem._scrapedCover !== window.defaultCover && !rawItem._scrapedCover.startsWith('data:image/svg')) {
+                                img.src = rawItem._scrapedCover;
                             }
-                        }, 500);
+                            // 2. 走原生 URL 附带 2 秒超时
+                            else if (rawItem.cover_url && rawItem.cover_url.trim() !== '') {
+                                const sep = rawItem.cover_url.includes('?') ? '&' : '?';
+                                await window.loadImgOrScrape(img, `${rawItem.cover_url}${sep}access_token=${globalToken}`, rawItem, songName);
+                            }
+                            // 3. 啥都没，直接刮削
+                            else {
+                                const hdCover = await window.fetchScrape(rawItem, 'cover', songName);
+                                if (hdCover) {
+                                    img.src = hdCover;
+                                    rawItem._scrapedCover = hdCover;
+                                } else {
+                                    img.src = window.defaultCover;
+                                    rawItem._scrapedCover = window.defaultCover;
+                                }
+                            }
+                            img.removeAttribute('data-cover-task');
+                        };
+                        needTrigger = true;
                     }
                 } else {
                     li._inView = false;
-                    if (li._scrapeTimer) {
-                        clearTimeout(li._scrapeTimer);
-                        li._scrapeTimer = null;
-                    }
                 }
             });
+            if (needTrigger) window.BatchCoverLoader.trigger(); // 激活批处理引擎
         }, { root: null, rootMargin: '100px 0px', threshold: 0.1 });
 
         const MENU_ICONS = {
@@ -1088,16 +1022,24 @@
                 let coverUrl = null;
                 let needsScrape = false;
 
-                if (rawItem._scrapedCover) {
-                    coverUrl = rawItem._scrapedCover;
-                } else if (rawItem.cover_url) {
-                    coverUrl = `${rawItem.cover_url}&access_token=${globalToken}`;
+                // 🌟 核心修复 2：更加聪明的预检逻辑
+                let initialSrc = window.defaultCover;
+
+                if (rawItem._scrapedCover && rawItem._scrapedCover !== window.defaultCover) {
+                    // 如果内存里已经有刮削好的真实图，甚至都不用等 Observer 介入，DOM 初始就直接画这张图！
+                    initialSrc = rawItem._scrapedCover;
+                    needsScrape = false;
+                } else if (rawItem.cover_url && rawItem.cover_url.trim() !== '') {
+                    // 如果有原生 URL，交给 Observer 去判定死链
+                    needsScrape = true;
                 } else {
+                    // 啥都没有，必须刮削
                     needsScrape = true;
                 }
 
                 const imgId = `list-cover-${index}`;
-                const coverHtml = `<img id="${imgId}" class="song-cover-img" src="${window.defaultCover}" ${coverUrl ? `data-src="${coverUrl}"` : ''} ${needsScrape ? `data-scrape="true"` : ''} onerror="if(window.handleListCoverError) window.handleListCoverError(this, ${index})" alt="cover">`;
+                // 🌟 这里直接用 initialSrc，而不是强制绑死 defaultCover！
+                const coverHtml = `<img id="${imgId}" class="song-cover-img" src="${initialSrc}" alt="cover">`;
 
                 const li = document.createElement('li');
                 li.className = 'song-item';

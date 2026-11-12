@@ -8,7 +8,7 @@
     // ==========================================
     const defaultConfig = {
         config: {
-            preferences: { lockLyric: true, ambientBg: true, highPerf: true, autoResume: false, defaultDevice: 'last' }, // 👈 这里加上 autoResume: false
+            preferences: { lockLyric: true, ambientBg: true, highPerf: true, autoResume: true, defaultDevice: 'last' }, // 👈 这里加上 autoResume: false
             player_state: { volume: 100, playMode: 1, splitMode: true },
             playlist_configs: {},
             recent_playlists: [] // 👈 收编到根目录
@@ -537,61 +537,134 @@
     };
 
     // ==========================================
-    // 🚦 封面刮削并发控制器 (预留网络车道给音频请求)
+    // 🚦 视距优先批处理引擎 (Batch Cover Loader)
     // ==========================================
-    window.ScrapeManager = {
-        queue: [],
-        active: 0,
-        max: 3, // 🌟 限制最多同时 3 个封面请求，永远给浏览器预留 3 个通道给播放请求！
-        add: function(task) {
-            return new Promise(resolve => {
-                this.queue.push({ task, resolve });
-                this.run();
-            });
-        },
-        run: async function() {
-            if (this.active >= this.max || this.queue.length === 0) return;
-            this.active++;
-            const { task, resolve } = this.queue.shift();
-            try {
-                const res = await task();
-                resolve(res);
-            } catch (e) {
-                resolve(null);
-            } finally {
-                this.active--;
-                this.run(); // 当前任务完成，放行下一个
+    window.BatchCoverLoader = {
+        isRunning: false,
+        trigger: async function() {
+            if (this.isRunning) return;
+            this.isRunning = true;
+
+            while (true) {
+                // 1. 优先查找当前屏幕内，需要加载封面的图片
+                let pendingImgs = Array.from(document.querySelectorAll('img[data-cover-task="true"]'))
+                    .filter(img => {
+                        const parent = img.closest('.pl-card-b, .song-item, li');
+                        return parent && parent._inView === true;
+                    });
+
+                // 2. 如果屏幕内没有了，顺带处理屏幕外剩余的
+                if (pendingImgs.length === 0) {
+                    pendingImgs = Array.from(document.querySelectorAll('img[data-cover-task="true"]'));
+                }
+
+                // 3. 全局都加载完了，退出循环
+                if (pendingImgs.length === 0) {
+                    this.isRunning = false;
+                    break;
+                }
+
+                // 4. 每次严格取 3 个发起连接
+                const batch = pendingImgs.slice(0, 3);
+
+                // 去除标记，防止下次循环重复提取
+                batch.forEach(img => img.removeAttribute('data-cover-task'));
+
+                // 5. 等待这 3 个完全处理完毕（含超时刮削）
+                const promises = batch.map(img => new Promise(async resolve => {
+                    if (typeof img._runCoverTask === 'function') {
+                        await img._runCoverTask();
+                    }
+                    resolve();
+                }));
+
+                await Promise.all(promises);
+                // 6. 循环继续，重新扫描页面剩余封面...
             }
         }
     };
 
-    window.fetchScrape = async function(rawItem, type, currentSongName = null) {
-        // 将真正的网络请求包装成 task，塞进并发控制器的队列中
-        return window.ScrapeManager.add(async () => {
-            if (!rawItem) return null;
-            let filename = '';
-            const nameObj = window.getSongNameObj ? window.getSongNameObj(rawItem) : (currentSongName || '');
-            if (nameObj) { filename = nameObj.replace(/\.(mp3|flac|wav|m4a|aac|ogg|ape|wma|alac)(.*)$/i, '').replace(/#.*$/, ''); }
-            else if (rawItem.file_path) { filename = String(rawItem.file_path).split('/').pop().replace(/\.[^/.]+$/, ""); }
+    // 🌟 核心：原图加载与 2 秒超时刮削的一体化封装 (无裂图纯净版)
+    window.loadImgOrScrape = function(img, src, scrapeItem, currentSongName) {
+        return new Promise(resolve => {
+            let isResolved = false;
 
-            let title = rawItem.title || rawItem.name || '';
-            let artist = rawItem.artist || rawItem.singer || '';
-            if (filename && filename.includes(' - ')) {
-                const parts = filename.split(' - ');
-                title = parts[0].trim();
-                artist = parts.slice(1).join(' - ').trim();
-            }
-            const url = `/api/v1/jsplugin/iwebplayer/scrape?type=${type}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&filename=${encodeURIComponent(filename)}`;
+            // 封装刮削抢救流程
+            const doScrape = async () => {
+                if (isResolved) return;
+                isResolved = true; // 锁定状态，防止超时和 error 重复触发
 
-            try {
-                const res = await fetch(url);
-                if (res.ok) {
-                    const data = await res.json();
-                    return type === 'cover' ? data.cover : data.lyric;
+                // 💥 核心修复：发生错误或超时后，第一时间用默认黑胶封面兜底！
+                // 这不仅避免了显示失效图标，还因为赋予了新地址，安全且瞬间地斩断了之前卡住的慢连接
+                img.src = window.defaultCover;
+
+                if (scrapeItem) {
+                    const hdCover = await window.fetchScrape(scrapeItem, 'cover', currentSongName);
+                    if (hdCover) {
+                        img.src = hdCover; // 刮削成功，换上高清图
+                        if (typeof scrapeItem === 'object') scrapeItem._scrapedCover = hdCover;
+                    } else {
+                        if (typeof scrapeItem === 'object') scrapeItem._scrapedCover = window.defaultCover;
+                    }
                 }
-            } catch(e) {}
-            return null;
+                resolve(); // 当前任务彻底结束
+            };
+
+            // 原图加载成功
+            img.onload = () => {
+                if (!isResolved) {
+                    isResolved = true;
+                    resolve();
+                }
+            };
+
+            // 原图直接返回 404 或加载失败
+            img.onerror = doScrape;
+
+            // 发起请求
+            img.src = src;
+
+            // 如果浏览器有缓存，秒通过
+            if (img.complete) {
+                if (!isResolved) {
+                    isResolved = true;
+                    resolve();
+                }
+            } else {
+                // 2 秒死线
+                setTimeout(() => {
+                    if (!isResolved) {
+                        doScrape(); // 超时无响应，直接执行抢救流程
+                    }
+                }, 2000);
+            }
         });
+    };
+
+    window.fetchScrape = async function(rawItem, type, currentSongName = null) {
+        if (!rawItem) return null;
+        let filename = '';
+        const nameObj = window.getSongNameObj ? window.getSongNameObj(rawItem) : (currentSongName || '');
+        if (nameObj) { filename = nameObj.replace(/\.(mp3|flac|wav|m4a|aac|ogg|ape|wma|alac)(.*)$/i, '').replace(/#.*$/, ''); }
+        else if (rawItem.file_path) { filename = String(rawItem.file_path).split('/').pop().replace(/\.[^/.]+$/, ""); }
+
+        let title = rawItem.title || rawItem.name || '';
+        let artist = rawItem.artist || rawItem.singer || '';
+        if (filename && filename.includes(' - ')) {
+            const parts = filename.split(' - ');
+            title = parts[0].trim();
+            artist = parts.slice(1).join(' - ').trim();
+        }
+        const url = `/api/v1/jsplugin/iwebplayer/scrape?type=${type}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&filename=${encodeURIComponent(filename)}`;
+
+        try {
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                return type === 'cover' ? data.cover : data.lyric;
+            }
+        } catch(e) {}
+        return null;
     };
 
 })(window); // 保持 utils.js 原有的结尾
