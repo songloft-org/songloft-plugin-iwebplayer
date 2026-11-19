@@ -760,14 +760,21 @@
       z-index: 140 !important;
     }
 
-    /* 🎯 动态追踪：当第二行 (在线高级搜索栏) 出现时，裁切线自动下移！ */
+    /* 🎯 动态追踪：当第二行 (在线高级搜索栏) 独立出现时，裁切线自动下移！ */
     body.split-view-active:has(#online-toolbar-container.show) #scroll-wrapper,
     body.split-view-active:has(#online-toolbar-container[style*="display: flex"]) #scroll-wrapper {
-      top: 154px !important; /* (108 + 38 + 8) 完美衔接双行底部！ */
+      top: 154px !important;
     }
-    /* 🎯 动态追踪：当本地歌单排序栏出现时，裁切线精确下移 36px */
+
+    /* 🎯 动态追踪：当本地歌单排序栏独立出现时，裁切线下移 36px */
     body.split-view-active:has(#playlist-sort-toolbar[style*="display: flex"]) #scroll-wrapper {
       top: 144px !important;
+    }
+
+    /* 🎯 终极追踪：当在线搜索栏与排序栏【同时出现】(三排并发) 时，裁切线必须下推叠加高度！ */
+    body.split-view-active:has(#online-toolbar-container[style*="display: flex"]):has(#playlist-sort-toolbar[style*="display: flex"]) #scroll-wrapper,
+    body.split-view-active:has(#online-toolbar-container.show):has(#playlist-sort-toolbar[style*="display: flex"]) #scroll-wrapper {
+      top: 190px !important;
     }
 
     /* 3. 剥夺内部歌单和歌曲列表的独立滚动权，让它们在外衣里平铺融合 */
@@ -1296,14 +1303,14 @@
   </style>
   <script src="./static/lz-string.min.js"></script>
   <script src="./static/icons.js?v1.3.6" defer></script>
-  <script src="./static/utils.js?v1.5.0a" defer></script>
+  <script src="./static/utils.js?v1.5.1" defer></script>
   <script src="./static/lyrics.js?v1.3.3" defer></script>
-  <script src="./static/playlist.js?v1.5.0a" defer></script>
-  <script src="./static/online.js?v1.5.0a" defer></script>
+  <script src="./static/playlist.js?v1.5.1" defer></script>
+  <script src="./static/online.js?v1.5.1" defer></script>
   <script src="./static/plugins.js?v1.3.0" defer></script>
   <script src="./static/player.js?v1.3.11" defer></script>
   <script src="./static/miot.js?v1.3.12" defer></script>
-  <script src="./static/sort.js?v1.5.0b" defer></script>
+  <script src="./static/sort.js?v1.5.1" defer></script>
 
 </head>
 <body>
@@ -1467,19 +1474,7 @@
       </div>
     </div>
 
-    <!-- 歌曲内联排序栏 -->
-    <div class="sort-inline-toolbar" id="playlist-sort-toolbar">
-        <div class="sort-btn-group">
-            <div class="sort-btn" data-type="manual">手动</div>
-            <div class="sort-btn" data-type="name" data-order="desc">名称<span class="sort-arrow"></span></div>
-            <div class="sort-btn" data-type="song" data-order="desc">歌曲<span class="sort-arrow"></span></div>
-            <div class="sort-btn" data-type="artist" data-order="desc">歌手<span class="sort-arrow"></span></div>
-            <div class="sort-btn" data-type="recent" data-order="asc">最近<span class="sort-arrow"></span></div>
-            <div class="sort-btn" data-type="number">数字<span class="sort-arrow"></span></div>
-            <div class="sort-btn" data-type="random">随机<span class="sort-arrow"></span></div>
-        </div>
-        <!-- X 关闭按钮已彻底移除 -->
-    </div>
+
 
     <div class="search-inline-wrap" id="online-toolbar-container" style="display: none;">
 
@@ -1544,6 +1539,19 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- 歌曲内联排序栏 -->
+    <div class="sort-inline-toolbar" id="playlist-sort-toolbar">
+        <div class="sort-btn-group">
+            <div class="sort-btn" data-type="manual">手动</div>
+            <div class="sort-btn" data-type="name" data-order="desc">名称<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="song" data-order="desc">歌曲<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="artist" data-order="desc">歌手<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="recent" data-order="asc">最近<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="number">数字<span class="sort-arrow"></span></div>
+            <div class="sort-btn" data-type="random">随机<span class="sort-arrow"></span></div>
+        </div>
     </div>
   </div>
   <div id="scroll-wrapper">
@@ -2360,7 +2368,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.5.0';
+    window.APP_VERSION = 'v1.5.1';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2825,8 +2833,18 @@
                 // 🌟 新增：动态判定是否显示“歌单排序”
                 const sortBtn = document.getElementById('menu-sort-playlist');
                 if (sortBtn) {
-                    const systemBasics = ['我的歌单', '所有歌曲', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs', '电台收藏'];
-                    const isSortable = !systemBasics.includes(window.currentPlaylist);
+                    // 🌟 开放 所有歌曲 和 在线资源 的排序入口
+                    const systemBasics = ['我的歌单', '下载', '最近新增', '所有电台', '曲库搜索', 'cache_songs', '电台收藏'];
+                    let isSortable = !systemBasics.includes(window.currentPlaylist);
+
+                    // 🌟 核心拦截：如果在线资源处于海报墙视图，或者当前是 WebDAV 引擎，统统隐藏排序菜单！
+                    if (window.currentPlaylist === '在线资源') {
+                        const isWebDav = window.PluginManager?.currentEngineName === 'WebDAV';
+                        if (window.currentOnlineView === 'playlist' || isWebDav) {
+                            isSortable = false;
+                        }
+                    }
+
                     sortBtn.style.display = isSortable ? 'flex' : 'none';
                 }
 

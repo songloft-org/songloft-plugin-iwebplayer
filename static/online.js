@@ -25,6 +25,12 @@
             // 🌟 存入内存沙盒
             if (window.ConfigManager) window.ConfigManager.set('config', 'playback.last_active.engine', name);
             window.isWebDAVMode = (name === 'WebDAV');
+
+            // 🌟 核心联动：切换引擎时，立刻通知排序系统刷新按钮的显示与隐藏！
+            if (window.currentPlaylist === '在线资源' && window.SortEngine) {
+                window.SortEngine.resetStateOnPlaylistChange('在线资源');
+            }
+
             return true;
         }
     };
@@ -99,13 +105,29 @@
         save: function(type, textOrName, id, platform, action) {
             const engine = window.PluginManager.currentEngineName;
             let history = JSON.parse(localStorage.getItem('iwebplayer.search_history') || '[]');
+
+            // 🌟 核心修复 1：准备一个变量，用来继承旧记录里的排序偏好
+            let preservedSort = null;
+
             history = history.filter(h => {
                 if (type === 'keyword' && h.type === 'keyword') return h.text !== textOrName;
-                if (type === 'playlist' && h.type === 'playlist') return h.id !== id;
+                if (type === 'playlist' && h.type === 'playlist') {
+                    // 如果找到了同样的歌单记录，拦截并提取它的 sort 属性
+                    if (h.id === id) {
+                        if (h.sort) preservedSort = h.sort;
+                        return false; // 然后在数组中剔除旧记录
+                    }
+                    return true;
+                }
                 return true;
             });
+
             const newItem = { type, engine, platform: platform || '', action: action || 'song' };
             if (type === 'keyword') newItem.text = textOrName; else { newItem.name = textOrName; newItem.id = id; }
+
+            // 🌟 核心修复 2：把提取出来的 sort 属性塞给新的记录，完美继承！
+            if (preservedSort) newItem.sort = preservedSort;
+
             history.unshift(newItem);
             if (history.length > 10) history = history.slice(0, 10);
             localStorage.setItem('iwebplayer.search_history', JSON.stringify(history));
@@ -358,6 +380,24 @@
        }
     };
     window.restoreOnlineView = async function() {
+        // 🌟 核心修复 1：防止从快捷小球等外部入口点进来时，底层指针还停留在本地歌单！
+        if (window.currentPlaylist !== '在线资源') {
+            window.currentPlaylist = '在线资源';
+            window.consecutiveFailures = 0;
+            const playlistVal = document.getElementById('playlist-val');
+            if (playlistVal && typeof window.formatPlaylistTextWithTags === 'function') {
+                playlistVal.innerHTML = window.formatPlaylistTextWithTags('在线资源', window.getMergedSongList('在线资源').length);
+            }
+            const playlistOpts = document.getElementById('playlist-opts');
+            if (playlistOpts) {
+                playlistOpts.querySelectorAll('.select-option').forEach(el => el.classList.remove('active'));
+                const targetOpt = playlistOpts.querySelector('.select-option[data-key="在线资源"]');
+                if (targetOpt) targetOpt.classList.add('active');
+            }
+            if (typeof window.updateSearchUI === 'function') window.updateSearchUI('在线资源');
+            if (window.SortEngine) window.SortEngine.resetStateOnPlaylistChange('在线资源');
+        }
+
         const oState = window.StateManager.getState();
         const grid = document.getElementById('playlist-grid');
         const list = document.getElementById('playlist');
@@ -520,11 +560,14 @@
                         if (list) list.style.display = 'block';
                         window.renderPlaylist();
                     } else {
+                        window.currentOnlineView = 'song'; // 🌟 补全状态更新
                         window.renderPlaylist();
                         const plVal = document.getElementById('playlist-val');
                         if (plVal) plVal.innerHTML = window.formatPlaylistText('在线资源', window.songList.length);
                         if (!isLoadMore) window.SnapshotManager.saveSnapshot('song_list', list.innerHTML, window.songList);
                     }
+                    // 🌟 终极强光灯：每次搜歌完毕展现列表时，强制通知排序引擎显形！
+                    if (window.SortEngine) window.SortEngine.resetStateOnPlaylistChange('在线资源');
                 } else {
                     if (!isLoadMore) {
                         // 🌟 确保隐藏网格，避免干扰
@@ -535,6 +578,10 @@
                     else { hasMoreOnlineSearch = false; window.showToast("已经是最后一页啦"); }
                 }
             } else {
+                // 🌟 终极灭火器：只要是发起了“搜单”请求，不管结果出没出来，第一瞬间强制切断排序栏！
+                window.currentOnlineView = 'playlist';
+                if (window.SortEngine) window.SortEngine.resetStateOnPlaylistChange('在线资源');
+
                 const res = await engine.searchPlaylist(keyword, source, currentLxPlaylistPage);
                 if (res.list && res.list.length > 0) {
                     if (!isLoadMore) {
@@ -591,8 +638,9 @@
                 view: 'detail', detail_id: id, detail_name: name, detail_source: source,
                 keyword: window._lastOnlineKeyword || searchInputEl?.value.trim() || oState.keyword || ''
             });
-            window.HistoryManager.save('playlist', name, id, source, 'playlist');
         }
+        // 🌟 核心源头修复：无论是不是从历史记录点进来的，都强制执行 save (底层会自动去重并移到最新一位)
+        window.HistoryManager.save('playlist', name, id, source, 'playlist');
 
         if (searchInputEl) searchInputEl.blur();
         window.currentOnlineView = 'detail';
@@ -611,6 +659,24 @@
         try {
             const songs = await engine.getPlaylistDetail(id, source, 1);
             if (songs && songs.length > 0) {
+
+                // 👇 新增：读取搜索历史里的排序 (仅限 LXMusic)
+                if (window.PluginManager?.currentEngineName === 'LXMusic') {
+                    try {
+                        const history = JSON.parse(localStorage.getItem('iwebplayer.search_history') || '[]');
+                        const item = history.find(h => h.type === 'playlist' && (h.id === id || h.name === name));
+                        if (item?.sort?.type && item.sort.type !== 'random') {
+                            const stype = item.sort.type;
+                            const sorder = item.sort.order || 'asc';
+                            songs.sort((a, b) => {
+                                const valA = String(stype === 'song' || stype === 'name' ? (a.title || "") : (a.artist || ""));
+                                const valB = String(stype === 'song' || stype === 'name' ? (b.title || "") : (b.artist || ""));
+                                return sorder === 'asc' ? valA.localeCompare(valB, 'zh-CN') : valB.localeCompare(valA, 'zh-CN');
+                            });
+                        }
+                    } catch(e) {}
+                }
+
                 window.songList = songs; window.allPlaylists['在线资源'] = window.songList; window.renderPlaylist();
                 const plVal = document.getElementById('playlist-val');
                 if (plVal) {
@@ -784,6 +850,17 @@
         if (backBtn) {
             e.stopPropagation(); e.preventDefault();
             window.deadSongIndexes = {};
+
+            // 🌟 核心修复：点击返回时，强制收起排序工具栏并重置菜单高亮
+            const sortToolbar = document.getElementById('playlist-sort-toolbar');
+            if (sortToolbar && sortToolbar.style.display === 'flex') {
+                sortToolbar.style.display = 'none';
+                const menuSortPlaylist = document.getElementById('menu-sort-playlist');
+                if (menuSortPlaylist) {
+                    menuSortPlaylist.style.color = '';
+                    menuSortPlaylist.style.fontWeight = 'normal';
+                }
+            }
 
             // 🌟 物理隔离：WebDAV 专属极速返回（直达网盘海报墙或搜索结果）
             if (window.PluginManager.currentEngineName === 'WebDAV') {

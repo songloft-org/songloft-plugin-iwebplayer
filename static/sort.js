@@ -10,7 +10,7 @@
         elStartY: 0,
         listRect: null,
         scrollRaf: null,
-        isPaused: false, // 替代原本挂在 window 上的 _manualModePaused
+        isPaused: false,
 
         // ==========================================
         // 🛠️ 1. 核心控制器：初始化所有排序相关的 UI 绑定
@@ -22,12 +22,51 @@
 
             if (!menuSortPlaylist || !sortToolbar || !sortBtns.length) return;
 
+            // 🌟 修复 Bug 1：防止首屏加载不触发
+            setTimeout(() => {
+                if (window.currentPlaylist) {
+                    this.resetStateOnPlaylistChange(window.currentPlaylist);
+                }
+            }, 800);
+
+            if (!window._sortEngineRenderHooked && typeof window.renderPlaylist === 'function') {
+                const originalRender = window.renderPlaylist;
+                window.renderPlaylist = function() {
+                    originalRender.apply(this, arguments);
+                    if (window.currentPlaylist === '在线资源') {
+                        setTimeout(() => {
+                            // 🌟 核心护盾：如果排序工具栏正开着（说明用户正在连续点按钮），绝对不能洗白！
+                            const sortToolbar = document.getElementById('playlist-sort-toolbar');
+                            if (sortToolbar && sortToolbar.style.display === 'flex') return;
+
+                            if (window.SortEngine) window.SortEngine.resetStateOnPlaylistChange('在线资源');
+                        }, 50);
+                    }
+                };
+                window._sortEngineRenderHooked = true;
+            }
+
             // 1. 绑定下拉菜单开关
             menuSortPlaylist.addEventListener('click', (e) => {
                 e.stopPropagation();
                 document.getElementById('global-menu-1-opts')?.classList.remove('show');
 
                 const isShown = sortToolbar.style.display === 'flex';
+
+                // 🌟 动态拦截：严格审查当前是否为虚拟歌单，强行隐藏特殊按钮
+                const isVirtual = ['所有歌曲', '在线资源', '曲库搜索'].includes(window.currentPlaylist);
+                const manualBtn = document.querySelector('.sort-btn[data-type="manual"]');
+                const numberBtn = document.querySelector('.sort-btn[data-type="number"]');
+                if (manualBtn) manualBtn.style.display = isVirtual ? 'none' : 'flex';
+                if (numberBtn) numberBtn.style.display = isVirtual ? 'none' : 'flex';
+
+                // 🌟 动态拦截 2：如果是 LXMusic 引擎，再把“名称”和“最近”干掉
+                const isLxOnline = (window.currentPlaylist === '在线资源' && window.PluginManager && window.PluginManager.currentEngineName === 'LXMusic');
+                const nameBtn = document.querySelector('.sort-btn[data-type="name"]');
+                const recentBtn = document.querySelector('.sort-btn[data-type="recent"]');
+                if (nameBtn) nameBtn.style.display = isLxOnline ? 'none' : 'flex';
+                if (recentBtn) recentBtn.style.display = isLxOnline ? 'none' : 'flex';
+
                 if (isShown) {
                     sortToolbar.style.display = 'none';
                     menuSortPlaylist.style.color = '';
@@ -39,13 +78,21 @@
                         document.body.classList.remove('manual-sort-mode');
                         if (typeof this.unbindEvents === 'function') this.unbindEvents();
 
-                        const manualBtn = document.querySelector('.sort-btn[data-type="manual"]');
                         if (manualBtn) manualBtn.classList.remove('active');
                     }
                 } else {
                     sortToolbar.style.display = 'flex';
                     menuSortPlaylist.style.color = 'var(--primary)';
                     menuSortPlaylist.style.fontWeight = 'bold';
+
+                    // 🌟 满足需求：每次新开排序，强行洗白所有按钮，不留任何标红！
+                    sortBtns.forEach(btn => {
+                        if (btn.dataset.type === 'manual') return;
+                        delete btn.dataset.order;
+                        btn.classList.remove('active');
+                        const arrowEl = btn.querySelector('.sort-arrow');
+                        if (arrowEl) arrowEl.textContent = '';
+                    });
                 }
             });
 
@@ -61,13 +108,12 @@
                         this.toggleManualMode();
                         if (this.isActive) {
                             btn.classList.add('active');
-                            // 🌟 修复细节：开启手动模式时，彻底洗掉其他排序按钮的残留状态！
                             sortBtns.forEach(el => {
                                 if (el.dataset.type !== 'manual') {
-                                    el.classList.remove('active'); // 拔除红灯
-                                    delete el.dataset.order;       // 清空上下顺序记忆
+                                    el.classList.remove('active');
+                                    delete el.dataset.order;
                                     const arrowEl = el.querySelector('.sort-arrow');
-                                    if (arrowEl) arrowEl.textContent = ''; // 清除箭头符号
+                                    if (arrowEl) arrowEl.textContent = '';
                                 }
                             });
                         } else {
@@ -82,6 +128,9 @@
                         if (manualBtn) manualBtn.classList.remove('active');
                     }
 
+                    // 🌟 1. 核心判断：在清空所有高亮之前，先记住当前点击的按钮，原本是不是已经被点亮了？
+                    const wasActive = btn.classList.contains('active');
+
                     sortBtns.forEach(el => {
                         if (el.dataset.type !== 'manual') el.classList.remove('active');
                     });
@@ -91,13 +140,21 @@
                         if (arrow) arrow.innerHTML = '';
                     });
 
+                    const isVirtual = ['所有歌曲', '在线资源', '曲库搜索'].includes(window.currentPlaylist);
                     const pl = window.playlistMeta?.find(p => p.name === window.currentPlaylist);
-                    if (!pl || !pl.id) { btn.classList.remove('active'); return; }
+                    if (!isVirtual && (!pl || !pl.id)) { btn.classList.remove('active'); return; }
 
                     let finalAction = '';
                     if (type === 'name' || type === 'song' || type === 'artist' || type === 'recent') {
-                        const currentOrder = btn.dataset.order || 'desc';
-                        const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+
+                        // 🌟 2. 智能升降序逻辑：如果是“陌生点击”（切过来的），强制给升序 asc
+                        // 如果是连续点击同一个按钮，才执行翻转！
+                        let newOrder = 'asc';
+                        if (wasActive) {
+                            const currentOrder = btn.dataset.order || 'asc';
+                            newOrder = (currentOrder === 'asc') ? 'desc' : 'asc';
+                        }
+
                         btn.dataset.order = newOrder;
                         const arrowEl = btn.querySelector('.sort-arrow');
                         if (arrowEl) arrowEl.textContent = newOrder === 'asc' ? '↑' : '↓';
@@ -111,13 +168,21 @@
                         finalAction = 'shuffle';
                     }
 
+                    // 🌟 拦截 1：虚拟歌单的纯内存排序处理
+                    if (isVirtual) {
+                        this.executeVirtualPlaylistSort(window.currentPlaylist, type, btn);
+                        return;
+                    }
+
+                    // 拦截 2：真实歌单的纯前端排序
                     if (isClientSide) {
                         this.executeClientSideSort(pl, type, btn);
                         return;
                     }
 
+                    // 拦截 3：真实歌单的后端排序
                     if (isServerSide) {
-                        this.executeServerSideSort(pl, finalAction, btn, sortToolbar);
+                        this.executeServerSideSort(pl, finalAction, btn);
                     }
                 });
             });
@@ -133,9 +198,16 @@
             const sortToolbar = document.getElementById('playlist-sort-toolbar');
             const sortBtns = document.querySelectorAll('#playlist-sort-toolbar .sort-btn');
 
-            const systemBasics = ['我的歌单', '所有歌曲', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs', '电台收藏'];
-            const disableSort = systemBasics.includes(playlistName);
+            const systemBasics = ['我的歌单', '下载', '最近新增', '所有电台', '曲库搜索', 'cache_songs', '电台收藏'];
+            let disableSort = systemBasics.includes(playlistName);
 
+            // 🌟 动态拦截：在线资源显示海报墙歌单时，或者切到了 WebDAV 时，强制收起且隐藏工具栏
+            if (playlistName === '在线资源') {
+                const isWebDav = window.PluginManager?.currentEngineName === 'WebDAV';
+                if (window.currentOnlineView === 'playlist' || isWebDav) {
+                    disableSort = true;
+                }
+            }
             if (disableSort) {
                 if (menuSortPlaylist) menuSortPlaylist.style.display = 'none';
                 if (sortToolbar) sortToolbar.style.display = 'none';
@@ -170,8 +242,23 @@
                 }
             }
 
+            const isVirtual = ['所有歌曲', '在线资源', '曲库搜索'].includes(playlistName);
+            const manualBtn = document.querySelector('.sort-btn[data-type="manual"]');
+            const numberBtn = document.querySelector('.sort-btn[data-type="number"]');
+            const nameBtn = document.querySelector('.sort-btn[data-type="name"]');
+            const recentBtn = document.querySelector('.sort-btn[data-type="recent"]');
+            if (manualBtn) manualBtn.style.display = isVirtual ? 'none' : 'flex';
+            if (numberBtn) numberBtn.style.display = isVirtual ? 'none' : 'flex';
+
+            // 🌟 针对 LXMusic 隐藏名称与最近
+            const isLxOnline = (playlistName === '在线资源' && window.PluginManager && window.PluginManager.currentEngineName === 'LXMusic');
+            if (nameBtn) nameBtn.style.display = isLxOnline ? 'none' : 'flex';
+            if (recentBtn) recentBtn.style.display = isLxOnline ? 'none' : 'flex';
+
             sortBtns.forEach(btn => {
                 if (btn.dataset.type === 'manual') return;
+
+                // 直接无脑洗白，不再读取 localStorage，也不再恢复 active 状态
                 delete btn.dataset.order;
                 btn.classList.remove('active');
                 const arrowEl = btn.querySelector('.sort-arrow');
@@ -188,6 +275,142 @@
         // ==========================================
         // 🚀 3. 排序策略分发中心
         // ==========================================
+
+        // 🌟 纯静默 DOM 过滤补偿 (绝不触碰任何外层UI动画)
+        applySilentFilter: function() {
+            const isOnline = ['在线资源'].includes(window.currentPlaylist);
+            const inputId = isOnline ? 'online-filter-input' : 'local-filter-input';
+            const inputEl = document.getElementById(inputId);
+            if (!inputEl) return;
+            const keyword = inputEl.value.trim().toLowerCase();
+            if (keyword) {
+                document.querySelectorAll('#playlist .song-item').forEach(li => {
+                    const text = li.innerText.toLowerCase();
+                    li.style.display = text.includes(keyword) ? 'flex' : 'none';
+                });
+            }
+        },
+
+        // 🌟 3.1 虚拟歌单专属：全内存排序与本地偏好保存
+        executeVirtualPlaylistSort: function(plName, type, btn) {
+            window.showToast(`⏳ 正在排序...`, true);
+            const sortToolbar = document.getElementById('playlist-sort-toolbar');
+            if (sortToolbar) sortToolbar.style.pointerEvents = 'none';
+
+            // 🌟 排序前，先将列表瞬间透明，掩盖全量渲染导致的“过滤失效闪烁”
+            const playlistEl = document.getElementById('playlist');
+            if (playlistEl) {
+                playlistEl.style.transition = 'none';
+                playlistEl.style.opacity = '0';
+            }
+
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    const order = btn.dataset.order || 'desc';
+                    const currentSongs = window.allPlaylists[plName] || [];
+                    let missingCount = 0;
+                    let missingType = '';
+
+                    if (type === 'random') {
+                        // 纯粹打乱
+                        for (let i = currentSongs.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [currentSongs[i], currentSongs[j]] = [currentSongs[j], currentSongs[i]];
+                        }
+                    } else {
+                        currentSongs.sort((a, b) => {
+                            let valA, valB;
+                            if (type === 'name') {
+                                // 提取文件名（含后缀）
+                                const getFileName = (path) => path ? String(path).split('/').pop() : '';
+                                valA = getFileName(a.file_path);
+                                valB = getFileName(b.file_path);
+                                // 没有 file_path 的在线歌曲沉到底部
+                                if (!valA && valB) return 1;
+                                if (valA && !valB) return -1;
+                                if (!valA && !valB) return 0;
+                            } else if (type === 'song') {
+                                valA = a.title || "";
+                                valB = b.title || "";
+                            } else if (type === 'artist') {
+                                valA = a.artist || "";
+                                valB = b.artist || "";
+                            } else if (type === 'recent') {
+                                valA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+                                valB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+                            }
+
+                            if (type === 'recent') {
+                                return order === 'asc' ? valA - valB : valB - valA;
+                            } else {
+                                return order === 'asc'
+                                    ? String(valA).localeCompare(String(valB), 'zh-CN')
+                                    : String(valB).localeCompare(String(valA), 'zh-CN');
+                            }
+                        });
+                    }
+
+                    // 统计缺失信息
+                    if (type === 'name') {
+                        missingCount = currentSongs.filter(s => !s.file_path || String(s.file_path).trim() === '').length;
+                        missingType = '本地文件路径';
+                    } else if (type === 'song') {
+                        missingCount = currentSongs.filter(s => !s.title || String(s.title).trim() === '').length;
+                        missingType = '歌曲名称';
+                    } else if (type === 'artist') {
+                        missingCount = currentSongs.filter(s => !s.artist || String(s.artist).trim() === '').length;
+                        missingType = '歌手';
+                    }
+
+                    // 🌟 极简保存偏好：仅对“所有歌曲”生效，其它一律不保存本地
+                    if (plName === '所有歌曲') {
+                        let prefs = {};
+                        try { prefs = JSON.parse(localStorage.getItem('iwebplayer.virtual_sort_prefs') || '{}'); } catch(e){}
+                        prefs['所有歌曲'] = { type: type, order: order };
+                        localStorage.setItem('iwebplayer.virtual_sort_prefs', JSON.stringify(prefs));
+                    } else if (plName === '在线资源' && window.PluginManager?.currentEngineName === 'LXMusic' && window.currentOnlineView === 'detail') {
+                        // 🌟 针对 LXMusic 歌单，将排序结果悄悄挂在对应的搜索历史记录里
+                        try {
+                            const state = window.StateManager.getState();
+                            let history = JSON.parse(localStorage.getItem('iwebplayer.search_history') || '[]');
+                            // 查找历史记录中，匹配当前正在播放的那个歌单
+                            const idx = history.findIndex(h => h.type === 'playlist' && (h.id === state.detail_id || h.name === state.detail_name));
+                            if (idx !== -1) {
+                                history[idx].sort = { type: type, order: order };
+                                localStorage.setItem('iwebplayer.search_history', JSON.stringify(history));
+                            }
+                        } catch(e) {}
+                    }
+
+                    if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+
+                    // 🌟 纯静默 DOM 过滤补偿
+                    setTimeout(() => this.applySilentFilter(), 400);
+
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.getElementById('scroll-wrapper')?.scrollTo({ top: 0, behavior: 'smooth' });
+
+                    let successMsg = "✅ 排序完成";
+                    if (missingCount > 0) {
+                        successMsg += `<br><span style="font-size: 12px; opacity: 0.85; font-weight: normal;">有 ${missingCount} 首歌曲缺少${missingType}信息</span>`;
+                    }
+                    window.showToast(successMsg);
+
+                    if (sortToolbar) sortToolbar.style.pointerEvents = 'auto';
+                    if (type === 'random') btn.classList.remove('active');
+
+                    // 🌟 过滤完成后，平滑地淡入显示
+                    setTimeout(() => {
+                        if (playlistEl) {
+                            playlistEl.style.transition = 'opacity 0.25s ease-in';
+                            playlistEl.style.opacity = '1';
+                        }
+                    }, 450);
+                }, 150);
+            });
+        },
+
+        // 🌟 3.2 常规歌单：纯前端排序
         executeClientSideSort: function(pl, type, btn) {
             const plName = window.currentPlaylist;
             if (!plName || !window.allPlaylists[plName]) return;
@@ -196,74 +419,97 @@
             window.showToast(`⏳ 正在按${typeName}排序...`, true);
 
             const sortToolbar = document.getElementById('playlist-sort-toolbar');
-            if(sortToolbar){
-                sortToolbar.style.pointerEvents = 'none';
-                sortToolbar.style.opacity = '0.5';
+            if (sortToolbar) sortToolbar.style.pointerEvents = 'none';
+
+            const playlistEl = document.getElementById('playlist');
+            if (playlistEl) {
+                playlistEl.style.transition = 'none';
+                playlistEl.style.opacity = '0';
             }
 
-            setTimeout(() => {
-                const order = btn.dataset.order;
-                const currentSongs = window.allPlaylists[plName];
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    const order = btn.dataset.order;
+                    const currentSongs = window.allPlaylists[plName];
 
-                currentSongs.sort((a, b) => {
-                    let valA, valB;
+                    currentSongs.sort((a, b) => {
+                        let valA, valB;
+                        if (type === 'song') {
+                            valA = a.title || "";
+                            valB = b.title || "";
+                        } else if (type === 'artist') {
+                            valA = a.artist || "";
+                            valB = b.artist || "";
+                        } else if (type === 'recent') {
+                            valA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+                            valB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+                        }
+
+                        if (type === 'recent') {
+                            return order === 'asc' ? valA - valB : valB - valA;
+                        } else {
+                            return order === 'asc'
+                                ? String(valA).localeCompare(String(valB), 'zh-CN')
+                                : String(valB).localeCompare(String(valA), 'zh-CN');
+                        }
+                    });
+
+                    if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+
+                    // 🌟 纯静默 DOM 过滤补偿
+                    setTimeout(() => this.applySilentFilter(), 400);
+
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.getElementById('scroll-wrapper')?.scrollTo({ top: 0, behavior: 'smooth' });
+
+                    let missingCount = 0;
+                    let missingType = '';
                     if (type === 'song') {
-                        valA = a.title || "";
-                        valB = b.title || "";
+                        missingCount = currentSongs.filter(s => !s.title || String(s.title).trim() === '').length;
+                        missingType = '歌曲名称';
                     } else if (type === 'artist') {
-                        valA = a.artist || "";
-                        valB = b.artist || "";
-                    } else if (type === 'recent') {
-                        valA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-                        valB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+                        missingCount = currentSongs.filter(s => !s.artist || String(s.artist).trim() === '').length;
+                        missingType = '歌手';
                     }
 
-                    if (type === 'recent') {
-                        return order === 'asc' ? valA - valB : valB - valA;
-                    } else {
-                        return order === 'asc'
-                            ? valA.localeCompare(valB, 'zh-CN')
-                            : valB.localeCompare(valA, 'zh-CN');
-                    }
-                });
-
-                if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
-                window.scrollTo({ top: 0, behavior: 'smooth' });if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                document.getElementById('scroll-wrapper')?.scrollTo({ top: 0, behavior: 'smooth' });
-
-                // 🌟 新增：统计缺失信息的歌曲并定制 Toast 提示
-                let successMsg = "✅ 排序完成";
-                if (type === 'artist') {
-                    const missingCount = currentSongs.filter(s => !s.artist || s.artist.trim() === '').length;
+                    let successMsg = "✅ 排序完成";
                     if (missingCount > 0) {
-                        successMsg += `<br><span style="font-size: 12px; opacity: 0.85; font-weight: normal;">有 ${missingCount} 首歌曲文件中缺少歌手信息</span>`;
+                        successMsg += `<br><span style="font-size: 12px; opacity: 0.85; font-weight: normal;">有 ${missingCount} 首歌曲缺少${missingType}信息</span>`;
                     }
-                }
-                window.showToast(successMsg);
+                    window.showToast(successMsg);
 
-                const sortedIds = currentSongs.map(s => s.id);
-                fetch(`/api/v1/playlists/${pl.id}/songs/reorder`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ song_ids: sortedIds })
-                }).then(res => {
-                    if (!res.ok) window.showToast("⚠️ 排序结果云端保存失败");
-                }).catch(err => console.error("批量排序提交异常:", err));
+                    const sortedIds = currentSongs.map(s => s.id);
+                    fetch(`/api/v1/playlists/${pl.id}/songs/reorder`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ song_ids: sortedIds })
+                    }).then(res => {
+                        if (!res.ok) window.showToast("⚠️ 排序结果云端保存失败");
+                    }).catch(err => console.error("批量排序提交异常:", err));
 
-                if(sortToolbar){
-                    sortToolbar.style.pointerEvents = 'auto';
-                    sortToolbar.style.opacity = '1';
-                }
-                btn.classList.remove('active');
-            }, 50);
+                    if (sortToolbar) sortToolbar.style.pointerEvents = 'auto';
+
+                    setTimeout(() => {
+                        if (playlistEl) {
+                            playlistEl.style.transition = 'opacity 0.25s ease-in';
+                            playlistEl.style.opacity = '1';
+                        }
+                    }, 450);
+
+                }, 150);
+            });
         },
 
-        executeServerSideSort: async function(pl, finalAction, btn, sortToolbar) {
+        // 🌟 3.3 常规歌单：后端排序
+        executeServerSideSort: async function(pl, finalAction, btn) {
             window.showToast("⏳ 正在重新排序...", true);
-            if(sortToolbar){
-                sortToolbar.style.pointerEvents = 'none';
-                sortToolbar.style.opacity = '0.5';
+            const sortToolbar = document.getElementById('playlist-sort-toolbar');
+            if (sortToolbar) sortToolbar.style.pointerEvents = 'none';
+
+            const playlistEl = document.getElementById('playlist');
+            if (playlistEl) {
+                playlistEl.style.transition = 'none';
+                playlistEl.style.opacity = '0';
             }
 
             try {
@@ -292,6 +538,10 @@
                         if (typeof window.reloadGlobalData === 'function') await window.reloadGlobalData();
                     }
                     if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
+
+                    // 🌟 纯静默 DOM 过滤补偿
+                    setTimeout(() => this.applySilentFilter(), 400);
+
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                     document.getElementById('scroll-wrapper')?.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
@@ -300,11 +550,14 @@
             } catch (e) {
                 window.showToast("❌ 网络请求异常");
             } finally {
-                if(sortToolbar){
-                    sortToolbar.style.pointerEvents = 'auto';
-                    sortToolbar.style.opacity = '1';
-                }
-                btn.classList.remove('active');
+                if (sortToolbar) sortToolbar.style.pointerEvents = 'auto';
+
+                setTimeout(() => {
+                    if (playlistEl) {
+                        playlistEl.style.transition = 'opacity 0.25s ease-in';
+                        playlistEl.style.opacity = '1';
+                    }
+                }, 450);
             }
         },
 
@@ -312,7 +565,7 @@
         // 🖐️ 4. 手动拖拽引擎 (DOM操作与事件监听)
         // ==========================================
         toggleManualMode: function() {
-            if (window.currentPlaylist === '我的歌单' || window.currentPlaylist === '在线资源' || window.currentPlaylist === '曲库搜索') {
+            if (window.currentPlaylist === '我的歌单' || window.currentPlaylist === '所有歌曲' || window.currentPlaylist === '在线资源' || window.currentPlaylist === '曲库搜索') {
                 window.showToast("💡 仅支持自定义本地歌单进行手动排序");
                 this.isActive = false;
                 return;
