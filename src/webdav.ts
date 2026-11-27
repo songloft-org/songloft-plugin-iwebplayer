@@ -54,11 +54,94 @@ function formatScanTime(): string {
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
+// 🌟 UTF-8 请求体安全解析器（防止中文节点名与文件夹名乱码）
+function parseRequestBody(req: HTTPRequest): any {
+    if (!req.body) return {};
+    try {
+        if (typeof req.body === 'string') return JSON.parse(req.body);
+        const bytes = req.body as Uint8Array;
+        const TD = (globalThis as any).TextDecoder;
+        if (TD) return JSON.parse(new TD('utf-8').decode(bytes));
+
+        let out = '', i = 0;
+        const len = bytes.length;
+        while (i < len) {
+            const c = bytes[i++];
+            if (c < 0x80) out += String.fromCharCode(c);
+            else if (c < 0xE0) out += String.fromCharCode(((c & 0x1F) << 6) | (bytes[i++] & 0x3F));
+            else if (c < 0xF0) out += String.fromCharCode(((c & 0x0F) << 12) | ((bytes[i++] & 0x3F) << 6) | (bytes[i++] & 0x3F));
+            else {
+                const u = (((c & 0x07) << 18) | ((bytes[i++] & 0x3F) << 12) | ((bytes[i++] & 0x3F) << 6) | (bytes[i++] & 0x3F)) - 0x10000;
+                out += String.fromCharCode(0xD800 + (u >> 10), 0xDC00 + (u & 0x3FF));
+            }
+        }
+        return JSON.parse(out);
+    } catch (e) {
+        return {};
+    }
+}
+
+// 🌟 WebDAV 文件夹歌曲通用排序器
+function sortDavSongs(songs: any[], rule?: { type?: string; order?: string }) {
+    if (!Array.isArray(songs) || songs.length <= 1 || !rule || !rule.type || rule.type === 'random') return;
+    const { type, order = 'asc' } = rule;
+
+    const cleanArtist = (v: any): string => {
+        const s = v ? String(v).trim() : '';
+        return (s === '未知歌手' || s === '未知') ? '' : s;
+    };
+    const getFileName = (idVal: any): string => {
+        if (!idVal) return '';
+        const str = String(idVal).trim();
+        if (!str || str.startsWith('dav_temp_')) return '';
+        return str.split('/').pop() || '';
+    };
+    const compareStr = (a: string, b: string): number => {
+        try { return a.localeCompare(b, 'zh-CN'); }
+        catch (e) { return a.localeCompare(b); }
+    };
+
+    songs.sort((a, b) => {
+        let valA = '', valB = '';
+        if (type === 'name') {
+            valA = getFileName(a.id);
+            valB = getFileName(b.id);
+        } else if (type === 'song') {
+            valA = a.title ? String(a.title).trim() : '';
+            valB = b.title ? String(b.title).trim() : '';
+        } else if (type === 'artist') {
+            valA = cleanArtist(a.artist);
+            valB = cleanArtist(b.artist);
+        } else {
+            return 0;
+        }
+
+        // 缺失项（含“未知歌手”）统一沉底
+        if (!valA && valB) return 1;
+        if (valA && !valB) return -1;
+        if (!valA && !valB) return 0;
+
+        return order === 'asc' ? compareStr(valA, valB) : compareStr(valB, valA);
+    });
+}
+
 // 🌐 异步递归扫描核心
 async function runScanTask(version: number, hostUrl: string, token: string, davId: string, rootPath: string) {
     const queue: string[] = [rootPath];
     const resultLibrary: Record<string, any[]> = {};
     let lastWriteTime = Date.now();
+
+    // 🌟 1. 扫描前先读取旧曲库中的 sorts 排序记录
+    let savedSorts: Record<string, { type: string; order: string }> = {};
+    try {
+        const oldCacheStr = await safeStorageGet(`webdav_lib_${davId}`);
+        if (oldCacheStr) {
+            const oldCache = JSON.parse(oldCacheStr);
+            if (oldCache && oldCache.sorts && typeof oldCache.sorts === 'object') {
+                savedSorts = oldCache.sorts;
+            }
+        }
+    } catch (e) {}
 
     try {
         while (queue.length > 0) {
@@ -104,11 +187,15 @@ async function runScanTask(version: number, hostUrl: string, token: string, davI
 
                 if (audioItems.length > 0) {
                     let plName = currentPath === '/' ? '根目录' : currentPath.split('/').pop() || '未知文件夹';
+                    // 🌟 2. 若该文件夹有历史排序记录，当场按记录排好序
+                    if (savedSorts[plName]) {
+                        sortDavSongs(audioItems, savedSorts[plName]);
+                    }
                     resultLibrary[plName] = audioItems;
                     scannedFoldersCount++;
                 }
 
-                // ⏱️ 3秒心跳批处理写入：加上 folders, songs, time 元数据
+                // ⏱️ 3秒心跳批处理写入：加上 folders, songs, time, sorts 元数据
                 if (Date.now() - lastWriteTime > 3000) {
                     let totalSongs = 0;
                     for (const list of Object.values(resultLibrary)) totalSongs += list.length;
@@ -117,6 +204,7 @@ async function runScanTask(version: number, hostUrl: string, token: string, davI
                         folders: Object.keys(resultLibrary).length,
                         songs: totalSongs,
                         time: formatScanTime(),
+                        sorts: savedSorts,
                         library: resultLibrary
                     };
                     await safeStorageSet(`webdav_lib_${davId}`, JSON.stringify(libData));
@@ -132,10 +220,20 @@ async function runScanTask(version: number, hostUrl: string, token: string, davI
             let totalSongs = 0;
             for (const list of Object.values(resultLibrary)) totalSongs += list.length;
 
+            // 🌟 3. 扫库完成：仅保留本次扫描依然存在的文件夹排序记录（自动剔除已删除文件夹）
+            const cleanedSorts: Record<string, { type: string; order: string }> = {};
+            for (const folderName of Object.keys(resultLibrary)) {
+                if (savedSorts[folderName]) {
+                    cleanedSorts[folderName] = savedSorts[folderName];
+                    sortDavSongs(resultLibrary[folderName], cleanedSorts[folderName]);
+                }
+            }
+
             const libData = {
                 folders: Object.keys(resultLibrary).length,
                 songs: totalSongs,
                 time: formatScanTime(),
+                sorts: cleanedSorts,
                 library: resultLibrary
             };
             await safeStorageSet(`webdav_lib_${davId}`, JSON.stringify(libData));
@@ -305,6 +403,51 @@ export function setupWebDAVRoutes(router: any) {
         if (!davId) return jsonResponse({ error: "Missing davId" }, 400);
         const cacheStr = await safeStorageGet(`webdav_lib_${davId}`);
         return jsonResponse(cacheStr ? JSON.parse(cacheStr) : {});
+    });
+
+    // 4. 🌟 保存 WebDAV 文件夹排序规则并落盘更新顺序
+    router.post('/dav/sort', async (req: HTTPRequest) => {
+        const data = parseRequestBody(req);
+        const { davId, folder, type, order, sortedIds } = data;
+        if (!davId || !folder || !type || type === 'random') {
+            return jsonResponse({ error: "Invalid parameters" }, 400);
+        }
+
+        const cacheStr = await safeStorageGet(`webdav_lib_${davId}`);
+        if (!cacheStr) return jsonResponse({ error: "Library not found" }, 404);
+
+        try {
+            const libData = JSON.parse(cacheStr);
+            if (!libData || !libData.library) return jsonResponse({ error: "Invalid library" }, 404);
+
+            libData.sorts = (libData.sorts && typeof libData.sorts === 'object') ? libData.sorts : {};
+            libData.sorts[folder] = { type, order: order || 'asc' };
+
+            if (Array.isArray(libData.library[folder])) {
+                if (Array.isArray(sortedIds) && sortedIds.length > 0) {
+                    const songMap = new Map<string, any>();
+                    for (const s of libData.library[folder]) songMap.set(String(s.id), s);
+                    const reordered: any[] = [];
+                    for (const id of sortedIds) {
+                        const found = songMap.get(String(id));
+                        if (found) {
+                            reordered.push(found);
+                            songMap.delete(String(id));
+                        }
+                    }
+                    for (const rest of songMap.values()) reordered.push(rest);
+                    libData.library[folder] = reordered;
+                } else {
+                    sortDavSongs(libData.library[folder], libData.sorts[folder]);
+                }
+            }
+
+            await safeStorageSet(`webdav_lib_${davId}`, JSON.stringify(libData));
+            broadcastWebDavLibrary(davId, libData);
+            return jsonResponse({ ok: true });
+        } catch (e) {
+            return jsonResponse({ error: "Failed to save sort" }, 500);
+        }
     });
 
 }
