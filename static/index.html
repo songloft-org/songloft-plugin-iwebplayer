@@ -1306,11 +1306,11 @@
   <script src="./static/utils.js?v1.5.1" defer></script>
   <script src="./static/lyrics.js?v1.3.3" defer></script>
   <script src="./static/playlist.js?v1.5.1" defer></script>
-  <script src="./static/online.js?v1.5.1" defer></script>
+  <script src="./static/online.js?v1.5.2" defer></script>
   <script src="./static/plugins.js?v1.3.0" defer></script>
   <script src="./static/player.js?v1.3.11" defer></script>
   <script src="./static/miot.js?v1.3.12" defer></script>
-  <script src="./static/sort.js?v1.5.1" defer></script>
+  <script src="./static/sort.js?v1.5.2" defer></script>
 
 </head>
 <body>
@@ -2368,7 +2368,7 @@
     /* ==========================================
      * 2. 核心配置与全局状态变量
      * ========================================== */
-    window.APP_VERSION = 'v1.5.1';
+    window.APP_VERSION = 'v1.5.2';
     window.APP_LOGO = document.getElementById('app-logo')?.content || '';
     window.PREDEFINED_PLAYLISTS = ['我的歌单', '所有歌曲', '收藏', '下载', '最近新增', '所有电台', '在线资源', '曲库搜索', 'cache_songs'];
     window.API = { list: './musiclist', info: './musicinfo?id=', refreshList: './refreshlist', cmdStatus: './cmdstatus' };
@@ -2837,12 +2837,9 @@
                     const systemBasics = ['我的歌单', '下载', '最近新增', '所有电台', '曲库搜索', 'cache_songs', '电台收藏'];
                     let isSortable = !systemBasics.includes(window.currentPlaylist);
 
-                    // 🌟 核心拦截：如果在线资源处于海报墙视图，或者当前是 WebDAV 引擎，统统隐藏排序菜单！
-                    if (window.currentPlaylist === '在线资源') {
-                        const isWebDav = window.PluginManager?.currentEngineName === 'WebDAV';
-                        if (window.currentOnlineView === 'playlist' || isWebDav) {
-                            isSortable = false;
-                        }
+                    // 🌟 核心拦截：如果是在线资源，且当前显示的是“歌单列表(海报墙)”，绝对不允许显示排序菜单！
+                    if (window.currentPlaylist === '在线资源' && window.currentOnlineView === 'playlist') {
+                        isSortable = false;
                     }
 
                     sortBtn.style.display = isSortable ? 'flex' : 'none';

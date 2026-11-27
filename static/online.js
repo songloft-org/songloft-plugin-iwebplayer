@@ -1094,9 +1094,11 @@
             let metaSongs = 0;
             let metaTime = '-';
 
-            // 🌟 智能解包：支持带 metadata 的新格式与老格式
+            // 🌟 智能解包：支持带 metadata / sorts 的新格式与老格式
+            let savedSorts = {};
             if (rawData && rawData.library) {
                 libraryData = rawData.library;
+                savedSorts = rawData.sorts || {};
                 metaFolders = rawData.folders || Object.keys(libraryData).length;
                 metaSongs = rawData.songs || 0;
                 metaTime = rawData.time || '-';
@@ -1105,6 +1107,37 @@
                 metaFolders = Object.keys(libraryData).length;
                 for (const k in libraryData) {
                     if (Array.isArray(libraryData[k])) metaSongs += libraryData[k].length;
+                }
+            }
+
+            // 🌟 中文拼音排序二次校准（弥补后台轻量 JS 引擎无完整拼音字典的差异）
+            if (savedSorts && typeof savedSorts === 'object') {
+                const cleanArtist = (v) => {
+                    const s = v ? String(v).trim() : '';
+                    return (s === '未知歌手' || s === '未知') ? '' : s;
+                };
+                const getDavFileName = (s) => {
+                    const rawId = s?.id ? String(s.id).trim() : '';
+                    if (!rawId || rawId.startsWith('dav_temp_')) return '';
+                    return rawId.split('/').pop() || '';
+                };
+                for (const [folderName, rule] of Object.entries(savedSorts)) {
+                    const arr = libraryData[folderName];
+                    if (!Array.isArray(arr) || arr.length <= 1 || !rule?.type || rule.type === 'random') continue;
+                    const stype = rule.type;
+                    const sorder = rule.order || 'asc';
+                    arr.sort((a, b) => {
+                        let valA = '', valB = '';
+                        if (stype === 'name') { valA = getDavFileName(a); valB = getDavFileName(b); }
+                        else if (stype === 'song') { valA = a.title ? String(a.title).trim() : ''; valB = b.title ? String(b.title).trim() : ''; }
+                        else if (stype === 'artist') { valA = cleanArtist(a.artist); valB = cleanArtist(b.artist); }
+                        else return 0;
+
+                        if (!valA && valB) return 1;
+                        if (valA && !valB) return -1;
+                        if (!valA && !valB) return 0;
+                        return sorder === 'asc' ? valA.localeCompare(valB, 'zh-CN') : valB.localeCompare(valA, 'zh-CN');
+                    });
                 }
             }
 
@@ -1150,6 +1183,17 @@
     };
 
     window.renderWebDavFolder = function(folderName, songs, isSearch = false, isHistory = false) {
+        // 🌟 切入文件夹时，若搜索页留有展开的排序栏，顺手收起并重置
+        const sortToolbar = document.getElementById('playlist-sort-toolbar');
+        if (sortToolbar && sortToolbar.style.display === 'flex') {
+            sortToolbar.style.display = 'none';
+            const menuSortPlaylist = document.getElementById('menu-sort-playlist');
+            if (menuSortPlaylist) {
+                menuSortPlaylist.style.color = '';
+                menuSortPlaylist.style.fontWeight = 'normal';
+            }
+        }
+
         window.currentOnlineView = 'detail';
         window.setOnlineState({ view: 'detail', detail_name: folderName });
         window.refreshOnlineUI();
@@ -1163,8 +1207,10 @@
         if(grid) grid.style.display = 'none';
         if(list) list.style.display = 'block';
 
-        window.songList = songs;
-        window.allPlaylists['在线资源'] = songs;
+        // 🌟 浅拷贝数组隔离：点击“随机”只打乱当前视图，退出重进自动恢复记录的顺序
+        const viewSongs = Array.isArray(songs) ? [...songs] : [];
+        window.songList = viewSongs;
+        window.allPlaylists['在线资源'] = viewSongs;
 
         if (!isSearch && !isHistory && typeof window.saveSearchHistory === 'function') {
             window.saveSearchHistory({ type: 'playlist', id: folderName, name: folderName, engine: 'WebDAV', platform: window.webdavData.currentServer || '' });

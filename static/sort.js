@@ -60,12 +60,13 @@
                 if (manualBtn) manualBtn.style.display = isVirtual ? 'none' : 'flex';
                 if (numberBtn) numberBtn.style.display = isVirtual ? 'none' : 'flex';
 
-                // 🌟 动态拦截 2：如果是 LXMusic 引擎，再把“名称”和“最近”干掉
-                const isLxOnline = (window.currentPlaylist === '在线资源' && window.PluginManager && window.PluginManager.currentEngineName === 'LXMusic');
+                // 🌟 动态拦截 2：LXMusic 干掉“名称”和“最近”；WebDAV 干掉“最近”
+                const isLxOnline = (window.currentPlaylist === '在线资源' && window.PluginManager?.currentEngineName === 'LXMusic');
+                const isDavOnline = (window.currentPlaylist === '在线资源' && window.PluginManager?.currentEngineName === 'WebDAV');
                 const nameBtn = document.querySelector('.sort-btn[data-type="name"]');
                 const recentBtn = document.querySelector('.sort-btn[data-type="recent"]');
                 if (nameBtn) nameBtn.style.display = isLxOnline ? 'none' : 'flex';
-                if (recentBtn) recentBtn.style.display = isLxOnline ? 'none' : 'flex';
+                if (recentBtn) recentBtn.style.display = (isLxOnline || isDavOnline) ? 'none' : 'flex';
 
                 if (isShown) {
                     sortToolbar.style.display = 'none';
@@ -201,12 +202,9 @@
             const systemBasics = ['我的歌单', '下载', '最近新增', '所有电台', '曲库搜索', 'cache_songs', '电台收藏'];
             let disableSort = systemBasics.includes(playlistName);
 
-            // 🌟 动态拦截：在线资源显示海报墙歌单时，或者切到了 WebDAV 时，强制收起且隐藏工具栏
-            if (playlistName === '在线资源') {
-                const isWebDav = window.PluginManager?.currentEngineName === 'WebDAV';
-                if (window.currentOnlineView === 'playlist' || isWebDav) {
-                    disableSort = true;
-                }
+            // 🌟 动态拦截：在线资源显示海报墙歌单时，强制当做不支持排序处理（收起且隐藏工具栏）
+            if (playlistName === '在线资源' && window.currentOnlineView === 'playlist') {
+                disableSort = true;
             }
             if (disableSort) {
                 if (menuSortPlaylist) menuSortPlaylist.style.display = 'none';
@@ -250,10 +248,11 @@
             if (manualBtn) manualBtn.style.display = isVirtual ? 'none' : 'flex';
             if (numberBtn) numberBtn.style.display = isVirtual ? 'none' : 'flex';
 
-            // 🌟 针对 LXMusic 隐藏名称与最近
-            const isLxOnline = (playlistName === '在线资源' && window.PluginManager && window.PluginManager.currentEngineName === 'LXMusic');
+            // 🌟 针对 LXMusic 隐藏名称与最近；针对 WebDAV 隐藏最近
+            const isLxOnline = (playlistName === '在线资源' && window.PluginManager?.currentEngineName === 'LXMusic');
+            const isDavOnline = (playlistName === '在线资源' && window.PluginManager?.currentEngineName === 'WebDAV');
             if (nameBtn) nameBtn.style.display = isLxOnline ? 'none' : 'flex';
-            if (recentBtn) recentBtn.style.display = isLxOnline ? 'none' : 'flex';
+            if (recentBtn) recentBtn.style.display = (isLxOnline || isDavOnline) ? 'none' : 'flex';
 
             sortBtns.forEach(btn => {
                 if (btn.dataset.type === 'manual') return;
@@ -308,8 +307,22 @@
                 setTimeout(() => {
                     const order = btn.dataset.order || 'desc';
                     const currentSongs = window.allPlaylists[plName] || [];
+                    const isDavOnline = (plName === '在线资源' && window.PluginManager?.currentEngineName === 'WebDAV');
                     let missingCount = 0;
                     let missingType = '';
+
+                    const cleanArtist = (v) => {
+                        const s = v ? String(v).trim() : '';
+                        return (s === '未知歌手' || s === '未知') ? '' : s;
+                    };
+                    const getTargetFileName = (s) => {
+                        if (isDavOnline) {
+                            const rawId = s?.id ? String(s.id).trim() : '';
+                            if (!rawId || rawId.startsWith('dav_temp_')) return '';
+                            return rawId.split('/').pop() || '';
+                        }
+                        return s?.file_path ? String(s.file_path).split('/').pop() : '';
+                    };
 
                     if (type === 'random') {
                         // 纯粹打乱
@@ -321,20 +334,24 @@
                         currentSongs.sort((a, b) => {
                             let valA, valB;
                             if (type === 'name') {
-                                // 提取文件名（含后缀）
-                                const getFileName = (path) => path ? String(path).split('/').pop() : '';
-                                valA = getFileName(a.file_path);
-                                valB = getFileName(b.file_path);
-                                // 没有 file_path 的在线歌曲沉到底部
+                                valA = getTargetFileName(a);
+                                valB = getTargetFileName(b);
                                 if (!valA && valB) return 1;
                                 if (valA && !valB) return -1;
                                 if (!valA && !valB) return 0;
                             } else if (type === 'song') {
-                                valA = a.title || "";
-                                valB = b.title || "";
+                                valA = a.title ? String(a.title).trim() : "";
+                                valB = b.title ? String(b.title).trim() : "";
+                                if (!valA && valB) return 1;
+                                if (valA && !valB) return -1;
+                                if (!valA && !valB) return 0;
                             } else if (type === 'artist') {
-                                valA = a.artist || "";
-                                valB = b.artist || "";
+                                valA = cleanArtist(a.artist);
+                                valB = cleanArtist(b.artist);
+                                // 缺失歌手（含“未知歌手”）统一沉底
+                                if (!valA && valB) return 1;
+                                if (valA && !valB) return -1;
+                                if (!valA && !valB) return 0;
                             } else if (type === 'recent') {
                                 valA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
                                 valB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
@@ -352,36 +369,56 @@
 
                     // 统计缺失信息
                     if (type === 'name') {
-                        missingCount = currentSongs.filter(s => !s.file_path || String(s.file_path).trim() === '').length;
-                        missingType = '本地文件路径';
+                        missingCount = currentSongs.filter(s => !getTargetFileName(s)).length;
+                        missingType = isDavOnline ? '文件名称' : '本地文件路径';
                     } else if (type === 'song') {
                         missingCount = currentSongs.filter(s => !s.title || String(s.title).trim() === '').length;
                         missingType = '歌曲名称';
                     } else if (type === 'artist') {
-                        missingCount = currentSongs.filter(s => !s.artist || String(s.artist).trim() === '').length;
+                        missingCount = currentSongs.filter(s => !cleanArtist(s.artist)).length;
                         missingType = '歌手';
                     }
 
-                    // 🌟 极简保存偏好：仅对“所有歌曲”生效，其它一律不保存本地
+                    // 🌟 保存偏好分流
                     if (plName === '所有歌曲') {
                         let prefs = {};
                         try { prefs = JSON.parse(localStorage.getItem('iwebplayer.virtual_sort_prefs') || '{}'); } catch(e){}
                         prefs['所有歌曲'] = { type: type, order: order };
                         localStorage.setItem('iwebplayer.virtual_sort_prefs', JSON.stringify(prefs));
                     } else if (plName === '在线资源' && window.PluginManager?.currentEngineName === 'LXMusic' && window.currentOnlineView === 'detail') {
-                        // 🌟 针对 LXMusic 歌单，将排序结果悄悄挂在对应的搜索历史记录里
+                        // 🌟 针对 LXMusic 歌单，将排序结果挂在对应的搜索历史记录里
                         try {
                             const state = window.StateManager.getState();
                             let history = JSON.parse(localStorage.getItem('iwebplayer.search_history') || '[]');
-                            // 查找历史记录中，匹配当前正在播放的那个歌单
                             const idx = history.findIndex(h => h.type === 'playlist' && (h.id === state.detail_id || h.name === state.detail_name));
                             if (idx !== -1) {
                                 history[idx].sort = { type: type, order: order };
                                 localStorage.setItem('iwebplayer.search_history', JSON.stringify(history));
                             }
                         } catch(e) {}
+                    } else if (isDavOnline && window.currentOnlineView === 'detail' && type !== 'random') {
+                        // 🌟 针对 WebDAV 文件夹详情页（非随机、非搜索页）：更新内存曲库并通知后端落盘记录
+                        const davId = window.webdavData?.currentServer;
+                        const folder = window.StateManager?.getState()?.detail_name;
+                        if (davId && folder) {
+                            if (window.webdavData.library) window.webdavData.library[folder] = [...currentSongs];
+                            if (window.webdavData.cachePool?.[davId]) window.webdavData.cachePool[davId][folder] = [...currentSongs];
+
+                            fetch('/api/v1/jsplugin/iwebplayer/dav/sort', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    davId: davId,
+                                    folder: folder,
+                                    type: type,
+                                    order: order,
+                                    sortedIds: currentSongs.map(s => s.id)
+                                })
+                            }).catch(() => {});
+                        }
                     }
 
+                    window.songList = currentSongs;
                     if (typeof window.renderPlaylist === 'function') window.renderPlaylist();
 
                     // 🌟 纯静默 DOM 过滤补偿
